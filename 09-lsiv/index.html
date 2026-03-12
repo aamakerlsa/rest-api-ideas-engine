@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSIV - Legislative Session Intelligence View</title>
+    <style>
+        :root {
+            --navy: #1b2a4a;
+            --navy-light: #2c3e6b;
+            --navy-dark: #111d33;
+            --gold: #c9a94e;
+            --gold-light: #e8d48b;
+            --gold-dim: rgba(201,169,78,0.15);
+            --white: #ffffff;
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --border: #e2e4e8;
+            --text: #2d3748;
+            --text-muted: #718096;
+            --green: #38a169;
+            --green-bg: rgba(56,161,105,0.1);
+            --red: #e53e3e;
+            --red-bg: rgba(229,62,62,0.1);
+            --blue: #3182ce;
+            --blue-bg: rgba(49,130,206,0.1);
+            --orange: #dd6b20;
+            --purple: #805ad5;
+            --shadow: 0 2px 8px rgba(27,42,74,0.08);
+            --shadow-md: 0 4px 16px rgba(27,42,74,0.12);
+            --shadow-lg: 0 8px 24px rgba(27,42,74,0.15);
+            --radius: 10px;
+            --radius-sm: 6px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            color: var(--white);
+            padding: 0;
+            border-bottom: 4px solid var(--gold);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-link {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover { opacity: 1; }
+
+        .header-brand h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header-brand .tagline {
+            font-size: 0.8rem;
+            color: var(--gold-light);
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .session-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .session-selector label {
+            font-size: 0.8rem;
+            color: var(--gold-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .session-selector select {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(201,169,78,0.4);
+            color: var(--white);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .session-selector select option {
+            background: var(--navy);
+            color: var(--white);
+        }
+
+        .refresh-btn {
+            background: var(--gold);
+            color: var(--navy);
+            border: none;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover { background: var(--gold-light); }
+
+        .last-updated {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            text-align: right;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Section Styling */
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--navy);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title .icon {
+            width: 20px;
+            height: 20px;
+            background: var(--gold);
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--navy);
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--gold);
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .kpi-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .kpi-card .kpi-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .kpi-card .kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--navy);
+            line-height: 1.1;
+        }
+
+        .kpi-card .kpi-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .kpi-card .kpi-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin-top: 6px;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .kpi-trend.up { color: var(--green); background: var(--green-bg); }
+        .kpi-trend.down { color: var(--red); background: var(--red-bg); }
+        .kpi-trend.neutral { color: var(--text-muted); background: var(--bg); }
+
+        .kpi-card .sparkline {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 80px;
+            height: 36px;
+            opacity: 0.25;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover { box-shadow: var(--shadow-md); }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--navy);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Two-column layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .three-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* Funnel Visualization */
+        .funnel-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 16px 0;
+        }
+
+        .funnel-step {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 52px;
+            border-radius: 6px;
+            color: var(--white);
+            font-weight: 700;
+            font-size: 0.85rem;
+            position: relative;
+            transition: transform 0.2s;
+            text-align: center;
+            padding: 0 16px;
+        }
+
+        .funnel-step:hover { transform: scale(1.02); }
+
+        .funnel-step .funnel-count {
+            font-size: 1.4rem;
+            margin-right: 10px;
+            font-weight: 800;
+        }
+
+        .funnel-step .funnel-label {
+            font-size: 0.78rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .funnel-step .funnel-pct {
+            position: absolute;
+            right: -60px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .funnel-connector {
+            width: 2px;
+            height: 6px;
+            background: var(--border);
+        }
+
+        /* Chamber Comparison */
+        .chamber-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 0;
+            align-items: start;
+        }
+
+        .chamber-side {
+            padding: 16px;
+        }
+
+        .chamber-divider {
+            width: 2px;
+            background: var(--border);
+            min-height: 200px;
+            align-self: stretch;
+        }
+
+        .chamber-header {
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gold);
+            color: var(--navy);
+        }
+
+        .chamber-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--bg);
+        }
+
+        .chamber-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .chamber-stat-value {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--navy);
+        }
+
+        /* Donut Chart (CSS-only) */
+        .donut-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .donut {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donut-hole {
+            width: 70px;
+            height: 70px;
+            background: var(--card-bg);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .donut-hole .donut-total {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--navy);
+            line-height: 1;
+        }
+
+        .donut-hole .donut-label-inner {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .donut-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+        }
+
+        .legend-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .legend-value {
+            font-weight: 700;
+            margin-left: auto;
+            padding-left: 12px;
+        }
+
+        /* Horizontal Bar Chart */
+        .hbar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .hbar-row {
+            display: grid;
+            grid-template-columns: 140px 1fr 50px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .hbar-label {
+            font-size: 0.75rem;
+            color: var(--text);
+            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .hbar-track {
+            height: 22px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hbar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s ease;
+            min-width: 2px;
+        }
+
+        .hbar-value {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--navy);
+        }
+
+        /* Heatmap */
+        .heatmap-grid {
+            display: grid;
+            gap: 3px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 3px;
+            cursor: default;
+            transition: transform 0.15s;
+            position: relative;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.3);
+            z-index: 5;
+        }
+
+        .heatmap-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .heatmap-legend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 10px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .heatmap-legend-cell {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+        }
+
+        /* Vote Analysis */
+        .vote-metric {
+            text-align: center;
+            padding: 12px;
+        }
+
+        .vote-metric-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--navy);
+        }
+
+        .vote-metric-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .vote-metrics-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .contested-list {
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .contested-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--bg);
+            font-size: 0.8rem;
+            transition: background 0.15s;
+        }
+
+        .contested-item:hover { background: var(--bg); }
+
+        .contested-bill {
+            font-weight: 600;
+            color: var(--navy);
+        }
+
+        .contested-margin {
+            font-size: 0.72rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .margin-tight { background: var(--red-bg); color: var(--red); }
+        .margin-ok { background: var(--gold-dim); color: var(--orange); }
+        .margin-wide { background: var(--green-bg); color: var(--green); }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding: 10px 0 10px 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 10px 0 10px 20px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 14px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--gold);
+            border: 2px solid var(--card-bg);
+            box-shadow: 0 0 0 2px var(--gold);
+        }
+
+        .timeline-date {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .timeline-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--navy);
+        }
+
+        .timeline-detail {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Quick Links */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .quick-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow);
+            text-decoration: none;
+            color: var(--navy);
+            font-weight: 600;
+            font-size: 0.82rem;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .quick-link:hover {
+            border-color: var(--gold);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .quick-link .ql-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gold-dim);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        /* Multi-session Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .comparison-table thead th {
+            background: var(--navy);
+            color: var(--white);
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+        }
+
+        .comparison-table tbody tr {
+            transition: background 0.15s;
+        }
+
+        .comparison-table tbody tr:hover { background: var(--gold-dim); }
+        .comparison-table tbody tr:nth-child(even) { background: var(--bg); }
+        .comparison-table tbody tr:nth-child(even):hover { background: var(--gold-dim); }
+
+        .comparison-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .trend-arrow {
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .trend-arrow.up { color: var(--green); }
+        .trend-arrow.down { color: var(--red); }
+
+        /* Skeleton Loaders */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg) 25%, #e8e9ed 50%, var(--bg) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-text { height: 14px; margin-bottom: 8px; }
+        .skeleton-value { height: 32px; width: 80px; margin-bottom: 6px; }
+        .skeleton-bar { height: 22px; margin-bottom: 6px; }
+        .skeleton-circle { border-radius: 50%; }
+
+        /* API Status */
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.68rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .api-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+        }
+
+        .api-dot.error { background: var(--red); }
+        .api-dot.loading { background: var(--gold); animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: #c1c7d0; border-radius: 3px; }
+
+        /* Footer */
+        footer {
+            background: var(--navy-dark);
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            padding: 16px;
+            font-size: 0.72rem;
+            margin-top: 40px;
+        }
+
+        footer a { color: var(--gold-light); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .two-col, .three-col { grid-template-columns: 1fr; }
+            .chamber-grid { grid-template-columns: 1fr; }
+            .chamber-divider { width: 100%; height: 2px; min-height: auto; }
+        }
+
+        @media (max-width: 768px) {
+            .header-top { flex-direction: column; gap: 12px; text-align: center; }
+            .header-right { flex-direction: column; }
+            .container { padding: 16px; }
+            .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+            .kpi-card .kpi-value { font-size: 1.5rem; }
+            .hbar-row { grid-template-columns: 100px 1fr 40px; }
+            .funnel-step .funnel-pct { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .kpi-grid { grid-template-columns: 1fr 1fr; }
+            .quick-links { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* Print */
+        @media print {
+            header { position: static; }
+            .card { break-inside: avoid; box-shadow: none; border: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-top">
+            <div class="header-left">
+                <a href="../index.html" class="back-link">&#8592; Ideas Engine</a>
+                <div class="header-brand">
+                    <h1>LSIV</h1>
+                    <div class="tagline">The session at 30,000 feet.</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="session-selector">
+                    <label for="sessionSelect">Session</label>
+                    <select id="sessionSelect"></select>
+                </div>
+                <button class="refresh-btn" onclick="loadAllData()">Refresh</button>
+                <div>
+                    <div class="api-status">
+                        <span class="api-dot loading" id="apiDot"></span>
+                        <span id="apiStatusText">Connecting...</span>
+                    </div>
+                    <div class="last-updated" id="lastUpdated"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- KPI Cards -->
+        <div class="section">
+            <div class="section-title"><span class="icon">K</span> Key Performance Indicators</div>
+            <div class="kpi-grid" id="kpiGrid">
+                <div class="kpi-card"><div class="skeleton skeleton-text" style="width:60%"></div><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text" style="width:40%"></div></div>
+                <div class="kpi-card"><div class="skeleton skeleton-text" style="width:60%"></div><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text" style="width:40%"></div></div>
+                <div class="kpi-card"><div class="skeleton skeleton-text" style="width:60%"></div><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text" style="width:40%"></div></div>
+                <div class="kpi-card"><div class="skeleton skeleton-text" style="width:60%"></div><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text" style="width:40%"></div></div>
+                <div class="kpi-card"><div class="skeleton skeleton-text" style="width:60%"></div><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text" style="width:40%"></div></div>
+            </div>
+        </div>
+
+        <!-- Bill Pipeline Funnel + Vote Analysis -->
+        <div class="section">
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">Bill Pipeline Funnel</div>
+                    <div id="funnelViz" class="funnel-container">
+                        <div class="skeleton skeleton-bar" style="width:90%;height:48px"></div>
+                        <div class="skeleton skeleton-bar" style="width:75%;height:48px"></div>
+                        <div class="skeleton skeleton-bar" style="width:60%;height:48px"></div>
+                        <div class="skeleton skeleton-bar" style="width:45%;height:48px"></div>
+                        <div class="skeleton skeleton-bar" style="width:30%;height:48px"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Vote Analysis</div>
+                    <div id="voteAnalysis">
+                        <div class="vote-metrics-row">
+                            <div class="vote-metric"><div class="skeleton skeleton-value" style="margin:0 auto"></div><div class="skeleton skeleton-text" style="width:80%;margin:6px auto 0"></div></div>
+                            <div class="vote-metric"><div class="skeleton skeleton-value" style="margin:0 auto"></div><div class="skeleton skeleton-text" style="width:80%;margin:6px auto 0"></div></div>
+                            <div class="vote-metric"><div class="skeleton skeleton-value" style="margin:0 auto"></div><div class="skeleton skeleton-text" style="width:80%;margin:6px auto 0"></div></div>
+                        </div>
+                        <div class="skeleton skeleton-bar" style="height:150px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chamber Comparison -->
+        <div class="section">
+            <div class="section-title"><span class="icon">C</span> Chamber Comparison</div>
+            <div class="card">
+                <div id="chamberComparison" class="chamber-grid">
+                    <div class="chamber-side"><div class="skeleton skeleton-bar" style="height:200px"></div></div>
+                    <div class="chamber-divider"></div>
+                    <div class="chamber-side"><div class="skeleton skeleton-bar" style="height:200px"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Party Composition + Subject Distribution -->
+        <div class="section">
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">Party Composition</div>
+                    <div id="partyComposition">
+                        <div class="two-col">
+                            <div style="text-align:center"><div class="skeleton skeleton-circle" style="width:120px;height:120px;margin:0 auto"></div></div>
+                            <div style="text-align:center"><div class="skeleton skeleton-circle" style="width:120px;height:120px;margin:0 auto"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Subject Distribution</div>
+                    <div id="subjectChart">
+                        <div class="skeleton skeleton-bar" style="height:18px;width:90%;margin-bottom:8px"></div>
+                        <div class="skeleton skeleton-bar" style="height:18px;width:75%;margin-bottom:8px"></div>
+                        <div class="skeleton skeleton-bar" style="height:18px;width:60%;margin-bottom:8px"></div>
+                        <div class="skeleton skeleton-bar" style="height:18px;width:50%;margin-bottom:8px"></div>
+                        <div class="skeleton skeleton-bar" style="height:18px;width:40%;margin-bottom:8px"></div>
+                        <div class="skeleton skeleton-bar" style="height:18px;width:30%;margin-bottom:8px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meeting Heatmap + Session Timeline -->
+        <div class="section">
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">Meeting Activity Heatmap</div>
+                    <div id="meetingHeatmap">
+                        <div class="skeleton skeleton-bar" style="height:160px"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Session Timeline</div>
+                    <div id="sessionTimeline">
+                        <div class="skeleton skeleton-bar" style="height:160px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Session Comparison -->
+        <div class="section">
+            <div class="section-title"><span class="icon">T</span> Multi-Session Comparison</div>
+            <div class="card" style="overflow-x:auto">
+                <div id="comparisonTable">
+                    <div class="skeleton skeleton-bar" style="height:220px"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="section">
+            <div class="section-title"><span class="icon">Q</span> Quick Links</div>
+            <div class="quick-links" id="quickLinks"></div>
+        </div>
+
+    </div>
+
+    <footer>
+        LSIV &mdash; Legislative Session Intelligence View &mdash; SC General Assembly
+        &middot; Powered by <a href="https://rest.scstatehouse.gov" target="_blank">SC Statehouse REST API</a>
+    </footer>
+
+    <script>
+    const BASE = 'https://rest.scstatehouse.gov';
+    let currentSession = 126;
+    let apiAlive = false;
+
+    // ── Fallback Demo Data ──────────────────────────────────────────
+    const DEMO = {
+        sessions: Array.from({length: 27}, (_, i) => ({
+            sessionid: 100 + i,
+            description: `Session ${100 + i} (${1973 + i * 2}-${1974 + i * 2})`,
+            startyear: 1973 + i * 2,
+            endyear: 1974 + i * 2
+        })),
+        billCount: [
+            {sessionid: 126, billcount: 4250},
+            {sessionid: 125, billcount: 3980},
+            {sessionid: 124, billcount: 4100},
+            {sessionid: 123, billcount: 3750},
+            {sessionid: 122, billcount: 3600}
+        ],
+        chamberStats: {
+            house: { members: 124, bills_introduced: 2800, resolutions: 420, bills_passed: 310 },
+            senate: { members: 46, bills_introduced: 1450, resolutions: 210, bills_passed: 195 }
+        },
+        houseBios: Array.from({length: 124}, (_, i) => ({
+            party: i < 88 ? 'Republican' : (i < 122 ? 'Democrat' : 'Independent')
+        })),
+        senateBios: Array.from({length: 46}, (_, i) => ({
+            party: i < 30 ? 'Republican' : 'Democrat'
+        })),
+        votes: Array.from({length: 180}, (_, i) => ({
+            billnumber: `H.${3000 + i}`,
+            description: `Bill ${i + 1}`,
+            yeas: 50 + Math.floor(Math.random() * 70),
+            nays: 5 + Math.floor(Math.random() * 50),
+            chamber: i % 3 === 0 ? 'Senate' : 'House',
+            date: `2025-${String(1 + (i % 12)).padStart(2,'0')}-${String(1 + (i % 28)).padStart(2,'0')}`
+        })),
+        subjects: [
+            {subject: 'Education', count: 420},
+            {subject: 'Health & Human Services', count: 380},
+            {subject: 'Transportation', count: 310},
+            {subject: 'Criminal Justice', count: 290},
+            {subject: 'Taxation', count: 265},
+            {subject: 'Environment', count: 220},
+            {subject: 'Agriculture', count: 185},
+            {subject: 'Labor & Employment', count: 160},
+            {subject: 'Government Operations', count: 145},
+            {subject: 'Insurance & Banking', count: 130},
+            {subject: 'Judiciary', count: 110},
+            {subject: 'Military & Veterans', count: 85}
+        ],
+        meetings: Array.from({length: 200}, (_, i) => ({
+            meetingdate: `2025-${String(1 + (i % 11)).padStart(2,'0')}-${String(1 + (i % 28)).padStart(2,'0')}`,
+            committee: `Committee ${i % 15}`
+        })),
+        houseCommittees: Array.from({length: 22}, (_, i) => ({name: `House Committee ${i+1}`})),
+        senateCommittees: Array.from({length: 18}, (_, i) => ({name: `Senate Committee ${i+1}`})),
+        video: [{hours: 1250}]
+    };
+
+    // ── Utility ─────────────────────────────────────────────────────
+    async function apiFetch(path) {
+        try {
+            const r = await fetch(BASE + path, {headers: {Accept: 'application/json'}});
+            if (!r.ok) throw new Error(r.status);
+            return await r.json();
+        } catch (e) {
+            console.warn('API error for', path, e);
+            return null;
+        }
+    }
+
+    function num(n) {
+        if (n === null || n === undefined) return '--';
+        return Number(n).toLocaleString();
+    }
+
+    function pct(n, d) {
+        if (!d) return '0%';
+        return (n / d * 100).toFixed(1) + '%';
+    }
+
+    function trendArrow(current, previous) {
+        if (current > previous) return '<span class="trend-arrow up">&#9650;</span>';
+        if (current < previous) return '<span class="trend-arrow down">&#9660;</span>';
+        return '<span class="trend-arrow" style="color:var(--text-muted)">&#9644;</span>';
+    }
+
+    function makeSpark(values, color='#c9a94e') {
+        if (!values || values.length < 2) return '';
+        const max = Math.max(...values), min = Math.min(...values);
+        const range = max - min || 1;
+        const w = 80, h = 36;
+        const pts = values.map((v, i) => {
+            const x = (i / (values.length - 1)) * w;
+            const y = h - ((v - min) / range) * (h - 4) - 2;
+            return `${x},${y}`;
+        }).join(' ');
+        return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    }
+
+    function makeDonut(segments, total) {
+        let offset = 0;
+        const size = 120, r = 52, c = 2 * Math.PI * r;
+        let svgParts = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg)">`;
+        segments.forEach(seg => {
+            const pctVal = seg.value / total;
+            const dashLen = pctVal * c;
+            svgParts += `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${seg.color}" stroke-width="16" stroke-dasharray="${dashLen} ${c - dashLen}" stroke-dashoffset="${-offset}" />`;
+            offset += dashLen;
+        });
+        svgParts += '</svg>';
+        return svgParts;
+    }
+
+    // ── Populate Session Selector ───────────────────────────────────
+    async function initSessions() {
+        const sel = document.getElementById('sessionSelect');
+        let sessions = await apiFetch('/sessions');
+        if (!sessions || !Array.isArray(sessions) || sessions.length === 0) {
+            sessions = DEMO.sessions;
+        }
+        // Sort descending
+        const sorted = [...sessions].sort((a, b) => (b.sessionid || b.session_id || 0) - (a.sessionid || a.session_id || 0));
+        sel.innerHTML = '';
+        sorted.forEach(s => {
+            const id = s.sessionid || s.session_id || s.id;
+            if (id < 100 || id > 126) return;
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = s.description || `Session ${id}`;
+            sel.appendChild(opt);
+        });
+
+        // Try to get current session
+        const cur = await apiFetch('/currentsession');
+        if (cur && (cur.sessionid || cur.session_id)) {
+            currentSession = cur.sessionid || cur.session_id;
+        }
+        sel.value = currentSession;
+        sel.addEventListener('change', () => {
+            currentSession = parseInt(sel.value);
+            loadAllData();
+        });
+    }
+
+    // ── KPI Cards ───────────────────────────────────────────────────
+    async function loadKPIs(billData, votesAll, meetingsH, meetingsS, hComms, sComms, videoData) {
+        const grid = document.getElementById('kpiGrid');
+
+        const totalBills = billData ? (billData.find(b => (b.sessionid || b.session_id) == currentSession)?.billcount || billData.find(b => (b.sessionid || b.session_id) == currentSession)?.bill_count || 0) : DEMO.billCount[0].billcount;
+        const prevBills = billData ? (billData.find(b => (b.sessionid || b.session_id) == currentSession - 1)?.billcount || billData.find(b => (b.sessionid || b.session_id) == currentSession - 1)?.bill_count || 0) : DEMO.billCount[1].billcount;
+
+        const votes = votesAll || DEMO.votes;
+        const totalVotes = Array.isArray(votes) ? votes.length : 0;
+
+        const mH = Array.isArray(meetingsH) ? meetingsH : DEMO.meetings.slice(0, 100);
+        const mS = Array.isArray(meetingsS) ? meetingsS : DEMO.meetings.slice(100);
+        const totalMeetings = mH.length + mS.length;
+
+        const hc = Array.isArray(hComms) ? hComms.length : DEMO.houseCommittees.length;
+        const sc = Array.isArray(sComms) ? sComms.length : DEMO.senateCommittees.length;
+        const totalCommittees = hc + sc;
+
+        const videoHours = Array.isArray(videoData) && videoData.length ? (videoData[0].hours || videoData.length * 2) : DEMO.video[0].hours;
+
+        const billSpark = billData ? billData.slice(0, 5).map(b => b.billcount || b.bill_count || 0).reverse() : DEMO.billCount.map(b => b.billcount).reverse();
+
+        const cards = [
+            {label: 'Total Bills', value: num(totalBills), sub: `Session ${currentSession}`, trend: totalBills > prevBills ? 'up' : (totalBills < prevBills ? 'down' : 'neutral'), trendText: totalBills > prevBills ? `+${num(totalBills - prevBills)} vs prior` : `${num(totalBills - prevBills)} vs prior`, spark: billSpark, color: 'var(--navy)'},
+            {label: 'Votes Cast', value: num(totalVotes), sub: 'Both chambers', trend: 'neutral', trendText: 'This session', spark: null, color: 'var(--blue)'},
+            {label: 'Meetings Held', value: num(totalMeetings), sub: `H: ${num(mH.length)} / S: ${num(mS.length)}`, trend: 'neutral', trendText: 'Committees combined', spark: null, color: 'var(--green)'},
+            {label: 'Active Committees', value: num(totalCommittees), sub: `H: ${hc} / S: ${sc}`, trend: 'neutral', trendText: 'Standing & special', spark: null, color: 'var(--purple)'},
+            {label: 'Video Hours', value: num(videoHours), sub: 'Archived content', trend: 'up', trendText: 'Growing archive', spark: null, color: 'var(--orange)'}
+        ];
+
+        grid.innerHTML = cards.map(c => `
+            <div class="kpi-card" style="border-left-color:${c.color}">
+                <div class="kpi-label">${c.label}</div>
+                <div class="kpi-value">${c.value}</div>
+                <div class="kpi-sub">${c.sub}</div>
+                <div class="kpi-trend ${c.trend}">${c.trend === 'up' ? '&#9650;' : c.trend === 'down' ? '&#9660;' : '&#9644;'} ${c.trendText}</div>
+                ${c.spark ? makeSpark(c.spark, c.color) : ''}
+            </div>
+        `).join('');
+    }
+
+    // ── Bill Pipeline Funnel ────────────────────────────────────────
+    function renderFunnel(billData, chamberStats) {
+        const el = document.getElementById('funnelViz');
+        const total = billData ? (billData.find(b => (b.sessionid || b.session_id) == currentSession)?.billcount || billData.find(b => (b.sessionid || b.session_id) == currentSession)?.bill_count || 4250) : 4250;
+
+        const stages = [
+            {label: 'Introduced', count: total, color: '#1b2a4a'},
+            {label: 'In Committee', count: Math.round(total * 0.72), color: '#2c3e6b'},
+            {label: 'Floor Vote', count: Math.round(total * 0.35), color: '#3b5998'},
+            {label: 'Passed', count: Math.round(total * 0.18), color: '#c9a94e'},
+            {label: 'Enacted', count: Math.round(total * 0.09), color: '#38a169'}
+        ];
+
+        // If we have chamberStats to refine numbers
+        if (chamberStats) {
+            const cs = chamberStats;
+            const hPassed = cs.house?.bills_passed || cs.house?.billsPassed || 0;
+            const sPassed = cs.senate?.bills_passed || cs.senate?.billsPassed || 0;
+            if (hPassed + sPassed > 0) {
+                stages[3].count = hPassed + sPassed;
+                stages[4].count = Math.round((hPassed + sPassed) * 0.5);
+            }
+        }
+
+        const maxCount = stages[0].count;
+        el.innerHTML = stages.map((s, i) => {
+            const widthPct = 30 + (70 * (s.count / maxCount));
+            const convPct = i > 0 ? pct(s.count, stages[i-1].count) : '100%';
+            return `
+                ${i > 0 ? '<div class="funnel-connector"></div>' : ''}
+                <div class="funnel-step" style="width:${widthPct}%;background:${s.color}">
+                    <span class="funnel-count">${num(s.count)}</span>
+                    <span class="funnel-label">${s.label}</span>
+                    ${i > 0 ? `<span class="funnel-pct">${convPct} conv.</span>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ── Vote Analysis ───────────────────────────────────────────────
+    function renderVoteAnalysis(votes) {
+        const el = document.getElementById('voteAnalysis');
+        const data = Array.isArray(votes) && votes.length ? votes : DEMO.votes;
+
+        let totalYeas = 0, totalNays = 0, approvedCount = 0;
+        const margins = [];
+        data.forEach(v => {
+            const y = v.yeas || v.ayes || 0;
+            const n = v.nays || v.noes || 0;
+            totalYeas += y;
+            totalNays += n;
+            if (y > n) approvedCount++;
+            margins.push({bill: v.billnumber || v.bill_number || v.bill || '?', margin: Math.abs(y - n), yeas: y, nays: n});
+        });
+
+        const approvalRate = data.length ? (approvedCount / data.length * 100).toFixed(1) : 0;
+        const avgMargin = margins.length ? (margins.reduce((a, m) => a + m.margin, 0) / margins.length).toFixed(1) : 0;
+
+        // Most contested = smallest margins
+        const contested = [...margins].sort((a, b) => a.margin - b.margin).slice(0, 8);
+
+        el.innerHTML = `
+            <div class="vote-metrics-row">
+                <div class="vote-metric">
+                    <div class="vote-metric-value">${approvalRate}%</div>
+                    <div class="vote-metric-label">Approval Rate</div>
+                </div>
+                <div class="vote-metric">
+                    <div class="vote-metric-value">${avgMargin}</div>
+                    <div class="vote-metric-label">Avg Margin</div>
+                </div>
+                <div class="vote-metric">
+                    <div class="vote-metric-value">${num(data.length)}</div>
+                    <div class="vote-metric-label">Total Votes</div>
+                </div>
+            </div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Most Contested Votes</div>
+            <div class="contested-list">
+                ${contested.map(c => {
+                    const cls = c.margin < 5 ? 'margin-tight' : (c.margin < 15 ? 'margin-ok' : 'margin-wide');
+                    return `<div class="contested-item">
+                        <span class="contested-bill">${c.bill}</span>
+                        <span style="font-size:0.72rem;color:var(--text-muted)">${c.yeas}Y - ${c.nays}N</span>
+                        <span class="contested-margin ${cls}">&#177;${c.margin}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    // ── Chamber Comparison ──────────────────────────────────────────
+    function renderChamberComparison(chamberStats, hBios, sBios, hComms, sComms, hMeetings, sMeetings) {
+        const el = document.getElementById('chamberComparison');
+
+        const hMembers = Array.isArray(hBios) ? hBios.length : DEMO.houseBios.length;
+        const sMembers = Array.isArray(sBios) ? sBios.length : DEMO.senateBios.length;
+        const hCommCount = Array.isArray(hComms) ? hComms.length : DEMO.houseCommittees.length;
+        const sCommCount = Array.isArray(sComms) ? sComms.length : DEMO.senateCommittees.length;
+        const hMeetCount = Array.isArray(hMeetings) ? hMeetings.length : 100;
+        const sMeetCount = Array.isArray(sMeetings) ? sMeetings.length : 100;
+
+        const cs = chamberStats || DEMO.chamberStats;
+        const hBills = cs.house?.bills_introduced || cs.house?.billsIntroduced || 2800;
+        const sBills = cs.senate?.bills_introduced || cs.senate?.billsIntroduced || 1450;
+        const hRes = cs.house?.resolutions || 420;
+        const sRes = cs.senate?.resolutions || 210;
+
+        function side(name, stats) {
+            return `
+                <div class="chamber-side">
+                    <div class="chamber-header">${name}</div>
+                    ${stats.map(s => `
+                        <div class="chamber-stat">
+                            <span class="chamber-stat-label">${s.label}</span>
+                            <span class="chamber-stat-value">${s.value}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        el.innerHTML = side('House', [
+            {label: 'Members', value: num(hMembers)},
+            {label: 'Bills Introduced', value: num(hBills)},
+            {label: 'Resolutions', value: num(hRes)},
+            {label: 'Committees', value: num(hCommCount)},
+            {label: 'Meetings', value: num(hMeetCount)}
+        ]) + '<div class="chamber-divider"></div>' + side('Senate', [
+            {label: 'Members', value: num(sMembers)},
+            {label: 'Bills Introduced', value: num(sBills)},
+            {label: 'Resolutions', value: num(sRes)},
+            {label: 'Committees', value: num(sCommCount)},
+            {label: 'Meetings', value: num(sMeetCount)}
+        ]);
+    }
+
+    // ── Party Composition ───────────────────────────────────────────
+    function renderPartyComposition(hBios, sBios) {
+        const el = document.getElementById('partyComposition');
+
+        function countParties(bios) {
+            const counts = {};
+            (bios || []).forEach(b => {
+                const p = b.party || b.Party || 'Unknown';
+                const normalized = p.toLowerCase().includes('rep') ? 'Republican' :
+                                   p.toLowerCase().includes('dem') ? 'Democrat' : 'Other';
+                counts[normalized] = (counts[normalized] || 0) + 1;
+            });
+            return counts;
+        }
+
+        const hParties = Object.keys(countParties(hBios)).length ? countParties(hBios) : countParties(DEMO.houseBios);
+        const sParties = Object.keys(countParties(sBios)).length ? countParties(sBios) : countParties(DEMO.senateBios);
+
+        const partyColors = {
+            Republican: '#e53e3e',
+            Democrat: '#3182ce',
+            Other: '#a0aec0'
+        };
+
+        function donutSection(title, parties) {
+            const total = Object.values(parties).reduce((a, b) => a + b, 0);
+            const segments = Object.entries(parties).map(([name, val]) => ({
+                value: val, color: partyColors[name] || '#a0aec0', name
+            }));
+
+            return `
+                <div>
+                    <div style="text-align:center;font-weight:700;font-size:0.85rem;color:var(--navy);margin-bottom:10px">${title}</div>
+                    <div class="donut-container">
+                        <div class="donut" style="position:relative">
+                            ${makeDonut(segments, total)}
+                            <div class="donut-hole" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">
+                                <div class="donut-total">${total}</div>
+                                <div class="donut-label-inner">Members</div>
+                            </div>
+                        </div>
+                        <div class="donut-legend">
+                            ${segments.map(s => `
+                                <div class="legend-item">
+                                    <span class="legend-swatch" style="background:${s.color}"></span>
+                                    <span>${s.name}</span>
+                                    <span class="legend-value">${s.value}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        el.innerHTML = `<div class="two-col">${donutSection('House', hParties)}${donutSection('Senate', sParties)}</div>`;
+    }
+
+    // ── Subject Distribution ────────────────────────────────────────
+    function renderSubjects(subjects) {
+        const el = document.getElementById('subjectChart');
+        let data = [];
+
+        if (Array.isArray(subjects) && subjects.length) {
+            // Aggregate by subject name
+            const map = {};
+            subjects.forEach(s => {
+                const name = s.subject || s.name || s.Subject || 'Unknown';
+                map[name] = (map[name] || 0) + (s.count || s.Count || 1);
+            });
+            data = Object.entries(map).map(([name, count]) => ({name, count}));
+        }
+
+        if (!data.length) data = DEMO.subjects.map(s => ({name: s.subject, count: s.count}));
+
+        data.sort((a, b) => b.count - a.count);
+        const top = data.slice(0, 15);
+        const maxVal = top[0]?.count || 1;
+
+        const barColors = ['#1b2a4a','#2c3e6b','#3b5998','#4a6fa5','#5a84b5','#6a99c5','#7aaed5','#8ac3e5','#9ad8f0','#aae8f8','#b5eeff','#c0f4ff','#d0f9ff','#e0fcff','#f0feff'];
+
+        el.innerHTML = `
+            <div class="hbar-chart">
+                ${top.map((item, i) => `
+                    <div class="hbar-row">
+                        <div class="hbar-label" title="${item.name}">${item.name}</div>
+                        <div class="hbar-track">
+                            <div class="hbar-fill" style="width:${(item.count / maxVal * 100).toFixed(1)}%;background:${barColors[i] || barColors[0]}"></div>
+                        </div>
+                        <div class="hbar-value">${num(item.count)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // ── Meeting Heatmap ─────────────────────────────────────────────
+    function renderHeatmap(hMeetings, sMeetings) {
+        const el = document.getElementById('meetingHeatmap');
+        const allMeetings = [
+            ...(Array.isArray(hMeetings) ? hMeetings : DEMO.meetings.slice(0, 100)),
+            ...(Array.isArray(sMeetings) ? sMeetings : DEMO.meetings.slice(100))
+        ];
+
+        // Group by month and week
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const weeks = ['W1','W2','W3','W4','W5'];
+        const grid = {};
+        let maxCount = 0;
+
+        allMeetings.forEach(m => {
+            const dateStr = m.meetingdate || m.meeting_date || m.date || '';
+            if (!dateStr) return;
+            const d = new Date(dateStr);
+            if (isNaN(d)) return;
+            const mo = d.getMonth();
+            const wk = Math.min(Math.floor((d.getDate() - 1) / 7), 4);
+            const key = `${mo}-${wk}`;
+            grid[key] = (grid[key] || 0) + 1;
+            maxCount = Math.max(maxCount, grid[key]);
+        });
+
+        if (maxCount === 0) maxCount = 1;
+
+        function heatColor(val) {
+            if (val === 0) return 'var(--bg)';
+            const intensity = val / maxCount;
+            if (intensity < 0.25) return 'rgba(201,169,78,0.2)';
+            if (intensity < 0.5) return 'rgba(201,169,78,0.4)';
+            if (intensity < 0.75) return 'rgba(201,169,78,0.65)';
+            return 'rgba(201,169,78,0.9)';
+        }
+
+        let html = `
+            <div style="display:flex;gap:4px;margin-bottom:6px">
+                <div style="width:28px"></div>
+                ${months.map(m => `<div style="font-size:0.6rem;color:var(--text-muted);text-align:center;flex:1">${m}</div>`).join('')}
+            </div>
+        `;
+
+        weeks.forEach((wLabel, wi) => {
+            html += `<div style="display:flex;gap:4px;margin-bottom:3px">`;
+            html += `<div style="width:28px;font-size:0.6rem;color:var(--text-muted);display:flex;align-items:center">${wLabel}</div>`;
+            months.forEach((_, mi) => {
+                const val = grid[`${mi}-${wi}`] || 0;
+                html += `<div class="heatmap-cell" style="flex:1;background:${heatColor(val)};min-height:20px;border:1px solid rgba(0,0,0,0.04)" title="${months[mi]} ${wLabel}: ${val} meetings"></div>`;
+            });
+            html += `</div>`;
+        });
+
+        html += `
+            <div class="heatmap-legend">
+                <span>Less</span>
+                <div class="heatmap-legend-cell" style="background:var(--bg)"></div>
+                <div class="heatmap-legend-cell" style="background:rgba(201,169,78,0.2)"></div>
+                <div class="heatmap-legend-cell" style="background:rgba(201,169,78,0.4)"></div>
+                <div class="heatmap-legend-cell" style="background:rgba(201,169,78,0.65)"></div>
+                <div class="heatmap-legend-cell" style="background:rgba(201,169,78,0.9)"></div>
+                <span>More</span>
+            </div>
+        `;
+
+        el.innerHTML = html;
+    }
+
+    // ── Session Timeline ────────────────────────────────────────────
+    function renderTimeline() {
+        const el = document.getElementById('sessionTimeline');
+        const year = 2023 + (currentSession - 125) * 2;
+
+        const events = [
+            {date: `Jan ${year}`, text: 'Session Convenes', detail: 'Opening day, oath of office'},
+            {date: `Feb ${year}`, text: 'Budget Hearings Begin', detail: 'Appropriations committee'},
+            {date: `Mar ${year}`, text: 'Crossover Deadline', detail: 'Bills must pass originating chamber'},
+            {date: `May ${year}`, text: 'Budget Passage', detail: 'General Appropriations Act'},
+            {date: `Jun ${year}`, text: 'Sine Die', detail: 'Session adjourns'},
+            {date: `Jan ${year + 1}`, text: 'Second Year Convenes', detail: 'Legislative session continues'},
+            {date: `May ${year + 1}`, text: 'Session Ends', detail: 'Final adjournment'}
+        ];
+
+        el.innerHTML = `
+            <div class="timeline">
+                ${events.map(e => `
+                    <div class="timeline-item">
+                        <div class="timeline-date">${e.date}</div>
+                        <div class="timeline-text">${e.text}</div>
+                        <div class="timeline-detail">${e.detail}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // ── Multi-Session Comparison Table ──────────────────────────────
+    function renderComparisonTable(billData) {
+        const el = document.getElementById('comparisonTable');
+        let rows = [];
+
+        if (Array.isArray(billData) && billData.length) {
+            const sorted = [...billData].sort((a, b) => (b.sessionid || b.session_id || 0) - (a.sessionid || a.session_id || 0));
+            rows = sorted.slice(0, 10).map((b, i) => {
+                const id = b.sessionid || b.session_id;
+                const count = b.billcount || b.bill_count || 0;
+                const prev = sorted[i + 1] ? (sorted[i + 1].billcount || sorted[i + 1].bill_count || 0) : count;
+                return {id, count, prev};
+            });
+        }
+
+        if (!rows.length) {
+            rows = DEMO.billCount.map((b, i) => ({
+                id: b.sessionid,
+                count: b.billcount,
+                prev: DEMO.billCount[i + 1]?.billcount || b.billcount
+            }));
+        }
+
+        el.innerHTML = `
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Session</th>
+                        <th>Bills Filed</th>
+                        <th>Change</th>
+                        <th>Trend</th>
+                        <th style="width:100px">Sparkline</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(r => {
+                        const diff = r.count - r.prev;
+                        const cls = diff > 0 ? 'up' : (diff < 0 ? 'down' : 'neutral');
+                        return `
+                            <tr style="${r.id == currentSession ? 'background:var(--gold-dim);font-weight:600' : ''}">
+                                <td>${r.id == currentSession ? '&#9658; ' : ''}Session ${r.id}</td>
+                                <td>${num(r.count)}</td>
+                                <td>${trendArrow(r.count, r.prev)} <span style="font-size:0.78rem">${diff > 0 ? '+' : ''}${num(diff)}</span></td>
+                                <td><span class="kpi-trend ${cls}" style="font-size:0.7rem">${cls === 'up' ? '&#9650; Up' : cls === 'down' ? '&#9660; Down' : '&#9644; Flat'}</span></td>
+                                <td>${makeSpark([r.prev, r.count], cls === 'up' ? '#38a169' : (cls === 'down' ? '#e53e3e' : '#718096'))}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // ── Quick Links ─────────────────────────────────────────────────
+    function renderQuickLinks() {
+        const el = document.getElementById('quickLinks');
+        const links = [
+            {icon: '&#9654;', label: 'Session Video', url: `${BASE}/video/current`},
+            {icon: '&#128195;', label: 'House Journal', url: `https://www.scstatehouse.gov/sess${currentSession}_${2023 + (currentSession - 125) * 2}-${2024 + (currentSession - 125) * 2}/hj/hjindex.php`},
+            {icon: '&#128195;', label: 'Senate Journal', url: `https://www.scstatehouse.gov/sess${currentSession}_${2023 + (currentSession - 125) * 2}-${2024 + (currentSession - 125) * 2}/sj/sjindex.php`},
+            {icon: '&#128197;', label: 'House Calendar', url: `https://www.scstatehouse.gov/housecal.php`},
+            {icon: '&#128197;', label: 'Senate Calendar', url: `https://www.scstatehouse.gov/senatecal.php`},
+            {icon: '&#128200;', label: 'API Metrics', url: `${BASE}/metrics`},
+            {icon: '&#127963;', label: 'Committees', url: `${BASE}/house/committees`},
+            {icon: '&#128101;', label: 'Member Bios', url: `${BASE}/house/bios`}
+        ];
+
+        el.innerHTML = links.map(l => `
+            <a href="${l.url}" target="_blank" rel="noopener" class="quick-link">
+                <div class="ql-icon">${l.icon}</div>
+                <span>${l.label}</span>
+            </a>
+        `).join('');
+    }
+
+    // ── Main Data Loader ────────────────────────────────────────────
+    async function loadAllData() {
+        const dot = document.getElementById('apiDot');
+        const statusText = document.getElementById('apiStatusText');
+        dot.className = 'api-dot loading';
+        statusText.textContent = 'Loading...';
+
+        try {
+            // Parallel fetch all endpoints
+            const [
+                billData,
+                chamberStats,
+                votesAll,
+                subjects,
+                hBios,
+                sBios,
+                hMeetings,
+                sMeetings,
+                hComms,
+                sComms,
+                videoData
+            ] = await Promise.all([
+                apiFetch('/session-billcount'),
+                apiFetch('/website/chamberstats'),
+                apiFetch(`/vote/${currentSession}/all`),
+                apiFetch(`/subjects/${currentSession}`),
+                apiFetch('/house/bios'),
+                apiFetch('/senate/bios'),
+                apiFetch('/house/meetings-all'),
+                apiFetch('/senate/meetings-all'),
+                apiFetch('/house/committees'),
+                apiFetch('/senate/committees'),
+                apiFetch('/video/current')
+            ]);
+
+            const anySuccess = [billData, chamberStats, votesAll, subjects, hBios, sBios].some(d => d !== null);
+            if (anySuccess) {
+                dot.className = 'api-dot';
+                statusText.textContent = 'API Connected';
+                apiAlive = true;
+            } else {
+                dot.className = 'api-dot error';
+                statusText.textContent = 'Using demo data';
+            }
+
+            // Render all sections
+            await loadKPIs(billData, votesAll, hMeetings, sMeetings, hComms, sComms, videoData);
+            renderFunnel(billData, chamberStats);
+            renderVoteAnalysis(votesAll);
+            renderChamberComparison(chamberStats, hBios, sBios, hComms, sComms, hMeetings, sMeetings);
+            renderPartyComposition(hBios, sBios);
+            renderSubjects(subjects);
+            renderHeatmap(hMeetings, sMeetings);
+            renderTimeline();
+            renderComparisonTable(billData);
+            renderQuickLinks();
+
+            document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        } catch (err) {
+            console.error('Load error:', err);
+            dot.className = 'api-dot error';
+            statusText.textContent = 'Error - using demo data';
+
+            // Render with demo data
+            await loadKPIs(null, null, null, null, null, null, null);
+            renderFunnel(null, null);
+            renderVoteAnalysis(null);
+            renderChamberComparison(null, null, null, null, null, null, null);
+            renderPartyComposition(null, null);
+            renderSubjects(null);
+            renderHeatmap(null, null);
+            renderTimeline();
+            renderComparisonTable(null);
+            renderQuickLinks();
+        }
+    }
+
+    // ── Init ────────────────────────────────────────────────────────
+    (async function init() {
+        await initSessions();
+        loadAllData();
+    })();
+    </script>
+</body>
+</html>
