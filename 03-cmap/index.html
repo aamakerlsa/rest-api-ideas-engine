@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMAP - Committee Meeting & Agenda Planner</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1b2a4a;--navy-light:#243556;--navy-dark:#111d33;
+  --gold:#c9a94e;--gold-light:#d4b96a;--gold-dark:#b08e30;
+  --house-color:#2e7d32;--senate-color:#1565c0;--joint-color:#7b1fa2;
+  --chamber-color:#e65100;--other-color:#546e7a;
+  --bg:#0e1726;--card-bg:#162033;--card-border:#1e3050;
+  --text:#e0e0e0;--text-muted:#8899aa;--text-dim:#556677;
+  --success:#4caf50;--danger:#ef5350;--warning:#ffa726;
+  --radius:8px;--shadow:0 2px 12px rgba(0,0,0,.3);
+}
+html{font-size:15px}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+a{color:var(--gold);text-decoration:none}
+a:hover{color:var(--gold-light);text-decoration:underline}
+button{cursor:pointer;font-family:inherit;border:none;outline:none}
+input,select{font-family:inherit;outline:none}
+
+/* ===== HEADER ===== */
+.app-header{background:linear-gradient(135deg,var(--navy-dark),var(--navy));border-bottom:2px solid var(--gold);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+.header-left{display:flex;align-items:center;gap:16px}
+.back-link{color:var(--gold);font-size:.9rem;display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:var(--radius);transition:background .2s}
+.back-link:hover{background:rgba(201,169,78,.1);text-decoration:none}
+.app-title{display:flex;align-items:center;gap:10px}
+.app-title h1{font-size:1.3rem;font-weight:700;color:#fff;letter-spacing:1px}
+.app-title .tagline{font-size:.75rem;color:var(--gold);font-style:italic;display:none}
+@media(min-width:768px){.app-title .tagline{display:inline}}
+.header-right{display:flex;align-items:center;gap:12px}
+.agenda-badge{background:var(--gold);color:var(--navy-dark);font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:10px;min-width:20px;text-align:center}
+.btn-agenda-toggle{background:rgba(201,169,78,.15);color:var(--gold);border:1px solid var(--gold);padding:6px 14px;border-radius:var(--radius);font-size:.85rem;font-weight:600;transition:all .2s}
+.btn-agenda-toggle:hover{background:var(--gold);color:var(--navy-dark)}
+
+/* ===== LAYOUT ===== */
+.app-layout{display:flex;min-height:calc(100vh - 60px)}
+.sidebar{width:280px;background:var(--navy-dark);border-right:1px solid var(--card-border);overflow-y:auto;flex-shrink:0;transition:transform .3s}
+.main-content{flex:1;overflow-y:auto;padding:20px;max-height:calc(100vh - 60px)}
+
+@media(max-width:900px){
+  .sidebar{position:fixed;left:0;top:60px;bottom:0;z-index:90;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:none;position:fixed;inset:0;top:60px;background:rgba(0,0,0,.5);z-index:89}
+  .sidebar-overlay.open{display:block}
+}
+.sidebar-toggle{display:none;background:transparent;color:var(--gold);font-size:1.4rem;padding:4px 8px}
+@media(max-width:900px){.sidebar-toggle{display:inline-flex}}
+
+/* ===== SIDEBAR ===== */
+.sidebar-section{padding:16px;border-bottom:1px solid var(--card-border)}
+.sidebar-section h3{font-size:.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);margin-bottom:10px;font-weight:600}
+.filter-group{margin-bottom:12px}
+.filter-group label{display:block;font-size:.8rem;color:var(--text-muted);margin-bottom:4px}
+.filter-group select,.filter-group input{width:100%;padding:7px 10px;background:var(--navy);border:1px solid var(--card-border);color:var(--text);border-radius:var(--radius);font-size:.85rem}
+.filter-btn-group{display:flex;gap:4px;flex-wrap:wrap}
+.filter-btn{padding:5px 10px;border-radius:var(--radius);font-size:.78rem;font-weight:600;background:var(--navy);border:1px solid var(--card-border);color:var(--text-muted);transition:all .2s}
+.filter-btn.active{background:var(--gold);color:var(--navy-dark);border-color:var(--gold)}
+.filter-btn:hover:not(.active){border-color:var(--gold);color:var(--gold)}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--navy);border-radius:var(--radius);padding:10px;text-align:center}
+.stat-value{font-size:1.4rem;font-weight:700;color:var(--gold)}
+.stat-label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+
+/* Upcoming sidebar */
+.upcoming-item{padding:8px 10px;border-radius:var(--radius);margin-bottom:6px;background:var(--navy);border-left:3px solid var(--gold);cursor:pointer;transition:background .2s}
+.upcoming-item:hover{background:var(--navy-light)}
+.upcoming-item .ui-name{font-size:.82rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.upcoming-item .ui-time{font-size:.72rem;color:var(--text-muted)}
+.upcoming-item.house{border-left-color:var(--house-color)}
+.upcoming-item.senate{border-left-color:var(--senate-color)}
+
+/* ===== MAIN VIEWS ===== */
+.view-tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.view-tab{padding:8px 18px;border-radius:var(--radius);font-size:.85rem;font-weight:600;background:var(--card-bg);border:1px solid var(--card-border);color:var(--text-muted);transition:all .2s}
+.view-tab.active{background:var(--gold);color:var(--navy-dark);border-color:var(--gold)}
+.view-tab:hover:not(.active){border-color:var(--gold);color:var(--gold)}
+
+/* Today strip */
+.today-strip{background:linear-gradient(135deg,var(--navy),var(--navy-light));border:1px solid var(--gold);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px}
+.today-strip h2{font-size:1rem;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.today-strip .today-date{font-size:.85rem;color:var(--text-muted);margin-bottom:12px}
+.today-meetings{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.today-meeting-card{min-width:220px;background:var(--card-bg);border-radius:var(--radius);padding:12px;border:1px solid var(--card-border);flex-shrink:0;cursor:pointer;transition:border-color .2s}
+.today-meeting-card:hover{border-color:var(--gold)}
+.today-meeting-card .tmc-name{font-size:.85rem;font-weight:600;margin-bottom:4px}
+.today-meeting-card .tmc-time{font-size:.78rem;color:var(--text-muted)}
+.no-meetings-msg{color:var(--text-muted);font-size:.9rem;font-style:italic}
+
+/* Live indicator */
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+.live-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(76,175,80,.15);color:var(--success);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase}
+
+/* ===== CALENDAR ===== */
+.calendar-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.calendar-nav{display:flex;align-items:center;gap:8px}
+.calendar-nav button{background:var(--card-bg);border:1px solid var(--card-border);color:var(--text);padding:6px 12px;border-radius:var(--radius);font-size:.9rem;transition:all .2s}
+.calendar-nav button:hover{border-color:var(--gold);color:var(--gold)}
+.calendar-nav .cal-title{font-size:1.1rem;font-weight:700;color:#fff;min-width:180px;text-align:center}
+.btn-today{background:var(--gold)!important;color:var(--navy-dark)!important;font-weight:600;border-color:var(--gold)!important}
+
+/* Month view */
+.cal-month{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--card-border);border-radius:var(--radius);overflow:hidden}
+.cal-dayname{background:var(--navy);padding:8px;text-align:center;font-size:.75rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
+.cal-day{background:var(--card-bg);min-height:90px;padding:6px;position:relative;cursor:pointer;transition:background .2s}
+.cal-day:hover{background:var(--navy-light)}
+.cal-day.other-month{opacity:.35}
+.cal-day.today{background:rgba(201,169,78,.08);box-shadow:inset 0 0 0 2px var(--gold)}
+.cal-day .day-num{font-size:.8rem;font-weight:600;color:var(--text-muted);margin-bottom:4px}
+.cal-day.today .day-num{color:var(--gold);font-weight:700}
+.cal-event{font-size:.68rem;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-weight:500;color:#fff}
+.cal-event.house{background:var(--house-color)}
+.cal-event.senate{background:var(--senate-color)}
+.cal-event.joint{background:var(--joint-color)}
+.cal-event.chamber{background:var(--chamber-color)}
+.cal-event.other{background:var(--other-color)}
+.cal-event.live{box-shadow:0 0 0 1px var(--success),0 0 6px rgba(76,175,80,.4)}
+.cal-more{font-size:.68rem;color:var(--gold);cursor:pointer;padding:1px 4px}
+
+/* Week view */
+.cal-week{display:grid;grid-template-columns:60px repeat(7,1fr);gap:1px;background:var(--card-border);border-radius:var(--radius);overflow:hidden}
+.cal-week-header{background:var(--navy);padding:8px;text-align:center;font-size:.75rem;font-weight:600;color:var(--gold)}
+.cal-week-header.today-col{background:rgba(201,169,78,.15)}
+.cal-week-time{background:var(--navy);padding:4px 6px;font-size:.7rem;color:var(--text-muted);text-align:right}
+.cal-week-cell{background:var(--card-bg);min-height:50px;padding:2px;position:relative}
+.cal-week-cell.today-col{background:rgba(201,169,78,.04)}
+
+/* Day view */
+.day-view{max-width:800px}
+.day-view-header{font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:16px}
+.day-meeting-list{display:flex;flex-direction:column;gap:10px}
+
+/* ===== MEETING CARDS ===== */
+.meeting-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all .2s;position:relative;border-left:4px solid var(--gold)}
+.meeting-card:hover{border-color:var(--gold);transform:translateY(-1px);box-shadow:var(--shadow)}
+.meeting-card.house{border-left-color:var(--house-color)}
+.meeting-card.senate{border-left-color:var(--senate-color)}
+.meeting-card.live{border-left-color:var(--success)}
+.mc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.mc-name{font-size:.92rem;font-weight:600;color:#fff;flex:1}
+.mc-badges{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap}
+.badge{font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.badge-house{background:rgba(46,125,50,.2);color:var(--house-color)}
+.badge-senate{background:rgba(21,101,192,.2);color:var(--senate-color)}
+.badge-chamber{background:rgba(230,81,0,.2);color:var(--chamber-color)}
+.badge-other{background:rgba(84,110,122,.2);color:var(--other-color)}
+.mc-details{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--text-muted)}
+.mc-details span{display:flex;align-items:center;gap:4px}
+.mc-actions{position:absolute;top:10px;right:10px;display:flex;gap:4px}
+.btn-add-agenda{background:rgba(201,169,78,.15);color:var(--gold);border:1px solid transparent;padding:4px 10px;border-radius:var(--radius);font-size:.72rem;font-weight:600;transition:all .2s}
+.btn-add-agenda:hover{background:var(--gold);color:var(--navy-dark)}
+.btn-add-agenda.added{background:var(--success);color:#fff}
+
+/* ===== DETAIL PANEL ===== */
+.detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;justify-content:flex-end}
+.detail-overlay.open{display:flex}
+.detail-panel{width:480px;max-width:100%;background:var(--navy);border-left:2px solid var(--gold);overflow-y:auto;padding:24px;animation:slideIn .3s ease}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.dp-close{background:transparent;color:var(--text-muted);font-size:1.4rem;position:absolute;top:16px;right:16px}
+.dp-close:hover{color:#fff}
+.detail-panel h2{font-size:1.15rem;color:#fff;margin-bottom:4px;padding-right:30px}
+.dp-chamber-badge{margin-bottom:16px}
+.dp-section{margin-bottom:20px}
+.dp-section h4{font-size:.78rem;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;font-weight:600}
+.dp-info-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:.85rem}
+.dp-info-grid .label{color:var(--text-muted);font-weight:500}
+.dp-info-grid .value{color:var(--text)}
+.dp-members{list-style:none}
+.dp-members li{padding:6px 0;border-bottom:1px solid var(--card-border);font-size:.85rem;display:flex;justify-content:space-between}
+.dp-members li:last-child{border-bottom:none}
+.member-role{font-size:.75rem;color:var(--gold);font-weight:600}
+.dp-btn-agenda{width:100%;padding:10px;border-radius:var(--radius);font-size:.9rem;font-weight:600;transition:all .2s}
+.dp-btn-agenda.add{background:var(--gold);color:var(--navy-dark)}
+.dp-btn-agenda.remove{background:var(--danger);color:#fff}
+
+/* ===== MY AGENDA PANEL ===== */
+.agenda-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;justify-content:flex-end}
+.agenda-overlay.open{display:flex}
+.agenda-panel{width:420px;max-width:100%;background:var(--navy);border-left:2px solid var(--gold);overflow-y:auto;padding:24px;animation:slideIn .3s ease}
+.agenda-panel h2{font-size:1.1rem;color:#fff;margin-bottom:4px}
+.agenda-panel .subtitle{font-size:.8rem;color:var(--text-muted);margin-bottom:16px}
+.agenda-item{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.agenda-item .ai-info{flex:1}
+.agenda-item .ai-name{font-size:.85rem;font-weight:600;color:#fff}
+.agenda-item .ai-time{font-size:.78rem;color:var(--text-muted)}
+.btn-remove-agenda{background:transparent;color:var(--danger);font-size:1rem;padding:4px;border-radius:var(--radius);transition:background .2s}
+.btn-remove-agenda:hover{background:rgba(239,83,80,.15)}
+.agenda-empty{color:var(--text-muted);font-size:.9rem;font-style:italic;text-align:center;padding:40px 20px}
+.btn-clear-agenda{background:var(--danger);color:#fff;padding:8px 16px;border-radius:var(--radius);font-size:.82rem;font-weight:600;margin-top:12px;width:100%;transition:opacity .2s}
+.btn-clear-agenda:hover{opacity:.85}
+.btn-export-agenda{background:var(--gold);color:var(--navy-dark);padding:8px 16px;border-radius:var(--radius);font-size:.82rem;font-weight:600;margin-top:8px;width:100%;transition:opacity .2s}
+
+/* ===== ARCHIVE ===== */
+.archive-controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.archive-controls input,.archive-controls select{padding:7px 10px;background:var(--card-bg);border:1px solid var(--card-border);color:var(--text);border-radius:var(--radius);font-size:.85rem}
+
+/* ===== LOADING / ERROR ===== */
+.loading-spinner{display:flex;align-items:center;justify-content:center;padding:40px;gap:10px;color:var(--text-muted)}
+.spinner{width:24px;height:24px;border:3px solid var(--card-border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{background:rgba(239,83,80,.1);border:1px solid var(--danger);border-radius:var(--radius);padding:16px;color:var(--danger);font-size:.9rem;margin-bottom:16px}
+.error-msg .retry-btn{background:var(--danger);color:#fff;padding:6px 14px;border-radius:var(--radius);font-size:.82rem;margin-top:8px;font-weight:600}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--navy-dark)}
+::-webkit-scrollbar-thumb{background:var(--card-border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:600px){
+  .main-content{padding:12px}
+  .cal-day{min-height:60px;padding:3px}
+  .cal-event{font-size:.6rem;padding:1px 3px}
+  .meeting-card{padding:10px 12px}
+  .today-meeting-card{min-width:180px}
+  .detail-panel,.agenda-panel{width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-left">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">&#9776;</button>
+    <a href="../index.html" class="back-link">&#8592; Back</a>
+    <div class="app-title">
+      <h1>CMAP</h1>
+      <span class="tagline">Never miss a meeting that matters.</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn-agenda-toggle" onclick="toggleAgenda()">
+      My Agenda <span class="agenda-badge" id="agendaCount">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="app-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <!-- Stats -->
+    <div class="sidebar-section">
+      <h3>Quick Stats</h3>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="statToday">-</div><div class="stat-label">Today</div></div>
+        <div class="stat-card"><div class="stat-value" id="statWeek">-</div><div class="stat-label">This Week</div></div>
+        <div class="stat-card"><div class="stat-value" id="statHouse">-</div><div class="stat-label">House</div></div>
+        <div class="stat-card"><div class="stat-value" id="statSenate">-</div><div class="stat-label">Senate</div></div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="sidebar-section">
+      <h3>Filters</h3>
+      <div class="filter-group">
+        <label>Chamber</label>
+        <div class="filter-btn-group">
+          <button class="filter-btn active" data-filter="chamber" data-value="all" onclick="setFilter('chamber','all',this)">Both</button>
+          <button class="filter-btn" data-filter="chamber" data-value="house" onclick="setFilter('chamber','house',this)">House</button>
+          <button class="filter-btn" data-filter="chamber" data-value="senate" onclick="setFilter('chamber','senate',this)">Senate</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Meeting Type</label>
+        <div class="filter-btn-group">
+          <button class="filter-btn active" data-filter="type" data-value="all" onclick="setFilter('type','all',this)">All</button>
+          <button class="filter-btn" data-filter="type" data-value="committee" onclick="setFilter('type','committee',this)">Committee</button>
+          <button class="filter-btn" data-filter="type" data-value="chamber" onclick="setFilter('type','chamber',this)">Chamber</button>
+          <button class="filter-btn" data-filter="type" data-value="other" onclick="setFilter('type','other',this)">Other</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="searchInput" placeholder="Search meetings..." oninput="applyFilters()">
+      </div>
+    </div>
+
+    <!-- Upcoming -->
+    <div class="sidebar-section">
+      <h3>Upcoming (7 Days)</h3>
+      <div id="upcomingList"><div class="loading-spinner"><div class="spinner"></div></div></div>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- MAIN -->
+  <main class="main-content" id="mainContent">
+    <!-- Today Strip -->
+    <div class="today-strip" id="todayStrip">
+      <h2><span class="live-dot"></span> Today's Meetings</h2>
+      <div class="today-date" id="todayDate"></div>
+      <div class="today-meetings" id="todayMeetings">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- View Tabs -->
+    <div class="view-tabs">
+      <button class="view-tab active" data-view="month" onclick="switchView('month',this)">Month</button>
+      <button class="view-tab" data-view="week" onclick="switchView('week',this)">Week</button>
+      <button class="view-tab" data-view="day" onclick="switchView('day',this)">Day</button>
+      <button class="view-tab" data-view="list" onclick="switchView('list',this)">List</button>
+      <button class="view-tab" data-view="archive" onclick="switchView('archive',this)">Archive</button>
+    </div>
+
+    <!-- Calendar header -->
+    <div class="calendar-header" id="calendarHeader">
+      <div class="calendar-nav">
+        <button onclick="navPrev()">&#8249;</button>
+        <button class="btn-today" onclick="navToday()">Today</button>
+        <button onclick="navNext()">&#8250;</button>
+      </div>
+      <div class="cal-title" id="calTitle"></div>
+    </div>
+
+    <!-- View container -->
+    <div id="viewContainer"></div>
+  </main>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="detail-panel" id="detailPanel" onclick="event.stopPropagation()">
+    <button class="dp-close" onclick="closeDetail()">&times;</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- AGENDA PANEL -->
+<div class="agenda-overlay" id="agendaOverlay" onclick="toggleAgenda()">
+  <div class="agenda-panel" onclick="event.stopPropagation()">
+    <button class="dp-close" onclick="toggleAgenda()">&times;</button>
+    <h2>My Agenda</h2>
+    <p class="subtitle">Your personal meeting planner (saved locally)</p>
+    <div id="agendaContent"></div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+const API = 'https://rest.scstatehouse.gov';
+const state = {
+  currentView: 'month',
+  currentDate: new Date(),
+  filters: { chamber: 'all', type: 'all', search: '' },
+  meetings: { house: [], senate: [] },
+  meetingsToday: { house: [], senate: [] },
+  meetingsUpcoming: { house: [], senate: [] },
+  meetingsLive: { house: [], senate: [] },
+  meetingsArchive: { house: [], senate: [] },
+  meetingsChamber: { house: [], senate: [] },
+  meetingsOther: { house: [], senate: [] },
+  committees: { house: [], senate: [] },
+  videoLive: [],
+  videoUpcoming: [],
+  allMeetings: [],
+  agenda: JSON.parse(localStorage.getItem('cmap_agenda') || '[]'),
+  loading: false,
+  error: null
+};
+
+// ===== FALLBACK DATA =====
+const FALLBACK_MEETINGS = [
+  { meetingId: 'f1', committeeName: 'Judiciary Committee', chamber: 'house', meetingDate: todayStr(), meetingTime: '10:00 AM', room: '110', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
+  { meetingId: 'f2', committeeName: 'Ways and Means Committee', chamber: 'house', meetingDate: todayStr(), meetingTime: '2:00 PM', room: '228', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'live', meetingType: 'committee' },
+  { meetingId: 'f3', committeeName: 'Finance Committee', chamber: 'senate', meetingDate: todayStr(), meetingTime: '11:00 AM', room: '105', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
+  { meetingId: 'f4', committeeName: 'Education Committee', chamber: 'senate', meetingDate: tomorrowStr(), meetingTime: '9:00 AM', room: '209', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
+  { meetingId: 'f5', committeeName: 'House Chamber Session', chamber: 'house', meetingDate: tomorrowStr(), meetingTime: '12:00 PM', room: 'Chamber', building: 'State House', address: '1100 Gervais St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'chamber' },
+  { meetingId: 'f6', committeeName: 'Medical Affairs Committee', chamber: 'senate', meetingDate: addDaysStr(2), meetingTime: '10:30 AM', room: '308', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
+  { meetingId: 'f7', committeeName: 'Labor, Commerce and Industry', chamber: 'house', meetingDate: addDaysStr(3), meetingTime: '10:00 AM', room: '425', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
+  { meetingId: 'f8', committeeName: 'Senate Chamber Session', chamber: 'senate', meetingDate: addDaysStr(3), meetingTime: '2:00 PM', room: 'Chamber', building: 'State House', address: '1100 Gervais St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'chamber' },
+  { meetingId: 'f9', committeeName: 'Agriculture Committee', chamber: 'house', meetingDate: addDaysStr(5), meetingTime: '9:30 AM', room: '110', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
+  { meetingId: 'f10', committeeName: 'Ethics Committee', chamber: 'senate', meetingDate: addDaysStr(6), meetingTime: '3:00 PM', room: '209', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'other' },
+  { meetingId: 'f11', committeeName: 'Appropriations Committee', chamber: 'house', meetingDate: addDaysStr(-1), meetingTime: '10:00 AM', room: '228', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'completed', meetingType: 'committee' },
+  { meetingId: 'f12', committeeName: 'Rules Committee', chamber: 'senate', meetingDate: addDaysStr(-3), meetingTime: '1:00 PM', room: '105', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'completed', meetingType: 'committee' }
+];
+
+function todayStr() { return fmtDate(new Date()); }
+function tomorrowStr() { const d = new Date(); d.setDate(d.getDate() + 1); return fmtDate(d); }
+function addDaysStr(n) { const d = new Date(); d.setDate(d.getDate() + n); return fmtDate(d); }
+function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+// ===== API FETCH =====
+async function apiFetch(path) {
+  try {
+    const r = await fetch(API + path, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    return data;
+  } catch (e) {
+    console.warn(`API fetch failed: ${path}`, e.message);
+    return null;
+  }
+}
+
+function normalizeMeeting(m, chamber) {
+  // Handle various API response shapes
+  const meeting = {};
+  meeting.meetingId = m.meetingId || m.id || m.committeeCode || Math.random().toString(36).slice(2);
+  meeting.committeeName = m.committeeName || m.committee || m.description || m.title || 'Meeting';
+  meeting.committeeCode = m.committeeCode || m.code || '';
+  meeting.chamber = chamber || m.chamber || 'unknown';
+
+  // Date handling
+  const raw = m.meetingDate || m.stateDate || m.date || m.startDate || '';
+  if (raw) {
+    const d = new Date(raw);
+    if (!isNaN(d)) meeting.meetingDate = fmtDate(d);
+    else meeting.meetingDate = raw.split('T')[0];
+  } else {
+    meeting.meetingDate = '';
+  }
+
+  meeting.meetingTime = m.meetingTime || m.time || m.startTime || '';
+  meeting.room = m.room || m.roomNumber || '';
+  meeting.building = m.building || m.location || '';
+  meeting.address = m.address || '';
+  meeting.city = m.city || 'Columbia';
+  meeting.state = m.state || 'SC';
+  meeting.zip = m.zip || '';
+  meeting.phone = m.phone || m.phoneNumber || '';
+  meeting.status = m.status || 'scheduled';
+  meeting.meetingType = m.meetingType || 'committee';
+  meeting.agenda = m.agenda || m.agendaUrl || '';
+  meeting.notice = m.notice || '';
+  return meeting;
+}
+
+async function loadAllData() {
+  state.loading = true;
+  const today = todayStr();
+
+  // Fetch all endpoints in parallel
+  const [
+    hMeetings, sMeetings,
+    hToday, sToday,
+    hUpcoming, sUpcoming,
+    hLive, sLive,
+    hAll, sAll,
+    hArchive, sArchive,
+    hChamber, sChamber,
+    hOther, sOther,
+    hCommittees, sCommittees,
+    vLive, vUpcoming
+  ] = await Promise.all([
+    apiFetch('/house/meetings'),
+    apiFetch('/senate/meetings'),
+    apiFetch('/house/meetings-today'),
+    apiFetch('/senate/meetings-today'),
+    apiFetch('/house/meetings-upcoming'),
+    apiFetch('/senate/meetings-upcoming'),
+    apiFetch('/house/meetings-live'),
+    apiFetch('/senate/meetings-live'),
+    apiFetch('/house/meetings-all'),
+    apiFetch('/senate/meetings-all'),
+    apiFetch('/house/meetings-archive'),
+    apiFetch('/senate/meetings-archive'),
+    apiFetch('/house/meetings-chamber'),
+    apiFetch('/senate/meetings-chamber'),
+    apiFetch('/house/meetings-other'),
+    apiFetch('/senate/meetings-other'),
+    apiFetch('/house/committees'),
+    apiFetch('/senate/committees'),
+    apiFetch('/video/live'),
+    apiFetch('/video/upcoming')
+  ]);
+
+  const norm = (arr, ch) => (Array.isArray(arr) ? arr : []).map(m => normalizeMeeting(m, ch));
+
+  state.meetings.house = norm(hMeetings, 'house');
+  state.meetings.senate = norm(sMeetings, 'senate');
+  state.meetingsToday.house = norm(hToday, 'house');
+  state.meetingsToday.senate = norm(sToday, 'senate');
+  state.meetingsUpcoming.house = norm(hUpcoming, 'house');
+  state.meetingsUpcoming.senate = norm(sUpcoming, 'senate');
+  state.meetingsLive.house = norm(hLive, 'house');
+  state.meetingsLive.senate = norm(sLive, 'senate');
+  state.meetingsArchive.house = norm(hArchive, 'house');
+  state.meetingsArchive.senate = norm(sArchive, 'senate');
+  state.meetingsChamber.house = norm(hChamber, 'house');
+  state.meetingsChamber.senate = norm(sChamber, 'senate');
+  state.meetingsOther.house = norm(hOther, 'house');
+  state.meetingsOther.senate = norm(sOther, 'senate');
+  state.committees.house = Array.isArray(hCommittees) ? hCommittees : [];
+  state.committees.senate = Array.isArray(sCommittees) ? sCommittees : [];
+  state.videoLive = Array.isArray(vLive) ? vLive : [];
+  state.videoUpcoming = Array.isArray(vUpcoming) ? vUpcoming : [];
+
+  // Build unified all-meetings list from all sources, deduped
+  const allMap = new Map();
+  const addAll = (arr, ch, type) => {
+    arr.forEach(m => {
+      const n = normalizeMeeting(m, ch);
+      if (type) n.meetingType = type;
+      const key = `${n.committeeName}-${n.meetingDate}-${n.meetingTime}`;
+      if (!allMap.has(key)) allMap.set(key, n);
+    });
+  };
+
+  // Add from various sources
+  [hMeetings, hAll, hToday, hUpcoming, hArchive].forEach(a => addAll(a || [], 'house', null));
+  [sMeetings, sAll, sToday, sUpcoming, sArchive].forEach(a => addAll(a || [], 'senate', null));
+  addAll(hChamber || [], 'house', 'chamber');
+  addAll(sChamber || [], 'senate', 'chamber');
+  addAll(hOther || [], 'house', 'other');
+  addAll(sOther || [], 'senate', 'other');
+
+  state.allMeetings = Array.from(allMap.values());
+
+  // Mark live meetings
+  const liveNames = new Set();
+  [...(state.meetingsLive.house), ...(state.meetingsLive.senate)].forEach(m => liveNames.add(m.committeeName));
+  state.allMeetings.forEach(m => { if (liveNames.has(m.committeeName) && m.meetingDate === today) m.status = 'live'; });
+
+  // Use fallback if we got nothing
+  if (state.allMeetings.length === 0) {
+    console.log('Using fallback demo data');
+    state.allMeetings = FALLBACK_MEETINGS;
+  }
+
+  state.loading = false;
+  renderAll();
+}
+
+// ===== FILTERS =====
+function setFilter(filterType, value, btn) {
+  state.filters[filterType] = value;
+  btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  state.filters.search = document.getElementById('searchInput').value.toLowerCase();
+  renderView();
+  renderUpcoming();
+  renderTodayMeetings();
+}
+
+function filterMeetings(meetings) {
+  return meetings.filter(m => {
+    if (state.filters.chamber !== 'all' && m.chamber !== state.filters.chamber) return false;
+    if (state.filters.type !== 'all' && m.meetingType !== state.filters.type) return false;
+    if (state.filters.search && !m.committeeName.toLowerCase().includes(state.filters.search)) return false;
+    return true;
+  });
+}
+
+// ===== NAVIGATION =====
+function navPrev() {
+  const d = state.currentDate;
+  if (state.currentView === 'month') d.setMonth(d.getMonth() - 1);
+  else if (state.currentView === 'week') d.setDate(d.getDate() - 7);
+  else d.setDate(d.getDate() - 1);
+  renderView();
+}
+function navNext() {
+  const d = state.currentDate;
+  if (state.currentView === 'month') d.setMonth(d.getMonth() + 1);
+  else if (state.currentView === 'week') d.setDate(d.getDate() + 7);
+  else d.setDate(d.getDate() + 1);
+  renderView();
+}
+function navToday() {
+  state.currentDate = new Date();
+  renderView();
+}
+
+function switchView(view, btn) {
+  state.currentView = view;
+  document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const hdr = document.getElementById('calendarHeader');
+  hdr.style.display = (view === 'archive') ? 'none' : 'flex';
+  renderView();
+}
+
+// ===== RENDER ALL =====
+function renderAll() {
+  renderStats();
+  renderTodayMeetings();
+  renderUpcoming();
+  renderView();
+  updateAgendaCount();
+}
+
+// ===== STATS =====
+function renderStats() {
+  const today = todayStr();
+  const now = new Date();
+  const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + 7);
+  const weekEndStr = fmtDate(weekEnd);
+
+  const all = state.allMeetings;
+  const todayCount = all.filter(m => m.meetingDate === today).length;
+  const weekCount = all.filter(m => m.meetingDate >= today && m.meetingDate <= weekEndStr).length;
+  const houseCount = all.filter(m => m.chamber === 'house' && m.meetingDate >= today).length;
+  const senateCount = all.filter(m => m.chamber === 'senate' && m.meetingDate >= today).length;
+
+  document.getElementById('statToday').textContent = todayCount;
+  document.getElementById('statWeek').textContent = weekCount;
+  document.getElementById('statHouse').textContent = houseCount;
+  document.getElementById('statSenate').textContent = senateCount;
+}
+
+// ===== TODAY =====
+function renderTodayMeetings() {
+  const today = todayStr();
+  const now = new Date();
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  document.getElementById('todayDate').textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+
+  const todayMeetings = filterMeetings(state.allMeetings.filter(m => m.meetingDate === today));
+  const container = document.getElementById('todayMeetings');
+
+  if (todayMeetings.length === 0) {
+    container.innerHTML = '<div class="no-meetings-msg">No meetings scheduled for today.</div>';
+    return;
+  }
+
+  container.innerHTML = todayMeetings.map(m => `
+    <div class="today-meeting-card" onclick="showDetail('${esc(m.meetingId)}')">
+      ${m.status === 'live' ? '<div class="live-badge"><span class="live-dot"></span> LIVE</div>' : ''}
+      <div class="tmc-name">${esc(m.committeeName)}</div>
+      <div class="tmc-time">${esc(m.meetingTime || 'TBD')} &bull; ${esc(m.room || '')} ${esc(m.building || '')}</div>
+      <div style="margin-top:6px"><span class="badge badge-${m.chamber}">${m.chamber}</span></div>
+    </div>
+  `).join('');
+}
+
+// ===== UPCOMING =====
+function renderUpcoming() {
+  const today = todayStr();
+  const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate() + 7);
+  const weekEndStr = fmtDate(weekEnd);
+  const upcoming = filterMeetings(state.allMeetings.filter(m => m.meetingDate >= today && m.meetingDate <= weekEndStr))
+    .sort((a, b) => a.meetingDate.localeCompare(b.meetingDate) || (a.meetingTime || '').localeCompare(b.meetingTime || ''));
+
+  const container = document.getElementById('upcomingList');
+  if (upcoming.length === 0) {
+    container.innerHTML = '<div class="no-meetings-msg">No upcoming meetings.</div>';
+    return;
+  }
+  container.innerHTML = upcoming.slice(0, 15).map(m => `
+    <div class="upcoming-item ${m.chamber}" onclick="showDetail('${esc(m.meetingId)}')">
+      <div class="ui-name">${m.status === 'live' ? '<span class="live-dot"></span> ' : ''}${esc(m.committeeName)}</div>
+      <div class="ui-time">${formatDateShort(m.meetingDate)} &bull; ${esc(m.meetingTime || 'TBD')}</div>
+    </div>
+  `).join('');
+}
+
+// ===== VIEW RENDERER =====
+function renderView() {
+  const d = state.currentDate;
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  if (state.currentView === 'month') {
+    document.getElementById('calTitle').textContent = `${months[d.getMonth()]} ${d.getFullYear()}`;
+    renderMonthView();
+  } else if (state.currentView === 'week') {
+    const start = new Date(d); start.setDate(d.getDate() - d.getDay());
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    document.getElementById('calTitle').textContent = `${formatDateShort(fmtDate(start))} - ${formatDateShort(fmtDate(end))}`;
+    renderWeekView();
+  } else if (state.currentView === 'day') {
+    document.getElementById('calTitle').textContent = formatDateLong(fmtDate(d));
+    renderDayView();
+  } else if (state.currentView === 'list') {
+    document.getElementById('calTitle').textContent = `${months[d.getMonth()]} ${d.getFullYear()}`;
+    renderListView();
+  } else if (state.currentView === 'archive') {
+    renderArchiveView();
+  }
+}
+
+// ===== MONTH VIEW =====
+function renderMonthView() {
+  const d = state.currentDate;
+  const year = d.getFullYear(), month = d.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = todayStr();
+
+  // Get meetings for this month
+  const monthStr = `${year}-${String(month+1).padStart(2,'0')}`;
+  const meetings = filterMeetings(state.allMeetings);
+  const byDate = {};
+  meetings.forEach(m => {
+    if (m.meetingDate && m.meetingDate.startsWith(monthStr)) {
+      if (!byDate[m.meetingDate]) byDate[m.meetingDate] = [];
+      byDate[m.meetingDate].push(m);
+    }
+  });
+
+  // Also grab days from prev/next month for grid
+  const prevMonthDays = new Date(year, month, 0).getDate();
+
+  let html = '<div class="cal-month">';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => html += `<div class="cal-dayname">${d}</div>`);
+
+  // Previous month days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const dayNum = prevMonthDays - i;
+    html += `<div class="cal-day other-month"><div class="day-num">${dayNum}</div></div>`;
+  }
+
+  // Current month days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = dateStr === today;
+    const dayMeetings = byDate[dateStr] || [];
+    const maxShow = 3;
+
+    html += `<div class="cal-day${isToday ? ' today' : ''}" onclick="goToDay('${dateStr}')">`;
+    html += `<div class="day-num">${day}</div>`;
+    dayMeetings.slice(0, maxShow).forEach(m => {
+      const cls = m.status === 'live' ? 'live' : m.meetingType === 'chamber' ? 'chamber' : m.meetingType === 'other' ? 'other' : m.chamber;
+      html += `<div class="cal-event ${cls}" onclick="event.stopPropagation();showDetail('${esc(m.meetingId)}')" title="${esc(m.committeeName)}">${m.status === 'live' ? '&#9679; ' : ''}${esc(truncate(m.committeeName, 20))}</div>`;
+    });
+    if (dayMeetings.length > maxShow) {
+      html += `<div class="cal-more">+${dayMeetings.length - maxShow} more</div>`;
+    }
+    html += '</div>';
+  }
+
+  // Next month fill
+  const totalCells = firstDay + daysInMonth;
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="cal-day other-month"><div class="day-num">${i}</div></div>`;
+  }
+
+  html += '</div>';
+  document.getElementById('viewContainer').innerHTML = html;
+}
+
+// ===== WEEK VIEW =====
+function renderWeekView() {
+  const d = state.currentDate;
+  const start = new Date(d); start.setDate(d.getDate() - d.getDay());
+  const today = todayStr();
+  const meetings = filterMeetings(state.allMeetings);
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const dd = new Date(start); dd.setDate(start.getDate() + i);
+    days.push(fmtDate(dd));
+  }
+
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = '<div class="cal-week">';
+  html += '<div class="cal-week-header"></div>';
+  days.forEach((ds, i) => {
+    const isToday = ds === today;
+    const dayNum = parseInt(ds.split('-')[2]);
+    html += `<div class="cal-week-header${isToday ? ' today-col' : ''}">${dayNames[i]} ${dayNum}</div>`;
+  });
+
+  // Time slots
+  for (let h = 8; h <= 18; h++) {
+    const timeLabel = h <= 12 ? `${h}:00 ${h < 12 ? 'AM' : 'PM'}` : `${h-12}:00 PM`;
+    html += `<div class="cal-week-time">${timeLabel}</div>`;
+    days.forEach(ds => {
+      const isToday = ds === today;
+      const slotMeetings = meetings.filter(m => m.meetingDate === ds && getHour(m.meetingTime) === h);
+      html += `<div class="cal-week-cell${isToday ? ' today-col' : ''}">`;
+      slotMeetings.forEach(m => {
+        const cls = m.status === 'live' ? 'live' : m.chamber;
+        html += `<div class="cal-event ${cls}" onclick="showDetail('${esc(m.meetingId)}')" title="${esc(m.committeeName)}">${esc(truncate(m.committeeName, 12))}</div>`;
+      });
+      html += '</div>';
+    });
+  }
+
+  html += '</div>';
+  document.getElementById('viewContainer').innerHTML = html;
+}
+
+// ===== DAY VIEW =====
+function renderDayView() {
+  const ds = fmtDate(state.currentDate);
+  const meetings = filterMeetings(state.allMeetings.filter(m => m.meetingDate === ds))
+    .sort((a, b) => (a.meetingTime || '').localeCompare(b.meetingTime || ''));
+
+  let html = '<div class="day-view">';
+  html += `<div class="day-view-header">${formatDateLong(ds)}</div>`;
+
+  if (meetings.length === 0) {
+    html += '<div class="no-meetings-msg">No meetings scheduled for this day.</div>';
+  } else {
+    html += '<div class="day-meeting-list">';
+    meetings.forEach(m => html += renderMeetingCard(m));
+    html += '</div>';
+  }
+
+  html += '</div>';
+  document.getElementById('viewContainer').innerHTML = html;
+}
+
+// ===== LIST VIEW =====
+function renderListView() {
+  const d = state.currentDate;
+  const year = d.getFullYear(), month = d.getMonth();
+  const monthStr = `${year}-${String(month+1).padStart(2,'0')}`;
+  const meetings = filterMeetings(state.allMeetings.filter(m => m.meetingDate && m.meetingDate.startsWith(monthStr)))
+    .sort((a, b) => a.meetingDate.localeCompare(b.meetingDate) || (a.meetingTime || '').localeCompare(b.meetingTime || ''));
+
+  let html = '';
+  if (meetings.length === 0) {
+    html = '<div class="no-meetings-msg">No meetings found for this month.</div>';
+  } else {
+    let lastDate = '';
+    meetings.forEach(m => {
+      if (m.meetingDate !== lastDate) {
+        lastDate = m.meetingDate;
+        html += `<div style="font-size:.85rem;font-weight:600;color:var(--gold);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--card-border)">${formatDateLong(m.meetingDate)}</div>`;
+      }
+      html += renderMeetingCard(m);
+    });
+  }
+  document.getElementById('viewContainer').innerHTML = html;
+}
+
+// ===== ARCHIVE VIEW =====
+function renderArchiveView() {
+  const pastMeetings = state.allMeetings.filter(m => m.meetingDate < todayStr() || m.status === 'completed')
+    .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
+
+  let html = '<div class="archive-controls">';
+  html += '<input type="text" placeholder="Search archive..." id="archiveSearch" oninput="filterArchive()">';
+  html += '<select id="archiveChamber" onchange="filterArchive()"><option value="all">All Chambers</option><option value="house">House</option><option value="senate">Senate</option></select>';
+  html += `<span style="color:var(--text-muted);font-size:.85rem">${pastMeetings.length} archived meetings</span>`;
+  html += '</div>';
+  html += '<div id="archiveList">';
+
+  if (pastMeetings.length === 0) {
+    html += '<div class="no-meetings-msg">No archived meetings found.</div>';
+  } else {
+    pastMeetings.slice(0, 50).forEach(m => html += renderMeetingCard(m));
+    if (pastMeetings.length > 50) {
+      html += `<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:.85rem">Showing 50 of ${pastMeetings.length} archived meetings</div>`;
+    }
+  }
+  html += '</div>';
+  document.getElementById('viewContainer').innerHTML = html;
+}
+
+function filterArchive() {
+  const search = (document.getElementById('archiveSearch')?.value || '').toLowerCase();
+  const chamber = document.getElementById('archiveChamber')?.value || 'all';
+  const pastMeetings = state.allMeetings
+    .filter(m => m.meetingDate < todayStr() || m.status === 'completed')
+    .filter(m => chamber === 'all' || m.chamber === chamber)
+    .filter(m => !search || m.committeeName.toLowerCase().includes(search))
+    .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
+
+  const container = document.getElementById('archiveList');
+  if (!container) return;
+
+  if (pastMeetings.length === 0) {
+    container.innerHTML = '<div class="no-meetings-msg">No matching archived meetings.</div>';
+  } else {
+    container.innerHTML = pastMeetings.slice(0, 50).map(m => renderMeetingCard(m)).join('');
+  }
+}
+
+// ===== MEETING CARD =====
+function renderMeetingCard(m) {
+  const isInAgenda = state.agenda.some(a => a.meetingId === m.meetingId);
+  const badgeType = m.meetingType === 'chamber' ? 'chamber' : m.meetingType === 'other' ? 'other' : m.chamber;
+  return `
+    <div class="meeting-card ${m.chamber}${m.status === 'live' ? ' live' : ''}">
+      <div class="mc-top">
+        <div class="mc-name">${m.status === 'live' ? '<span class="live-badge"><span class="live-dot"></span> LIVE</span> ' : ''}${esc(m.committeeName)}</div>
+        <div class="mc-badges">
+          <span class="badge badge-${badgeType}">${m.meetingType === 'chamber' ? 'Chamber' : m.meetingType === 'other' ? 'Other' : m.chamber}</span>
+        </div>
+      </div>
+      <div class="mc-details">
+        <span>&#128197; ${formatDateShort(m.meetingDate)}</span>
+        <span>&#128336; ${esc(m.meetingTime || 'TBD')}</span>
+        ${m.room ? `<span>&#127970; ${esc(m.room)}${m.building ? ', ' + esc(m.building) : ''}</span>` : ''}
+      </div>
+      <div class="mc-actions">
+        <button class="btn-add-agenda${isInAgenda ? ' added' : ''}" onclick="event.stopPropagation();toggleMeetingAgenda('${esc(m.meetingId)}')">${isInAgenda ? '&#10003; Added' : '+ Agenda'}</button>
+        <button class="btn-add-agenda" onclick="event.stopPropagation();showDetail('${esc(m.meetingId)}')">Details</button>
+      </div>
+    </div>`;
+}
+
+// ===== DETAIL PANEL =====
+function showDetail(meetingId) {
+  const m = state.allMeetings.find(x => x.meetingId === meetingId);
+  if (!m) return;
+
+  // Find committee info
+  const allCommittees = [...state.committees.house, ...state.committees.senate];
+  const committee = allCommittees.find(c =>
+    (c.committeeName || c.name || '').toLowerCase().includes(m.committeeName.toLowerCase().replace(/committee/i,'').trim()) ||
+    m.committeeName.toLowerCase().includes((c.committeeName || c.name || '').toLowerCase().replace(/committee/i,'').trim())
+  );
+
+  const isInAgenda = state.agenda.some(a => a.meetingId === m.meetingId);
+
+  let html = `
+    <h2>${m.status === 'live' ? '<span class="live-badge"><span class="live-dot"></span> LIVE</span> ' : ''}${esc(m.committeeName)}</h2>
+    <div class="dp-chamber-badge"><span class="badge badge-${m.chamber}">${m.chamber}</span> <span class="badge badge-${m.meetingType === 'chamber' ? 'chamber' : 'other'}">${m.meetingType}</span></div>
+
+    <div class="dp-section">
+      <h4>Meeting Details</h4>
+      <div class="dp-info-grid">
+        <span class="label">Date</span><span class="value">${formatDateLong(m.meetingDate)}</span>
+        <span class="label">Time</span><span class="value">${esc(m.meetingTime || 'TBD')}</span>
+        <span class="label">Room</span><span class="value">${esc(m.room || 'N/A')}</span>
+        <span class="label">Building</span><span class="value">${esc(m.building || 'N/A')}</span>
+        ${m.address ? `<span class="label">Address</span><span class="value">${esc(m.address)}, ${esc(m.city)}, ${esc(m.state)} ${esc(m.zip)}</span>` : ''}
+        ${m.phone ? `<span class="label">Phone</span><span class="value">${esc(m.phone)}</span>` : ''}
+        <span class="label">Status</span><span class="value" style="text-transform:capitalize">${esc(m.status)}</span>
+      </div>
+    </div>`;
+
+  if (committee) {
+    html += `
+    <div class="dp-section">
+      <h4>Committee Info</h4>
+      <div class="dp-info-grid">
+        ${committee.room || committee.roomNumber ? `<span class="label">Office</span><span class="value">${esc(committee.room || committee.roomNumber)}</span>` : ''}
+        ${committee.building ? `<span class="label">Building</span><span class="value">${esc(committee.building)}</span>` : ''}
+        ${committee.phone || committee.phoneNumber ? `<span class="label">Phone</span><span class="value">${esc(committee.phone || committee.phoneNumber)}</span>` : ''}
+      </div>
+    </div>`;
+
+    const members = committee.members || committee.committeeMembers || [];
+    if (members.length > 0) {
+      html += `<div class="dp-section"><h4>Committee Members</h4><ul class="dp-members">`;
+      members.slice(0, 20).forEach(mem => {
+        const name = mem.name || mem.memberName || `${mem.firstName || ''} ${mem.lastName || ''}`.trim();
+        const role = mem.role || mem.position || '';
+        html += `<li><span>${esc(name)}</span>${role ? `<span class="member-role">${esc(role)}</span>` : ''}</li>`;
+      });
+      html += '</ul></div>';
+    }
+  }
+
+  html += `
+    <div class="dp-section">
+      <button class="dp-btn-agenda ${isInAgenda ? 'remove' : 'add'}" onclick="toggleMeetingAgenda('${esc(m.meetingId)}');showDetail('${esc(m.meetingId)}')">
+        ${isInAgenda ? 'Remove from My Agenda' : 'Add to My Agenda'}
+      </button>
+    </div>`;
+
+  document.getElementById('detailContent').innerHTML = html;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function closeDetail(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('detailOverlay').classList.remove('open');
+}
+
+// ===== AGENDA =====
+function toggleMeetingAgenda(meetingId) {
+  const idx = state.agenda.findIndex(a => a.meetingId === meetingId);
+  if (idx >= 0) {
+    state.agenda.splice(idx, 1);
+  } else {
+    const m = state.allMeetings.find(x => x.meetingId === meetingId);
+    if (m) state.agenda.push({ ...m });
+  }
+  localStorage.setItem('cmap_agenda', JSON.stringify(state.agenda));
+  updateAgendaCount();
+  renderView(); // refresh cards
+}
+
+function updateAgendaCount() {
+  document.getElementById('agendaCount').textContent = state.agenda.length;
+}
+
+function toggleAgenda() {
+  const overlay = document.getElementById('agendaOverlay');
+  overlay.classList.toggle('open');
+  if (overlay.classList.contains('open')) renderAgenda();
+}
+
+function renderAgenda() {
+  const container = document.getElementById('agendaContent');
+  if (state.agenda.length === 0) {
+    container.innerHTML = '<div class="agenda-empty">Your agenda is empty. Click "+ Agenda" on any meeting to add it here.</div>';
+    return;
+  }
+
+  const sorted = [...state.agenda].sort((a, b) => (a.meetingDate || '').localeCompare(b.meetingDate || '') || (a.meetingTime || '').localeCompare(b.meetingTime || ''));
+
+  let html = sorted.map(m => `
+    <div class="agenda-item">
+      <div class="ai-info">
+        <div class="ai-name">${esc(m.committeeName)}</div>
+        <div class="ai-time">${formatDateShort(m.meetingDate)} &bull; ${esc(m.meetingTime || 'TBD')} &bull; <span class="badge badge-${m.chamber}">${m.chamber}</span></div>
+      </div>
+      <button class="btn-remove-agenda" onclick="toggleMeetingAgenda('${esc(m.meetingId)}');renderAgenda()" title="Remove">&times;</button>
+    </div>
+  `).join('');
+
+  html += `<button class="btn-export-agenda" onclick="exportAgenda()">Export as Text</button>`;
+  html += `<button class="btn-clear-agenda" onclick="clearAgenda()">Clear All</button>`;
+  container.innerHTML = html;
+}
+
+function clearAgenda() {
+  if (!confirm('Clear your entire agenda?')) return;
+  state.agenda = [];
+  localStorage.setItem('cmap_agenda', JSON.stringify(state.agenda));
+  updateAgendaCount();
+  renderAgenda();
+  renderView();
+}
+
+function exportAgenda() {
+  if (state.agenda.length === 0) return;
+  let text = 'CMAP - My Agenda\n==================\n\n';
+  const sorted = [...state.agenda].sort((a, b) => (a.meetingDate || '').localeCompare(b.meetingDate || ''));
+  sorted.forEach(m => {
+    text += `${m.committeeName}\n`;
+    text += `  Date: ${formatDateLong(m.meetingDate)}\n`;
+    text += `  Time: ${m.meetingTime || 'TBD'}\n`;
+    text += `  Location: ${m.room || ''} ${m.building || ''}\n`;
+    text += `  Chamber: ${m.chamber}\n\n`;
+  });
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cmap-agenda.txt';
+  a.click();
+}
+
+// ===== SIDEBAR TOGGLE =====
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+// ===== GO TO DAY =====
+function goToDay(dateStr) {
+  const parts = dateStr.split('-');
+  state.currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  state.currentView = 'day';
+  document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+  document.querySelector('.view-tab[data-view="day"]').classList.add('active');
+  renderView();
+}
+
+// ===== HELPERS =====
+function esc(s) { if (!s) return ''; const el = document.createElement('span'); el.textContent = s; return el.innerHTML; }
+function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '...' : s || ''; }
+function getHour(timeStr) {
+  if (!timeStr) return -1;
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return -1;
+  let h = parseInt(match[1]);
+  const ampm = (match[3] || '').toUpperCase();
+  if (ampm === 'PM' && h < 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return h;
+}
+function formatDateShort(ds) {
+  if (!ds) return '';
+  const parts = ds.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(parts[1])-1]} ${parseInt(parts[2])}`;
+}
+function formatDateLong(ds) {
+  if (!ds) return '';
+  const parts = ds.split('-');
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${parseInt(parts[2])}, ${parts[0]}`;
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  loadAllData();
+});
+</script>
+</body>
+</html>
