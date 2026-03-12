@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPNX - Sponsor Network &amp; Collaboration Graph</title>
+    <style>
+        :root {
+            --navy: #1b2a4a;
+            --navy-light: #2c3e6b;
+            --navy-dark: #111d35;
+            --gold: #c9a94e;
+            --gold-light: #e8d48b;
+            --gold-dim: #8a7535;
+            --white: #ffffff;
+            --bg: #0e1a2e;
+            --panel-bg: rgba(27,42,74,0.92);
+            --panel-border: rgba(201,169,78,0.25);
+            --text: #e8ecf1;
+            --text-muted: #8a9bb5;
+            --red: #e74c3c;
+            --red-light: #ff6b6b;
+            --blue: #4a90d9;
+            --blue-light: #6bb5ff;
+            --purple: #9b59b6;
+            --green: #2ecc71;
+            --shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ─── Header ─── */
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--gold);
+            z-index: 100;
+            position: relative;
+            height: 48px;
+            flex-shrink: 0;
+        }
+
+        header .left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        header .back-link {
+            color: var(--gold);
+            text-decoration: none;
+            font-size: 0.85rem;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        header .back-link:hover { opacity: 1; }
+
+        header h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--white);
+            letter-spacing: 1px;
+        }
+
+        header h1 span {
+            color: var(--gold);
+            font-weight: 400;
+            font-size: 0.8rem;
+            margin-left: 8px;
+        }
+
+        header .tagline {
+            color: var(--gold-light);
+            font-size: 0.78rem;
+            font-style: italic;
+        }
+
+        /* ─── Main Layout ─── */
+        .app-container {
+            display: flex;
+            height: calc(100vh - 48px);
+            position: relative;
+        }
+
+        /* ─── Canvas ─── */
+        #graphCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #graphCanvas.dragging { cursor: grabbing; }
+
+        /* ─── Loading Overlay ─── */
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(14,26,46,0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            transition: opacity 0.5s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 60px; height: 60px;
+            border: 3px solid var(--navy-light);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            color: var(--gold-light);
+            font-size: 1rem;
+        }
+
+        .loading-sub {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 6px;
+        }
+
+        .error-banner {
+            background: rgba(231,76,60,0.15);
+            border: 1px solid var(--red);
+            color: var(--red-light);
+            padding: 8px 16px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            max-width: 400px;
+            text-align: center;
+            display: none;
+        }
+
+        /* ─── Control Panels ─── */
+        .panel {
+            position: absolute;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 14px;
+            box-shadow: var(--shadow);
+            z-index: 20;
+            font-size: 0.8rem;
+            max-height: calc(100% - 20px);
+            overflow-y: auto;
+        }
+
+        .panel::-webkit-scrollbar { width: 4px; }
+        .panel::-webkit-scrollbar-track { background: transparent; }
+        .panel::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+
+        .panel h3 {
+            color: var(--gold);
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 6px;
+        }
+
+        /* ─── Filters Panel (top-left) ─── */
+        .filters-panel {
+            top: 10px;
+            left: 10px;
+            width: 240px;
+        }
+
+        .filter-group {
+            margin-bottom: 10px;
+        }
+
+        .filter-group label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group select,
+        .filter-group input[type="range"] {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--panel-border);
+            color: var(--text);
+            padding: 5px 8px;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            outline: none;
+        }
+
+        .filter-group select:focus {
+            border-color: var(--gold);
+        }
+
+        .filter-group select option {
+            background: var(--navy);
+            color: var(--text);
+        }
+
+        .filter-group input[type="range"] {
+            padding: 0;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(201,169,78,0.3);
+            cursor: pointer;
+        }
+
+        .filter-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: var(--gold);
+            cursor: pointer;
+        }
+
+        .range-val {
+            color: var(--gold-light);
+            font-size: 0.72rem;
+            float: right;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .btn {
+            padding: 5px 10px;
+            border: 1px solid var(--panel-border);
+            background: rgba(201,169,78,0.1);
+            color: var(--gold-light);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.72rem;
+            transition: all 0.2s;
+            flex: 1;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: rgba(201,169,78,0.25);
+            border-color: var(--gold);
+        }
+
+        .btn.active {
+            background: var(--gold);
+            color: var(--navy-dark);
+            font-weight: 600;
+        }
+
+        /* ─── Stats Panel (top-right) ─── */
+        .stats-panel {
+            top: 10px;
+            right: 10px;
+            width: 220px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(201,169,78,0.1);
+        }
+
+        .stat-item:last-child { border-bottom: none; }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+        }
+
+        .stat-value {
+            color: var(--gold-light);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* ─── Leaderboard Panel (bottom-left) ─── */
+        .leaderboard-panel {
+            bottom: 10px;
+            left: 10px;
+            width: 260px;
+            max-height: 320px;
+        }
+
+        .tab-bar {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 4px 6px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--panel-border);
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.68rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: rgba(201,169,78,0.2);
+            color: var(--gold-light);
+            border-color: var(--gold);
+        }
+
+        .leader-list {
+            list-style: none;
+        }
+
+        .leader-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(201,169,78,0.08);
+            cursor: pointer;
+            transition: background 0.15s;
+            padding: 4px 6px;
+            border-radius: 4px;
+        }
+
+        .leader-item:hover {
+            background: rgba(201,169,78,0.1);
+        }
+
+        .leader-rank {
+            color: var(--gold);
+            font-weight: 700;
+            font-size: 0.72rem;
+            min-width: 18px;
+        }
+
+        .leader-name {
+            flex: 1;
+            font-size: 0.75rem;
+            color: var(--text);
+        }
+
+        .leader-party {
+            font-size: 0.65rem;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .party-r { background: rgba(231,76,60,0.2); color: var(--red-light); }
+        .party-d { background: rgba(74,144,217,0.2); color: var(--blue-light); }
+        .party-i { background: rgba(155,89,182,0.2); color: #c39bd3; }
+
+        .leader-count {
+            color: var(--gold-dim);
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        /* ─── Detail Panel (bottom-right) ─── */
+        .detail-panel {
+            bottom: 10px;
+            right: 10px;
+            width: 280px;
+            max-height: 350px;
+            display: none;
+        }
+
+        .detail-panel.visible { display: block; }
+
+        .detail-close {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .detail-close:hover { color: var(--gold); }
+
+        .detail-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 2px;
+        }
+
+        .detail-meta {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            margin-bottom: 10px;
+        }
+
+        .detail-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .detail-stat {
+            background: rgba(0,0,0,0.2);
+            padding: 6px 8px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .detail-stat-val {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .detail-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .cosponsor-list {
+            list-style: none;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+
+        .cosponsor-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 4px;
+            border-bottom: 1px solid rgba(201,169,78,0.08);
+            font-size: 0.72rem;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background 0.15s;
+        }
+
+        .cosponsor-item:hover { background: rgba(201,169,78,0.1); }
+
+        .cosponsor-name { color: var(--text); }
+        .cosponsor-count { color: var(--gold-dim); }
+
+        /* ─── Legend ─── */
+        .legend {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 6px 14px;
+            display: flex;
+            gap: 16px;
+            font-size: 0.7rem;
+            z-index: 20;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-muted);
+        }
+
+        .legend-swatch {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .legend-diamond {
+            width: 10px; height: 10px;
+            transform: rotate(45deg);
+            display: inline-block;
+        }
+
+        /* ─── Tooltip ─── */
+        .tooltip {
+            position: absolute;
+            background: var(--navy);
+            border: 1px solid var(--gold);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            pointer-events: none;
+            z-index: 30;
+            white-space: nowrap;
+            display: none;
+            box-shadow: var(--shadow);
+        }
+
+        .tooltip.visible { display: block; }
+
+        /* ─── Cluster Highlights Toggle ─── */
+        .cluster-toggle {
+            margin-top: 4px;
+        }
+
+        .cluster-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+        }
+
+        .cluster-toggle input[type="checkbox"] {
+            accent-color: var(--gold);
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 900px) {
+            .filters-panel { width: 200px; }
+            .stats-panel { width: 180px; }
+            .leaderboard-panel { width: 220px; }
+            .detail-panel { width: 240px; }
+        }
+
+        @media (max-width: 640px) {
+            header { padding: 8px 12px; }
+            header h1 { font-size: 0.95rem; }
+            header h1 span { display: none; }
+            header .tagline { display: none; }
+
+            .filters-panel, .stats-panel {
+                position: relative;
+                top: auto; left: auto; right: auto;
+                width: 100%;
+                border-radius: 0;
+                border: none;
+                border-bottom: 1px solid var(--panel-border);
+            }
+
+            .leaderboard-panel, .detail-panel {
+                width: calc(100% - 20px);
+                left: 10px;
+                right: 10px;
+            }
+
+            .legend { display: none; }
+        }
+
+        /* ─── Panel collapse toggle ─── */
+        .panel-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .panel-toggle:hover { color: var(--gold); }
+
+        .panel.collapsed .panel-body { display: none; }
+        .panel.collapsed { padding: 10px 14px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="left">
+            <a href="../index.html" class="back-link">&#8592; Ideas Engine</a>
+            <h1>SPNX <span>Sponsor Network &amp; Collaboration Graph</span></h1>
+        </div>
+        <div class="tagline">See who works together to shape legislation.</div>
+    </header>
+
+    <div class="app-container">
+        <canvas id="graphCanvas"></canvas>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">Loading sponsor data...</div>
+            <div class="loading-sub" id="loadingSub">Fetching legislator information</div>
+            <div class="error-banner" id="errorBanner"></div>
+        </div>
+
+        <!-- Tooltip -->
+        <div class="tooltip" id="tooltip"></div>
+
+        <!-- Filters Panel -->
+        <div class="panel filters-panel" id="filtersPanel">
+            <h3>Filters</h3>
+            <div class="panel-body">
+                <div class="filter-group">
+                    <label>Session</label>
+                    <select id="sessionSelect"><option value="126">126th (2025-2026)</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>Chamber</label>
+                    <select id="chamberFilter">
+                        <option value="all">All Chambers</option>
+                        <option value="H">House</option>
+                        <option value="S">Senate</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Party</label>
+                    <select id="partyFilter">
+                        <option value="all">All Parties</option>
+                        <option value="R">Republican</option>
+                        <option value="D">Democrat</option>
+                        <option value="I">Independent</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Subject Area</label>
+                    <select id="subjectFilter"><option value="all">All Subjects</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>Min Connections <span class="range-val" id="minConnVal">1</span></label>
+                    <input type="range" id="minConnections" min="1" max="20" value="1">
+                </div>
+                <div class="cluster-toggle">
+                    <label><input type="checkbox" id="showClusters"> Highlight bipartisan clusters</label>
+                </div>
+                <div class="btn-row">
+                    <button class="btn" id="resetBtn">Reset Filters</button>
+                    <button class="btn" id="reloadBtn">Reload Data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div class="panel stats-panel" id="statsPanel">
+            <h3>Network Stats</h3>
+            <div class="panel-body">
+                <div class="stat-item"><span class="stat-label">Total Legislators</span><span class="stat-value" id="statTotalMembers">--</span></div>
+                <div class="stat-item"><span class="stat-label">Total Bills</span><span class="stat-value" id="statTotalBills">--</span></div>
+                <div class="stat-item"><span class="stat-label">Co-sponsored Bills</span><span class="stat-value" id="statCosponsored">--</span></div>
+                <div class="stat-item"><span class="stat-label">Avg Co-sponsors/Bill</span><span class="stat-value" id="statAvgCosponsors">--</span></div>
+                <div class="stat-item"><span class="stat-label">Connections Shown</span><span class="stat-value" id="statConnections">--</span></div>
+                <div class="stat-item"><span class="stat-label">Bipartisan Rate</span><span class="stat-value" id="statBipartisan">--</span></div>
+                <div class="stat-item"><span class="stat-label">Visible Nodes</span><span class="stat-value" id="statVisibleNodes">--</span></div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Panel -->
+        <div class="panel leaderboard-panel" id="leaderboardPanel">
+            <div class="tab-bar">
+                <button class="tab-btn active" data-tab="sponsors">Top Sponsors</button>
+                <button class="tab-btn" data-tab="pairs">Collab Pairs</button>
+            </div>
+            <div class="panel-body">
+                <ul class="leader-list" id="leaderList"></ul>
+            </div>
+        </div>
+
+        <!-- Detail Panel -->
+        <div class="panel detail-panel" id="detailPanel">
+            <button class="detail-close" id="detailClose">&times;</button>
+            <h3>Member Detail</h3>
+            <div class="panel-body">
+                <div class="detail-name" id="detailName">--</div>
+                <div class="detail-meta" id="detailMeta">--</div>
+                <div class="detail-stats">
+                    <div class="detail-stat"><div class="detail-stat-val" id="detailBills">--</div><div class="detail-stat-label">Bills</div></div>
+                    <div class="detail-stat"><div class="detail-stat-val" id="detailCosponsors">--</div><div class="detail-stat-label">Co-sponsors</div></div>
+                    <div class="detail-stat"><div class="detail-stat-val" id="detailBipartisan">--</div><div class="detail-stat-label">Bipartisan</div></div>
+                    <div class="detail-stat"><div class="detail-stat-val" id="detailConnections">--</div><div class="detail-stat-label">Connections</div></div>
+                </div>
+                <h3 style="font-size:0.72rem; margin-top:6px;">Top Co-sponsors</h3>
+                <ul class="cosponsor-list" id="cosponsorList"></ul>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item"><span class="legend-swatch" style="background:var(--red)"></span> Republican</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:var(--blue)"></span> Democrat</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:var(--purple)"></span> Independent</div>
+            <div class="legend-item"><span class="legend-swatch" style="border-radius:50%; border:2px solid var(--text-muted); width:8px; height:8px;"></span> House</div>
+            <div class="legend-item"><span class="legend-diamond" style="border:2px solid var(--text-muted); width:8px; height:8px;"></span> Senate</div>
+        </div>
+    </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// SPNX - Sponsor Network & Collaboration Graph
+// ═══════════════════════════════════════════════════════════════
+
+const BASE = 'https://rest.scstatehouse.gov';
+
+// ─── State ───
+let allMembers = {};       // keyed by PERM_SPONSOR_CODE
+let allBills = [];
+let allSubjects = [];
+let graphNodes = [];
+let graphEdges = [];
+let filteredNodes = [];
+let filteredEdges = [];
+let selectedNode = null;
+let hoveredNode = null;
+let dragNode = null;
+let clusters = [];
+let activeTab = 'sponsors';
+let usingFallback = false;
+
+// Physics
+let simRunning = true;
+let simAlpha = 1.0;
+const SIM_DECAY = 0.998;
+const REPULSION = 3000;
+const ATTRACTION = 0.004;
+const DAMPING = 0.88;
+const CENTER_GRAVITY = 0.008;
+
+// Camera
+let camX = 0, camY = 0, camZoom = 1;
+let panStartX, panStartY, panCamX, panCamY;
+let isPanning = false;
+
+// Canvas
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+let animFrame;
+
+// ─── DOM refs ───
+const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingText = document.getElementById('loadingText');
+const loadingSub = document.getElementById('loadingSub');
+const errorBanner = document.getElementById('errorBanner');
+const tooltip = document.getElementById('tooltip');
+const detailPanel = document.getElementById('detailPanel');
+
+// ═══════════════════════════════════════════════════════════════
+// FALLBACK DATA
+// ═══════════════════════════════════════════════════════════════
+
+function generateFallbackData() {
+    const houseMembers = [
+        { code: '1001', first: 'Murrell', last: 'Smith', party: 'R', district: '67', county: 'Sumter', chamber: 'H' },
+        { code: '1002', first: 'Bruce', last: 'Bannister', party: 'R', district: '24', county: 'Greenville', chamber: 'H' },
+        { code: '1003', first: 'Todd', last: 'Rutherford', party: 'D', district: '74', county: 'Richland', chamber: 'H' },
+        { code: '1004', first: 'Gilda', last: 'Cobb-Hunter', party: 'D', district: '66', county: 'Orangeburg', chamber: 'H' },
+        { code: '1005', first: 'Jay', last: 'Lucas', party: 'R', district: '65', county: 'Darlington', chamber: 'H' },
+        { code: '1006', first: 'Wm. Weston', last: 'Newton', party: 'R', district: '120', county: 'Beaufort', chamber: 'H' },
+        { code: '1007', first: 'Chris', last: 'Murphy', party: 'R', district: '98', county: 'Dorchester', chamber: 'H' },
+        { code: '1008', first: 'JA', last: 'Moore', party: 'D', district: '15', county: 'Berkeley', chamber: 'H' },
+        { code: '1009', first: 'Cal', last: 'Forrest', party: 'R', district: '39', county: 'Saluda', chamber: 'H' },
+        { code: '1010', first: 'Wendell', last: 'Gilliard', party: 'D', district: '111', county: 'Charleston', chamber: 'H' },
+        { code: '1011', first: 'Russell', last: 'Ott', party: 'D', district: '93', county: 'Calhoun', chamber: 'H' },
+        { code: '1012', first: 'Micah', last: 'Caskey', party: 'R', district: '89', county: 'Lexington', chamber: 'H' },
+        { code: '1013', first: 'Annie', last: 'McDaniel', party: 'D', district: '41', county: 'Fairfield', chamber: 'H' },
+        { code: '1014', first: 'Gary', last: 'Simrill', party: 'R', district: '46', county: 'York', chamber: 'H' },
+        { code: '1015', first: 'Chandra', last: 'Dillard', party: 'D', district: '23', county: 'Greenville', chamber: 'H' },
+        { code: '1016', first: 'Thomas', last: 'Beach', party: 'R', district: '30', county: 'Spartanburg', chamber: 'H' },
+        { code: '1017', first: 'Leon', last: 'Howard', party: 'D', district: '76', county: 'Richland', chamber: 'H' },
+        { code: '1018', first: 'Bill', last: 'Taylor', party: 'R', district: '86', county: 'Aiken', chamber: 'H' },
+        { code: '1019', first: 'Kambrell', last: 'Garvin', party: 'D', district: '77', county: 'Richland', chamber: 'H' },
+        { code: '1020', first: 'Tommy', last: 'Pope', party: 'R', district: '47', county: 'York', chamber: 'H' },
+    ];
+
+    const senateMembers = [
+        { code: '2001', first: 'Thomas', last: 'Alexander', party: 'R', district: '1', county: 'Oconee', chamber: 'S' },
+        { code: '2002', first: 'Luke', last: 'Rankin', party: 'R', district: '33', county: 'Horry', chamber: 'S' },
+        { code: '2003', first: 'Brad', last: 'Hutto', party: 'D', district: '40', county: 'Orangeburg', chamber: 'S' },
+        { code: '2004', first: 'Dick', last: 'Harpootlian', party: 'D', district: '20', county: 'Richland', chamber: 'S' },
+        { code: '2005', first: 'Harvey', last: 'Peeler', party: 'R', district: '14', county: 'Cherokee', chamber: 'S' },
+        { code: '2006', first: 'Nikki', last: 'Setzler', party: 'D', district: '26', county: 'Lexington', chamber: 'S' },
+        { code: '2007', first: 'Shane', last: 'Massey', party: 'R', district: '25', county: 'Edgefield', chamber: 'S' },
+        { code: '2008', first: 'Gerald', last: 'Malloy', party: 'D', district: '29', county: 'Darlington', chamber: 'S' },
+        { code: '2009', first: 'Greg', last: 'Hembree', party: 'R', district: '28', county: 'Horry', chamber: 'S' },
+        { code: '2010', first: 'Margie Bright', last: 'Matthews', party: 'D', district: '45', county: 'Colleton', chamber: 'S' },
+        { code: '2011', first: 'Ross', last: 'Turner', party: 'R', district: '8', county: 'Greenville', chamber: 'S' },
+        { code: '2012', first: 'Darrell', last: 'Jackson', party: 'D', district: '21', county: 'Richland', chamber: 'S' },
+        { code: '2013', first: 'Sean', last: 'Bennett', party: 'R', district: '38', county: 'Dorchester', chamber: 'S' },
+        { code: '2014', first: 'Mia', last: 'McLeod', party: 'D', district: '22', county: 'Richland', chamber: 'S' },
+        { code: '2015', first: 'Rex', last: 'Rice', party: 'R', district: '2', county: 'Pickens', chamber: 'S' },
+    ];
+
+    const members = {};
+    [...houseMembers, ...senateMembers].forEach(m => {
+        members[m.code] = {
+            PERM_SPONSOR_CODE: m.code,
+            FIRST: m.first,
+            LAST: m.last,
+            PARTY: m.party,
+            DISTRICT_NUMBER: m.district,
+            HOME_COUNTY: m.county,
+            CHAMBER: m.chamber,
+            TITLE: m.chamber === 'H' ? 'Representative' : 'Senator'
+        };
+    });
+
+    const codes = Object.keys(members);
+    const bills = [];
+    const subjectNames = ['Education', 'Health', 'Transportation', 'Budget', 'Criminal Justice',
+        'Agriculture', 'Environment', 'Technology', 'Veterans Affairs', 'Labor',
+        'Insurance', 'Taxes', 'Elections', 'Housing', 'Energy'];
+
+    for (let i = 0; i < 200; i++) {
+        const chamber = Math.random() < 0.6 ? 'H' : 'S';
+        const chamberCodes = codes.filter(c => members[c].CHAMBER === chamber);
+        const primaryIdx = Math.floor(Math.random() * chamberCodes.length);
+        const primary = chamberCodes[primaryIdx];
+        const numCosponsors = Math.floor(Math.random() * 6);
+        const sponsors = [{ PERM_SPONSOR_CODE: primary }];
+
+        const available = codes.filter(c => c !== primary);
+        for (let j = 0; j < numCosponsors && available.length > 0; j++) {
+            const idx = Math.floor(Math.random() * available.length);
+            sponsors.push({ PERM_SPONSOR_CODE: available.splice(idx, 1)[0] });
+        }
+
+        const subj = subjectNames[Math.floor(Math.random() * subjectNames.length)];
+        bills.push({
+            BILL_NUMBER: String(i + 1),
+            CHAMBER: chamber,
+            PERM_SPONSOR_CODE: primary,
+            SPONSORS: sponsors,
+            SUMMARY: `A bill relating to ${subj.toLowerCase()}`,
+            SUBJECT: subj,
+            TITLE: `${chamber === 'H' ? 'H' : 'S'}. ${i + 1} - ${subj} Act`
+        });
+    }
+
+    const subjects = subjectNames.map((s, i) => ({ SUBJECT_CODE: String(i + 1), SUBJECT_DESC: s }));
+
+    return { members, bills, subjects };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════════════════════
+
+async function fetchJSON(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+}
+
+async function loadData() {
+    loadingText.textContent = 'Loading sponsor data...';
+    loadingSub.textContent = 'Fetching legislator information';
+    errorBanner.style.display = 'none';
+
+    try {
+        // Load sessions first
+        loadingSub.textContent = 'Fetching session info...';
+        let sessions;
+        try {
+            sessions = await fetchJSON(`${BASE}/sessions`);
+            populateSessionSelect(sessions);
+        } catch (e) {
+            console.warn('Sessions fetch failed, using default');
+        }
+
+        // Load bios
+        loadingSub.textContent = 'Fetching House members...';
+        const [houseBios, senateBios] = await Promise.all([
+            fetchJSON(`${BASE}/house/bios`),
+            fetchJSON(`${BASE}/senate/bios`)
+        ]);
+
+        allMembers = {};
+        (Array.isArray(houseBios) ? houseBios : []).forEach(m => {
+            if (m.PERM_SPONSOR_CODE) allMembers[m.PERM_SPONSOR_CODE] = { ...m, CHAMBER: 'H' };
+        });
+        (Array.isArray(senateBios) ? senateBios : []).forEach(m => {
+            if (m.PERM_SPONSOR_CODE) allMembers[m.PERM_SPONSOR_CODE] = { ...m, CHAMBER: 'S' };
+        });
+
+        // Load bills
+        loadingSub.textContent = 'Fetching bill data...';
+        const [houseBills, senateBills] = await Promise.all([
+            fetchJSON(`${BASE}/dashboard/currentbill/house`),
+            fetchJSON(`${BASE}/dashboard/currentbill/senate`)
+        ]);
+
+        allBills = [
+            ...(Array.isArray(houseBills) ? houseBills : []),
+            ...(Array.isArray(senateBills) ? senateBills : [])
+        ];
+
+        // Load subjects
+        loadingSub.textContent = 'Fetching subject categories...';
+        try {
+            allSubjects = await fetchJSON(`${BASE}/subjects/current`);
+            if (!Array.isArray(allSubjects)) allSubjects = [];
+        } catch (e) {
+            allSubjects = [];
+        }
+
+        if (Object.keys(allMembers).length === 0 || allBills.length === 0) {
+            throw new Error('No data received');
+        }
+
+        usingFallback = false;
+        loadingSub.textContent = 'Building network graph...';
+        populateSubjectFilter();
+        buildGraph();
+        updateFilters();
+        hideLoading();
+
+    } catch (err) {
+        console.warn('API fetch failed, using fallback data:', err.message);
+        errorBanner.textContent = `API unavailable (${err.message}). Using demo data with realistic SC legislator names.`;
+        errorBanner.style.display = 'block';
+
+        const fallback = generateFallbackData();
+        allMembers = fallback.members;
+        allBills = fallback.bills;
+        allSubjects = fallback.subjects;
+        usingFallback = true;
+
+        populateSubjectFilter();
+        buildGraph();
+        updateFilters();
+
+        setTimeout(hideLoading, 1500);
+    }
+}
+
+function populateSessionSelect(sessions) {
+    const sel = document.getElementById('sessionSelect');
+    if (!Array.isArray(sessions)) return;
+    sel.innerHTML = '';
+    sessions.sort((a, b) => Number(b.SESS_NUMBER) - Number(a.SESS_NUMBER));
+    sessions.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.SESS_NUMBER;
+        opt.textContent = `${s.SESS_NUMBER}th (${s.SESS_START_DATE}-${s.SESS_END_DATE})`;
+        sel.appendChild(opt);
+    });
+}
+
+function populateSubjectFilter() {
+    const sel = document.getElementById('subjectFilter');
+    sel.innerHTML = '<option value="all">All Subjects</option>';
+
+    // Collect subjects from bills or subject list
+    const subjectSet = new Set();
+    if (allSubjects.length > 0) {
+        allSubjects.forEach(s => {
+            const desc = s.SUBJECT_DESC || s.SubjectDesc || s.Description || s.NAME || '';
+            if (desc) subjectSet.add(desc);
+        });
+    }
+    // Also collect from bill data
+    allBills.forEach(b => {
+        if (b.SUBJECT) subjectSet.add(b.SUBJECT);
+        if (b.SUBJECT_DESC) subjectSet.add(b.SUBJECT_DESC);
+    });
+
+    [...subjectSet].sort().forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        sel.appendChild(opt);
+    });
+}
+
+function hideLoading() {
+    loadingOverlay.classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GRAPH BUILDING
+// ═══════════════════════════════════════════════════════════════
+
+function buildGraph() {
+    const memberBillCount = {};
+    const edgeMap = {};
+    const memberBills = {};
+
+    allBills.forEach(bill => {
+        const sponsors = bill.SPONSORS || [];
+        const sponsorCodes = sponsors
+            .map(s => s.PERM_SPONSOR_CODE || s.SponsorCode || s.sponsorCode)
+            .filter(Boolean);
+
+        // Also include primary sponsor if not in sponsors array
+        if (bill.PERM_SPONSOR_CODE && !sponsorCodes.includes(bill.PERM_SPONSOR_CODE)) {
+            sponsorCodes.unshift(bill.PERM_SPONSOR_CODE);
+        }
+
+        sponsorCodes.forEach(code => {
+            memberBillCount[code] = (memberBillCount[code] || 0) + 1;
+            if (!memberBills[code]) memberBills[code] = [];
+            memberBills[code].push(bill);
+        });
+
+        // Build edges from co-sponsorships
+        for (let i = 0; i < sponsorCodes.length; i++) {
+            for (let j = i + 1; j < sponsorCodes.length; j++) {
+                const a = sponsorCodes[i], b = sponsorCodes[j];
+                const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+                if (!edgeMap[key]) edgeMap[key] = { source: a < b ? a : b, target: a < b ? b : a, weight: 0, bills: [] };
+                edgeMap[key].weight++;
+                edgeMap[key].bills.push(bill);
+            }
+        }
+    });
+
+    // Create nodes
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    graphNodes = [];
+
+    Object.keys(allMembers).forEach(code => {
+        const m = allMembers[code];
+        const billCount = memberBillCount[code] || 0;
+        if (billCount === 0) return; // Only show members with bills
+
+        graphNodes.push({
+            id: code,
+            label: `${m.FIRST || ''} ${m.LAST || ''}`.trim(),
+            party: (m.PARTY || 'I').toUpperCase(),
+            chamber: m.CHAMBER || 'H',
+            district: m.DISTRICT_NUMBER || '',
+            county: m.HOME_COUNTY || '',
+            title: m.TITLE || '',
+            billCount: billCount,
+            bills: memberBills[code] || [],
+            x: cx + (Math.random() - 0.5) * 600,
+            y: cy + (Math.random() - 0.5) * 400,
+            vx: 0,
+            vy: 0,
+            radius: Math.max(6, Math.min(28, 4 + Math.sqrt(billCount) * 3)),
+            pinned: false
+        });
+    });
+
+    graphEdges = Object.values(edgeMap).filter(e => {
+        return graphNodes.some(n => n.id === e.source) && graphNodes.some(n => n.id === e.target);
+    });
+
+    // Reset simulation
+    simAlpha = 1.0;
+    simRunning = true;
+
+    // Detect clusters
+    detectBipartisanClusters();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLUSTER DETECTION
+// ═══════════════════════════════════════════════════════════════
+
+function detectBipartisanClusters() {
+    clusters = [];
+    const visited = new Set();
+
+    // Find connected components with mixed parties
+    graphNodes.forEach(node => {
+        if (visited.has(node.id)) return;
+
+        const component = [];
+        const queue = [node.id];
+        const parties = new Set();
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            if (visited.has(current)) continue;
+            visited.add(current);
+
+            const n = graphNodes.find(x => x.id === current);
+            if (!n) continue;
+            component.push(current);
+            parties.add(n.party);
+
+            // Only follow strong edges (weight >= 2)
+            graphEdges.forEach(e => {
+                if (e.weight < 2) return;
+                if (e.source === current && !visited.has(e.target)) queue.push(e.target);
+                if (e.target === current && !visited.has(e.source)) queue.push(e.source);
+            });
+        }
+
+        if (parties.size > 1 && component.length >= 3) {
+            clusters.push({
+                members: component,
+                parties: [...parties],
+                size: component.length
+            });
+        }
+    });
+
+    clusters.sort((a, b) => b.size - a.size);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILTERING
+// ═══════════════════════════════════════════════════════════════
+
+function updateFilters() {
+    const chamber = document.getElementById('chamberFilter').value;
+    const party = document.getElementById('partyFilter').value;
+    const minConn = parseInt(document.getElementById('minConnections').value);
+    const subject = document.getElementById('subjectFilter').value;
+    document.getElementById('minConnVal').textContent = minConn;
+
+    // Filter by subject: only show bills matching subject
+    let relevantBillSet = null;
+    if (subject !== 'all') {
+        relevantBillSet = new Set();
+        allBills.forEach(b => {
+            const billSubject = b.SUBJECT || b.SUBJECT_DESC || '';
+            if (billSubject === subject) {
+                relevantBillSet.add(b.BILL_NUMBER + '|' + b.CHAMBER);
+            }
+        });
+    }
+
+    // Filter edges by subject
+    let activeEdges = graphEdges;
+    if (relevantBillSet) {
+        activeEdges = graphEdges.map(e => {
+            const matchingBills = e.bills.filter(b => relevantBillSet.has(b.BILL_NUMBER + '|' + b.CHAMBER));
+            if (matchingBills.length === 0) return null;
+            return { ...e, weight: matchingBills.length, filteredBills: matchingBills };
+        }).filter(Boolean);
+    }
+
+    // Filter nodes
+    filteredNodes = graphNodes.filter(n => {
+        if (chamber !== 'all' && n.chamber !== chamber) return false;
+        if (party !== 'all' && n.party !== party) return false;
+        return true;
+    });
+
+    const nodeIds = new Set(filteredNodes.map(n => n.id));
+
+    // Filter edges by nodes and min connections
+    filteredEdges = activeEdges.filter(e => {
+        return nodeIds.has(e.source) && nodeIds.has(e.target) && e.weight >= minConn;
+    });
+
+    // Further filter nodes: only keep those with at least one edge (unless minConn is 1)
+    if (minConn > 1) {
+        const connectedIds = new Set();
+        filteredEdges.forEach(e => { connectedIds.add(e.source); connectedIds.add(e.target); });
+        filteredNodes = filteredNodes.filter(n => connectedIds.has(n.id));
+    }
+
+    updateStats();
+    updateLeaderboard();
+    simAlpha = Math.max(simAlpha, 0.3);
+    simRunning = true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════════════
+
+function updateStats() {
+    document.getElementById('statTotalMembers').textContent = Object.keys(allMembers).length;
+    document.getElementById('statTotalBills').textContent = allBills.length;
+
+    const cosponsored = allBills.filter(b => (b.SPONSORS || []).length > 1).length;
+    document.getElementById('statCosponsored').textContent = cosponsored;
+
+    const totalSponsors = allBills.reduce((sum, b) => sum + (b.SPONSORS || []).length, 0);
+    const avg = allBills.length > 0 ? (totalSponsors / allBills.length).toFixed(1) : '0';
+    document.getElementById('statAvgCosponsors').textContent = avg;
+
+    document.getElementById('statConnections').textContent = filteredEdges.length;
+    document.getElementById('statVisibleNodes').textContent = filteredNodes.length;
+
+    // Bipartisan rate: % of co-sponsored bills with mixed parties
+    let bipartisanCount = 0;
+    let cosponsoredTotal = 0;
+    allBills.forEach(bill => {
+        const sponsors = bill.SPONSORS || [];
+        if (sponsors.length < 2) return;
+        cosponsoredTotal++;
+        const parties = new Set();
+        sponsors.forEach(s => {
+            const code = s.PERM_SPONSOR_CODE || s.SponsorCode;
+            const member = allMembers[code];
+            if (member) parties.add(member.PARTY);
+        });
+        if (parties.size > 1) bipartisanCount++;
+    });
+
+    const bipartisanRate = cosponsoredTotal > 0 ? Math.round((bipartisanCount / cosponsoredTotal) * 100) : 0;
+    document.getElementById('statBipartisan').textContent = bipartisanRate + '%';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════════════════════════
+
+function updateLeaderboard() {
+    const list = document.getElementById('leaderList');
+    list.innerHTML = '';
+
+    if (activeTab === 'sponsors') {
+        const sorted = [...filteredNodes].sort((a, b) => b.billCount - a.billCount).slice(0, 15);
+        sorted.forEach((n, i) => {
+            const li = document.createElement('li');
+            li.className = 'leader-item';
+            li.innerHTML = `
+                <span class="leader-rank">${i + 1}</span>
+                <span class="leader-name">${n.label}</span>
+                <span class="leader-party party-${n.party.toLowerCase()}">${n.party}</span>
+                <span class="leader-count">${n.billCount}</span>
+            `;
+            li.onclick = () => selectNode(n);
+            list.appendChild(li);
+        });
+    } else {
+        // Most collaborative pairs
+        const sorted = [...filteredEdges].sort((a, b) => b.weight - a.weight).slice(0, 15);
+        sorted.forEach((e, i) => {
+            const s = graphNodes.find(n => n.id === e.source);
+            const t = graphNodes.find(n => n.id === e.target);
+            if (!s || !t) return;
+
+            const isBipartisan = s.party !== t.party;
+            const li = document.createElement('li');
+            li.className = 'leader-item';
+            li.innerHTML = `
+                <span class="leader-rank">${i + 1}</span>
+                <span class="leader-name" style="font-size:0.68rem">${s.label.split(' ').pop()} &amp; ${t.label.split(' ').pop()}${isBipartisan ? ' *' : ''}</span>
+                <span class="leader-party party-${s.party.toLowerCase()}">${s.party}</span>
+                <span class="leader-party party-${t.party.toLowerCase()}">${t.party}</span>
+                <span class="leader-count">${e.weight}</span>
+            `;
+            li.onclick = () => { selectNode(s); };
+            list.appendChild(li);
+        });
+    }
+}
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeTab = btn.dataset.tab;
+        updateLeaderboard();
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// NODE SELECTION / DETAIL
+// ═══════════════════════════════════════════════════════════════
+
+function selectNode(node) {
+    selectedNode = node;
+    detailPanel.classList.add('visible');
+
+    document.getElementById('detailName').textContent = node.label;
+    document.getElementById('detailMeta').textContent =
+        `${node.title} | ${node.party === 'R' ? 'Republican' : node.party === 'D' ? 'Democrat' : 'Independent'} | District ${node.district} | ${node.county} County`;
+
+    document.getElementById('detailBills').textContent = node.billCount;
+
+    // Find connections
+    const connections = {};
+    filteredEdges.forEach(e => {
+        if (e.source === node.id) {
+            connections[e.target] = (connections[e.target] || 0) + e.weight;
+        } else if (e.target === node.id) {
+            connections[e.source] = (connections[e.source] || 0) + e.weight;
+        }
+    });
+
+    const connCount = Object.keys(connections).length;
+    document.getElementById('detailCosponsors').textContent = connCount;
+    document.getElementById('detailConnections').textContent =
+        Object.values(connections).reduce((a, b) => a + b, 0);
+
+    // Bipartisan connections
+    let bipartisan = 0;
+    Object.keys(connections).forEach(id => {
+        const other = graphNodes.find(n => n.id === id);
+        if (other && other.party !== node.party) bipartisan++;
+    });
+    document.getElementById('detailBipartisan').textContent = bipartisan;
+
+    // Co-sponsor list
+    const cosponsorList = document.getElementById('cosponsorList');
+    cosponsorList.innerHTML = '';
+    const sorted = Object.entries(connections).sort((a, b) => b[1] - a[1]).slice(0, 20);
+    sorted.forEach(([id, weight]) => {
+        const other = graphNodes.find(n => n.id === id);
+        if (!other) return;
+        const li = document.createElement('li');
+        li.className = 'cosponsor-item';
+        li.innerHTML = `
+            <span class="cosponsor-name">${other.label} <span class="leader-party party-${other.party.toLowerCase()}">${other.party}</span></span>
+            <span class="cosponsor-count">${weight} bills</span>
+        `;
+        li.onclick = () => selectNode(other);
+        cosponsorList.appendChild(li);
+    });
+}
+
+document.getElementById('detailClose').addEventListener('click', () => {
+    selectedNode = null;
+    detailPanel.classList.remove('visible');
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PHYSICS SIMULATION
+// ═══════════════════════════════════════════════════════════════
+
+function simulate() {
+    if (!simRunning || simAlpha < 0.001) {
+        simRunning = false;
+        return;
+    }
+
+    const nodes = filteredNodes;
+    const edges = filteredEdges;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    // Repulsion between all node pairs (Barnes-Hut approximation for large graphs)
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i], b = nodes[j];
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            let force = REPULSION * simAlpha / (dist * dist);
+
+            // Cap force
+            force = Math.min(force, 10);
+
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+
+            if (!a.pinned) { a.vx -= fx; a.vy -= fy; }
+            if (!b.pinned) { b.vx += fx; b.vy += fy; }
+        }
+    }
+
+    // Attraction along edges
+    const nodeMap = {};
+    nodes.forEach(n => nodeMap[n.id] = n);
+
+    edges.forEach(e => {
+        const a = nodeMap[e.source], b = nodeMap[e.target];
+        if (!a || !b) return;
+
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const idealDist = 120;
+        let force = (dist - idealDist) * ATTRACTION * simAlpha * Math.sqrt(e.weight);
+
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+
+        if (!a.pinned) { a.vx += fx; a.vy += fy; }
+        if (!b.pinned) { b.vx -= fx; b.vy -= fy; }
+    });
+
+    // Center gravity
+    nodes.forEach(n => {
+        if (n.pinned) return;
+        n.vx += (cx - n.x) * CENTER_GRAVITY * simAlpha;
+        n.vy += (cy - n.y) * CENTER_GRAVITY * simAlpha;
+    });
+
+    // Apply velocities with damping
+    nodes.forEach(n => {
+        if (n.pinned) return;
+        n.vx *= DAMPING;
+        n.vy *= DAMPING;
+        n.x += n.vx;
+        n.y += n.vy;
+
+        // Keep in bounds
+        const margin = 50;
+        n.x = Math.max(margin, Math.min(canvas.width - margin, n.x));
+        n.y = Math.max(margin, Math.min(canvas.height - margin, n.y));
+    });
+
+    simAlpha *= SIM_DECAY;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════
+
+function getPartyColor(party, alpha = 1) {
+    switch (party) {
+        case 'R': return `rgba(231,76,60,${alpha})`;
+        case 'D': return `rgba(74,144,217,${alpha})`;
+        default: return `rgba(155,89,182,${alpha})`;
+    }
+}
+
+function drawNode(node, isSelected, isHovered, isClusterMember) {
+    const x = node.x, y = node.y, r = node.radius;
+    const color = getPartyColor(node.party);
+    const glowColor = getPartyColor(node.party, 0.3);
+
+    ctx.save();
+
+    // Cluster glow
+    if (isClusterMember && document.getElementById('showClusters').checked) {
+        ctx.shadowColor = '#2ecc71';
+        ctx.shadowBlur = 15;
+    }
+
+    // Selection/hover glow
+    if (isSelected) {
+        ctx.shadowColor = getPartyColor(node.party, 0.8);
+        ctx.shadowBlur = 20;
+    } else if (isHovered) {
+        ctx.shadowColor = getPartyColor(node.party, 0.6);
+        ctx.shadowBlur = 12;
+    }
+
+    ctx.fillStyle = color;
+    ctx.strokeStyle = isSelected ? '#fff' : isHovered ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = isSelected ? 2.5 : isHovered ? 2 : 1;
+
+    if (node.chamber === 'S') {
+        // Diamond for Senate
+        ctx.beginPath();
+        ctx.moveTo(x, y - r);
+        ctx.lineTo(x + r, y);
+        ctx.lineTo(x, y + r);
+        ctx.lineTo(x - r, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    } else {
+        // Circle for House
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Label for large or selected/hovered nodes
+    if (r > 10 || isSelected || isHovered) {
+        ctx.fillStyle = isSelected || isHovered ? '#fff' : 'rgba(232,236,241,0.8)';
+        ctx.font = `${isSelected ? 'bold ' : ''}${Math.max(9, Math.min(12, r * 0.7))}px 'Segoe UI', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const lastName = node.label.split(' ').pop();
+        ctx.fillText(lastName, x, y + r + 3);
+    }
+}
+
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.translate(camX, camY);
+    ctx.scale(camZoom, camZoom);
+
+    const showClusters = document.getElementById('showClusters').checked;
+    const clusterNodeIds = new Set();
+    if (showClusters) {
+        clusters.forEach(c => c.members.forEach(id => clusterNodeIds.add(id)));
+    }
+
+    // Draw cluster hulls
+    if (showClusters) {
+        clusters.forEach(cluster => {
+            const clusterNodes = cluster.members.map(id => filteredNodes.find(n => n.id === id)).filter(Boolean);
+            if (clusterNodes.length < 3) return;
+
+            ctx.save();
+            ctx.globalAlpha = 0.06;
+            ctx.fillStyle = '#2ecc71';
+
+            // Simple convex hull approximation - just draw around the centroid
+            const cx = clusterNodes.reduce((s, n) => s + n.x, 0) / clusterNodes.length;
+            const cy = clusterNodes.reduce((s, n) => s + n.y, 0) / clusterNodes.length;
+            const maxDist = Math.max(...clusterNodes.map(n => Math.sqrt((n.x - cx) ** 2 + (n.y - cy) ** 2))) + 40;
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, maxDist, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+    }
+
+    // Draw edges
+    const nodeMap = {};
+    filteredNodes.forEach(n => nodeMap[n.id] = n);
+
+    filteredEdges.forEach(e => {
+        const a = nodeMap[e.source], b = nodeMap[e.target];
+        if (!a || !b) return;
+
+        const isHighlighted = selectedNode && (e.source === selectedNode.id || e.target === selectedNode.id);
+        const maxWeight = Math.max(...filteredEdges.map(x => x.weight), 1);
+        const thickness = 0.5 + (e.weight / maxWeight) * 4;
+
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+
+        if (isHighlighted) {
+            ctx.strokeStyle = 'rgba(201,169,78,0.6)';
+            ctx.lineWidth = thickness + 1;
+        } else if (selectedNode) {
+            ctx.strokeStyle = 'rgba(100,120,150,0.05)';
+            ctx.lineWidth = thickness * 0.5;
+        } else {
+            // Bipartisan edges get gold tint
+            const isBipartisan = a.party !== b.party;
+            if (isBipartisan) {
+                ctx.strokeStyle = `rgba(201,169,78,${0.08 + (e.weight / maxWeight) * 0.2})`;
+            } else {
+                ctx.strokeStyle = `rgba(100,130,170,${0.06 + (e.weight / maxWeight) * 0.15})`;
+            }
+            ctx.lineWidth = thickness;
+        }
+
+        ctx.stroke();
+    });
+
+    // Draw nodes
+    filteredNodes.forEach(node => {
+        const isSelected = selectedNode && selectedNode.id === node.id;
+        const isHovered = hoveredNode && hoveredNode.id === node.id;
+        const isConn = selectedNode && filteredEdges.some(e =>
+            (e.source === selectedNode.id && e.target === node.id) ||
+            (e.target === selectedNode.id && e.source === node.id)
+        );
+        const isCluster = clusterNodeIds.has(node.id);
+
+        // Dim non-connected nodes when one is selected
+        if (selectedNode && !isSelected && !isConn) {
+            ctx.globalAlpha = 0.2;
+        } else {
+            ctx.globalAlpha = 1;
+        }
+
+        drawNode(node, isSelected, isHovered || isConn, isCluster);
+    });
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // Continue simulation
+    simulate();
+    animFrame = requestAnimationFrame(render);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CANVAS INTERACTION
+// ═══════════════════════════════════════════════════════════════
+
+function resizeCanvas() {
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+}
+
+function screenToWorld(sx, sy) {
+    return {
+        x: (sx - camX) / camZoom,
+        y: (sy - camY) / camZoom
+    };
+}
+
+function findNodeAt(wx, wy) {
+    // Check in reverse order so top-drawn nodes are picked first
+    for (let i = filteredNodes.length - 1; i >= 0; i--) {
+        const n = filteredNodes[i];
+        const dx = wx - n.x, dy = wy - n.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const hitRadius = n.chamber === 'S' ? n.radius * 1.2 : n.radius;
+        if (dist <= hitRadius + 4) return n;
+    }
+    return null;
+}
+
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const { x: wx, y: wy } = screenToWorld(sx, sy);
+
+    const node = findNodeAt(wx, wy);
+    if (node) {
+        dragNode = node;
+        node.pinned = true;
+        canvas.classList.add('dragging');
+    } else {
+        isPanning = true;
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        panCamX = camX;
+        panCamY = camY;
+        canvas.classList.add('dragging');
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const { x: wx, y: wy } = screenToWorld(sx, sy);
+
+    if (dragNode) {
+        dragNode.x = wx;
+        dragNode.y = wy;
+        dragNode.vx = 0;
+        dragNode.vy = 0;
+        simAlpha = Math.max(simAlpha, 0.1);
+        simRunning = true;
+        return;
+    }
+
+    if (isPanning) {
+        camX = panCamX + (e.clientX - panStartX);
+        camY = panCamY + (e.clientY - panStartY);
+        return;
+    }
+
+    // Hover detection
+    const node = findNodeAt(wx, wy);
+    if (node !== hoveredNode) {
+        hoveredNode = node;
+        canvas.style.cursor = node ? 'pointer' : 'grab';
+
+        if (node) {
+            tooltip.classList.add('visible');
+            tooltip.innerHTML = `<strong>${node.label}</strong><br>${node.party === 'R' ? 'Republican' : node.party === 'D' ? 'Democrat' : 'Independent'} | ${node.chamber === 'H' ? 'House' : 'Senate'} Dist. ${node.district}<br>${node.billCount} bills sponsored`;
+        } else {
+            tooltip.classList.remove('visible');
+        }
+    }
+
+    if (tooltip.classList.contains('visible')) {
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY - 48 + 14) + 'px';
+    }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    if (dragNode) {
+        dragNode.pinned = false;
+        dragNode = null;
+    }
+    isPanning = false;
+    canvas.classList.remove('dragging');
+});
+
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const { x: wx, y: wy } = screenToWorld(sx, sy);
+
+    const node = findNodeAt(wx, wy);
+    if (node) {
+        selectNode(node);
+    } else {
+        selectedNode = null;
+        detailPanel.classList.remove('visible');
+    }
+});
+
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+
+    const oldZoom = camZoom;
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    camZoom = Math.max(0.1, Math.min(5, camZoom * delta));
+
+    // Zoom toward mouse position
+    camX = sx - (sx - camX) * (camZoom / oldZoom);
+    camY = sy - (sy - camY) * (camZoom / oldZoom);
+}, { passive: false });
+
+// Touch support
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+        const t = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const sx = t.clientX - rect.left;
+        const sy = t.clientY - rect.top;
+        const { x: wx, y: wy } = screenToWorld(sx, sy);
+
+        const node = findNodeAt(wx, wy);
+        if (node) {
+            dragNode = node;
+            node.pinned = true;
+        } else {
+            isPanning = true;
+            panStartX = t.clientX;
+            panStartY = t.clientY;
+            panCamX = camX;
+            panCamY = camY;
+        }
+    } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+    }
+    e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1) {
+        const t = e.touches[0];
+        if (dragNode) {
+            const rect = canvas.getBoundingClientRect();
+            const { x: wx, y: wy } = screenToWorld(t.clientX - rect.left, t.clientY - rect.top);
+            dragNode.x = wx;
+            dragNode.y = wy;
+            dragNode.vx = 0;
+            dragNode.vy = 0;
+            simAlpha = Math.max(simAlpha, 0.1);
+            simRunning = true;
+        } else if (isPanning) {
+            camX = panCamX + (t.clientX - panStartX);
+            camY = panCamY + (t.clientY - panStartY);
+        }
+    } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (lastTouchDist > 0) {
+            const scale = dist / lastTouchDist;
+            camZoom = Math.max(0.1, Math.min(5, camZoom * scale));
+        }
+        lastTouchDist = dist;
+    }
+    e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    if (dragNode) {
+        dragNode.pinned = false;
+        dragNode = null;
+    }
+    isPanning = false;
+    lastTouchDist = 0;
+
+    // Tap to select
+    if (e.changedTouches.length === 1) {
+        const t = e.changedTouches[0];
+        const rect = canvas.getBoundingClientRect();
+        const { x: wx, y: wy } = screenToWorld(t.clientX - rect.left, t.clientY - rect.top);
+        const node = findNodeAt(wx, wy);
+        if (node) selectNode(node);
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// FILTER EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+document.getElementById('chamberFilter').addEventListener('change', updateFilters);
+document.getElementById('partyFilter').addEventListener('change', updateFilters);
+document.getElementById('minConnections').addEventListener('input', updateFilters);
+document.getElementById('subjectFilter').addEventListener('change', updateFilters);
+document.getElementById('showClusters').addEventListener('change', () => {});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    document.getElementById('chamberFilter').value = 'all';
+    document.getElementById('partyFilter').value = 'all';
+    document.getElementById('minConnections').value = 1;
+    document.getElementById('subjectFilter').value = 'all';
+    document.getElementById('showClusters').checked = false;
+    selectedNode = null;
+    detailPanel.classList.remove('visible');
+    updateFilters();
+});
+
+document.getElementById('reloadBtn').addEventListener('click', () => {
+    loadingOverlay.classList.remove('hidden');
+    selectedNode = null;
+    detailPanel.classList.remove('visible');
+    loadData();
+});
+
+document.getElementById('sessionSelect').addEventListener('change', () => {
+    // For now, only current session is supported via the API
+    // Could extend to load bills/{session} in the future
+    loadingOverlay.classList.remove('hidden');
+    loadData();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    simAlpha = Math.max(simAlpha, 0.3);
+    simRunning = true;
+});
+
+resizeCanvas();
+render();
+loadData();
+
+</script>
+</body>
+</html>
