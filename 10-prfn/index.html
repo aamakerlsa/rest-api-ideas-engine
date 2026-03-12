@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRFN - Public Research &amp; Find Navigator</title>
+    <style>
+        :root {
+            --navy: #1b2a4a;
+            --navy-light: #2c3e6b;
+            --navy-dark: #111c33;
+            --gold: #c9a94e;
+            --gold-light: #e8d48b;
+            --gold-pale: #f5ecd3;
+            --white: #ffffff;
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --border: #e2e4e8;
+            --text: #2d3748;
+            --text-muted: #718096;
+            --text-light: #a0aec0;
+            --shadow: 0 2px 8px rgba(27,42,74,0.08);
+            --shadow-hover: 0 8px 24px rgba(27,42,74,0.15);
+            --shadow-lg: 0 4px 16px rgba(27,42,74,0.12);
+            --green: #38a169;
+            --red: #e53e3e;
+            --blue: #3182ce;
+            --orange: #dd6b20;
+            --purple: #805ad5;
+            --teal: #319795;
+            --pink: #d53f8c;
+            --radius: 10px;
+            --radius-lg: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ---- HEADER ---- */
+        .top-bar {
+            background: var(--navy-dark);
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar a {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .top-bar a:hover { color: var(--gold); }
+        .top-bar .session-info {
+            color: var(--text-light);
+            font-size: 0.8rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            color: var(--white);
+            text-align: center;
+            border-bottom: 4px solid var(--gold);
+            transition: padding 0.4s ease;
+        }
+        header.compact { padding: 20px 24px 16px; }
+        header.expanded { padding: 48px 24px 40px; }
+
+        .logo-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 4px;
+        }
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gold);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--navy);
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        header.compact .logo-icon { width: 36px; height: 36px; font-size: 1.2rem; }
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        header.compact h1 { font-size: 1.4rem; }
+        .tagline {
+            color: var(--gold-light);
+            font-size: 1.05rem;
+            margin-top: 2px;
+            font-weight: 400;
+            transition: all 0.3s;
+        }
+        header.compact .tagline { font-size: 0.9rem; margin-top: 0; }
+
+        /* ---- SEARCH ---- */
+        .search-section {
+            max-width: 740px;
+            margin: 0 auto;
+            padding: 0 20px;
+            transition: all 0.4s ease;
+        }
+        header.expanded .search-section { margin-top: 28px; }
+        header.compact .search-section { margin-top: 14px; }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--white);
+            border-radius: 28px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .search-box:focus-within {
+            box-shadow: 0 4px 24px rgba(201,169,78,0.35);
+        }
+        .search-icon {
+            position: absolute;
+            left: 18px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            pointer-events: none;
+        }
+        #searchInput {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 16px 16px 16px 50px;
+            font-size: 1.1rem;
+            color: var(--text);
+            background: transparent;
+            font-family: inherit;
+        }
+        header.compact #searchInput { padding: 12px 12px 12px 46px; font-size: 1rem; }
+        #searchInput::placeholder { color: var(--text-light); }
+        .search-clear {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0 8px;
+            display: none;
+        }
+        .search-clear.visible { display: block; }
+        .search-btn {
+            background: var(--gold);
+            border: none;
+            color: var(--navy);
+            font-weight: 700;
+            padding: 16px 28px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-family: inherit;
+        }
+        header.compact .search-btn { padding: 12px 22px; }
+        .search-btn:hover { background: var(--gold-light); }
+
+        /* Suggestions dropdown */
+        .search-suggestions {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border-radius: 0 0 16px 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 100;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .search-suggestions.visible { display: block; }
+        .suggestion-item {
+            padding: 10px 20px 10px 50px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.15s;
+        }
+        .suggestion-item:hover { background: var(--bg); }
+        .suggestion-item .sug-icon { color: var(--text-muted); font-size: 0.85rem; }
+        .suggestion-item .sug-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-left: auto;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .search-hint {
+            color: rgba(255,255,255,0.55);
+            font-size: 0.85rem;
+            margin-top: 12px;
+        }
+        .search-hint span {
+            color: var(--gold-light);
+            cursor: pointer;
+            border-bottom: 1px dashed rgba(232,212,139,0.4);
+        }
+        .search-hint span:hover { color: var(--gold); }
+        header.compact .search-hint { display: none; }
+
+        /* ---- CATEGORY TABS ---- */
+        .tabs-bar {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 14px 20px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .tab-btn:hover { color: var(--navy); }
+        .tab-btn.active {
+            color: var(--navy);
+            font-weight: 600;
+            border-bottom-color: var(--gold);
+        }
+        .tab-btn .tab-count {
+            font-size: 0.7rem;
+            background: var(--bg);
+            color: var(--text-muted);
+            padding: 1px 6px;
+            border-radius: 8px;
+            margin-left: 5px;
+            font-weight: 600;
+        }
+        .tab-btn.active .tab-count {
+            background: var(--gold-pale);
+            color: var(--navy);
+        }
+
+        /* ---- MAIN CONTENT ---- */
+        .main-content {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+        }
+
+        /* ---- STATUS BAR ---- */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .result-count {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .result-count strong { color: var(--text); }
+
+        /* Quick filters */
+        .quick-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .filter-chip {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .filter-chip:hover { border-color: var(--gold); color: var(--navy); }
+        .filter-chip.active {
+            background: var(--navy);
+            color: var(--white);
+            border-color: var(--navy);
+        }
+
+        /* ---- BROWSE MODE ---- */
+        .browse-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .browse-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 28px 22px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid transparent;
+            box-shadow: var(--shadow);
+            transition: all 0.25s;
+        }
+        .browse-card:hover {
+            border-color: var(--gold);
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-3px);
+        }
+        .browse-icon {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        .browse-card h3 {
+            font-size: 1.05rem;
+            color: var(--navy);
+            margin-bottom: 4px;
+        }
+        .browse-card p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* ---- RESULT CARDS ---- */
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .result-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid transparent;
+            transition: all 0.2s;
+            cursor: default;
+        }
+        .result-card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .result-card[data-type="bill"] { border-left-color: var(--blue); }
+        .result-card[data-type="member"] { border-left-color: var(--green); }
+        .result-card[data-type="committee"] { border-left-color: var(--purple); }
+        .result-card[data-type="meeting"] { border-left-color: var(--orange); }
+        .result-card[data-type="law"] { border-left-color: var(--teal); }
+        .result-card[data-type="regulation"] { border-left-color: var(--pink); }
+        .result-card[data-type="constitution"] { border-left-color: var(--gold); }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .source-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .badge-bill { background: #ebf4ff; color: var(--blue); }
+        .badge-member { background: #f0fff4; color: var(--green); }
+        .badge-committee { background: #faf5ff; color: var(--purple); }
+        .badge-meeting { background: #fffaf0; color: var(--orange); }
+        .badge-law { background: #e6fffa; color: var(--teal); }
+        .badge-regulation { background: #fff5f7; color: var(--pink); }
+        .badge-constitution { background: var(--gold-pale); color: #8b6914; }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--navy);
+            line-height: 1.35;
+        }
+        .card-title a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .card-title a:hover { color: var(--blue); }
+
+        .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 16px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .card-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card-snippet {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .card-snippet mark {
+            background: var(--gold-pale);
+            color: var(--text);
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .action-link {
+            font-size: 0.78rem;
+            color: var(--blue);
+            text-decoration: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #ebf4ff;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+        .action-link:hover {
+            background: var(--blue);
+            color: var(--white);
+        }
+
+        /* Party badge */
+        .party-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.3px;
+        }
+        .party-r { background: #fee2e2; color: #c53030; }
+        .party-d { background: #dbeafe; color: #1e40af; }
+        .party-i { background: #e5e7eb; color: #4b5563; }
+
+        /* Meeting status */
+        .meeting-status {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-upcoming { background: #fef3c7; color: #92400e; }
+        .status-live { background: #d1fae5; color: #065f46; animation: pulse-live 2s infinite; }
+        .status-past { background: #f3f4f6; color: #6b7280; }
+
+        @keyframes pulse-live {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* ---- LOADING ---- */
+        .loading-container {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--border);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* ---- EMPTY STATE ---- */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.4; }
+        .empty-title { font-size: 1.15rem; color: var(--text); margin-bottom: 6px; }
+        .empty-desc { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* ---- ERROR STATE ---- */
+        .error-state {
+            text-align: center;
+            padding: 40px 20px;
+            background: #fff5f5;
+            border-radius: var(--radius);
+            border: 1px solid #fed7d7;
+        }
+        .error-state p { color: var(--red); font-size: 0.9rem; }
+        .error-state .retry-btn {
+            margin-top: 12px;
+            background: var(--navy);
+            color: var(--white);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+        .error-state .retry-btn:hover { background: var(--navy-light); }
+
+        /* ---- RECENT SEARCHES ---- */
+        .recent-searches {
+            margin-top: 24px;
+        }
+        .recent-searches h4 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }
+        .recent-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .recent-tag {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .recent-tag:hover { border-color: var(--gold); background: var(--gold-pale); }
+        .recent-tag .remove-recent {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-left: 2px;
+        }
+        .recent-tag .remove-recent:hover { color: var(--red); }
+
+        /* ---- FOOTER ---- */
+        footer {
+            background: var(--navy-dark);
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            padding: 20px;
+            font-size: 0.8rem;
+        }
+        footer a { color: var(--gold-light); text-decoration: none; }
+        footer a:hover { color: var(--gold); }
+
+        /* ---- DATA FRESHNESS ---- */
+        .data-status {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            padding: 8px 20px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .data-dot {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-green { background: var(--green); }
+        .dot-yellow { background: var(--orange); }
+        .dot-red { background: var(--red); }
+        .dot-gray { background: var(--text-light); }
+
+        /* ---- SCROLL TOP ---- */
+        .scroll-top {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 44px;
+            height: 44px;
+            background: var(--navy);
+            color: var(--white);
+            border: none;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            z-index: 100;
+        }
+        .scroll-top.visible { display: flex; }
+        .scroll-top:hover { background: var(--navy-light); }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 700px) {
+            header.expanded { padding: 32px 16px 28px; }
+            header h1 { font-size: 1.4rem; }
+            .tagline { font-size: 0.9rem; }
+            #searchInput { font-size: 0.95rem; padding: 14px 12px 14px 44px; }
+            .search-btn { padding: 14px 18px; font-size: 0.9rem; }
+            .tab-btn { padding: 12px 14px; font-size: 0.82rem; }
+            .browse-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+            .browse-card { padding: 20px 14px; }
+            .browse-icon { font-size: 1.6rem; }
+            .result-card { padding: 14px 16px; }
+            .card-title { font-size: 0.95rem; }
+            .main-content { padding: 16px 12px 40px; }
+            .status-bar { flex-direction: column; align-items: flex-start; }
+        }
+
+        @media (max-width: 480px) {
+            .logo-icon { display: none; }
+            .tabs-bar { justify-content: flex-start; padding: 0 8px; }
+            .tab-btn { padding: 10px 10px; font-size: 0.78rem; }
+        }
+
+        /* ---- ANIMATIONS ---- */
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top navigation bar -->
+<div class="top-bar">
+    <a href="../index.html">&#9664; Ideas Engine Home</a>
+    <span class="session-info" id="sessionInfo">Loading session...</span>
+</div>
+
+<!-- Header with search -->
+<header id="mainHeader" class="expanded">
+    <div class="logo-row">
+        <div class="logo-icon">P</div>
+        <h1>Public Research &amp; Find Navigator</h1>
+    </div>
+    <div class="tagline">One search. Every legislative resource.</div>
+
+    <div class="search-section">
+        <div class="search-box" id="searchBox">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="searchInput" placeholder="Search bills, members, committees, laws..."
+                   autocomplete="off" autofocus>
+            <button class="search-clear" id="clearBtn" title="Clear search">&#10005;</button>
+            <button class="search-btn" id="searchBtn">Search</button>
+            <div class="search-suggestions" id="suggestions"></div>
+        </div>
+        <div class="search-hint">
+            Try searching:
+            <span onclick="doSearch('education')">education</span>,
+            <span onclick="doSearch('budget')">budget</span>,
+            <span onclick="doSearch('Rep. Smith')">Rep. Smith</span>,
+            <span onclick="doSearch('Title 59')">Title 59</span>
+        </div>
+    </div>
+</header>
+
+<!-- Data freshness indicators -->
+<div class="data-status" id="dataStatus">
+    <div class="data-dot"><span class="dot dot-gray"></span> Loading data sources...</div>
+</div>
+
+<!-- Category tabs -->
+<div class="tabs-bar" id="tabsBar">
+    <button class="tab-btn active" data-cat="all" onclick="setCategory('all')">All</button>
+    <button class="tab-btn" data-cat="bills" onclick="setCategory('bills')">Bills</button>
+    <button class="tab-btn" data-cat="members" onclick="setCategory('members')">Members</button>
+    <button class="tab-btn" data-cat="committees" onclick="setCategory('committees')">Committees</button>
+    <button class="tab-btn" data-cat="meetings" onclick="setCategory('meetings')">Meetings</button>
+    <button class="tab-btn" data-cat="laws" onclick="setCategory('laws')">Laws</button>
+    <button class="tab-btn" data-cat="regulations" onclick="setCategory('regulations')">Regulations</button>
+    <button class="tab-btn" data-cat="constitution" onclick="setCategory('constitution')">Constitution</button>
+</div>
+
+<!-- Main content area -->
+<div class="main-content" id="mainContent">
+    <!-- Dynamically rendered -->
+</div>
+
+<!-- Scroll to top -->
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#9650;</button>
+
+<!-- Footer -->
+<footer>
+    PRFN - Public Research &amp; Find Navigator |
+    Data from <a href="https://www.scstatehouse.gov" target="_blank">SC Legislature</a> |
+    <a href="../index.html">Ideas Engine</a>
+</footer>
+
+<script>
+// =====================================================
+// PRFN - Public Research & Find Navigator
+// =====================================================
+
+const API = 'https://rest.scstatehouse.gov';
+const LS_KEY = 'prfn_recent_searches';
+const MAX_RECENT = 8;
+
+// ---- STATE ----
+let state = {
+    query: '',
+    category: 'all',
+    filters: { chamber: null, session: null },
+    mode: 'browse', // 'browse' | 'search' | 'loading'
+    index: {
+        bills: [],
+        members: [],
+        committees: [],
+        meetings: [],
+        laws: [],
+        regulations: [],
+        constitution: []
+    },
+    counts: {},
+    loaded: { bills: false, members: false, committees: false, meetings: false, laws: false, regulations: false, constitution: false },
+    errors: {},
+    sessionInfo: null
+};
+
+// ---- DOM REFS ----
+const $input = document.getElementById('searchInput');
+const $clearBtn = document.getElementById('clearBtn');
+const $header = document.getElementById('mainHeader');
+const $content = document.getElementById('mainContent');
+const $suggestions = document.getElementById('suggestions');
+const $scrollTop = document.getElementById('scrollTopBtn');
+const $dataStatus = document.getElementById('dataStatus');
+const $sessionInfo = document.getElementById('sessionInfo');
+
+// ---- FALLBACK DATA ----
+const FALLBACK = {
+    bills: [
+        { type: 'bill', number: 'H.3210', title: 'Education Reform Act', summary: 'A bill to reform public education standards and funding for K-12 schools across the state.', sponsor: 'Rep. Johnson', status: 'In Committee', session: '126th', chamber: 'House' },
+        { type: 'bill', number: 'S.450', title: 'Infrastructure Investment Act', summary: 'Providing funding for road and bridge repairs across South Carolina counties.', sponsor: 'Sen. Williams', status: 'Second Reading', session: '126th', chamber: 'Senate' },
+        { type: 'bill', number: 'H.4501', title: 'Healthcare Access Act', summary: 'Expanding access to telehealth services in rural communities.', sponsor: 'Rep. Davis', status: 'Introduced', session: '126th', chamber: 'House' },
+        { type: 'bill', number: 'S.892', title: 'Clean Energy Tax Credit', summary: 'Providing tax incentives for solar and renewable energy installations.', sponsor: 'Sen. Martinez', status: 'In Committee', session: '126th', chamber: 'Senate' },
+        { type: 'bill', number: 'H.2760', title: 'School Safety Act', summary: 'Strengthening safety measures and resources in public schools.', sponsor: 'Rep. Thompson', status: 'Passed House', session: '126th', chamber: 'House' },
+    ],
+    members: [
+        { type: 'member', name: 'Rep. James Johnson', party: 'R', chamber: 'House', district: '15', county: 'Richland' },
+        { type: 'member', name: 'Sen. Maria Williams', party: 'D', chamber: 'Senate', district: '22', county: 'Charleston' },
+        { type: 'member', name: 'Rep. Thomas Davis', party: 'R', chamber: 'House', district: '8', county: 'Greenville' },
+        { type: 'member', name: 'Sen. Carlos Martinez', party: 'D', chamber: 'Senate', district: '40', county: 'Beaufort' },
+        { type: 'member', name: 'Rep. Sarah Thompson', party: 'R', chamber: 'House', district: '42', county: 'Lexington' },
+    ],
+    committees: [
+        { type: 'committee', name: 'Education and Public Works', chamber: 'House', memberCount: 25, room: 'Blatt 321' },
+        { type: 'committee', name: 'Judiciary', chamber: 'Senate', memberCount: 23, room: 'Gressette 407' },
+        { type: 'committee', name: 'Ways and Means', chamber: 'House', memberCount: 25, room: 'Blatt 201' },
+        { type: 'committee', name: 'Finance', chamber: 'Senate', memberCount: 18, room: 'Gressette 105' },
+    ],
+    meetings: [
+        { type: 'meeting', date: '2026-03-13', time: '10:00 AM', committee: 'Education and Public Works', room: 'Blatt 321', chamber: 'House', status: 'upcoming' },
+        { type: 'meeting', date: '2026-03-12', time: '2:00 PM', committee: 'Judiciary', room: 'Gressette 407', chamber: 'Senate', status: 'upcoming' },
+        { type: 'meeting', date: '2026-03-10', time: '9:00 AM', committee: 'Ways and Means', room: 'Blatt 201', chamber: 'House', status: 'past' },
+    ],
+    laws: [
+        { type: 'law', title: 'Title 59 - Education', section: 'Chapter 1 - General Provisions', snippet: 'Public education laws governing schools, districts, and educational programs.' },
+        { type: 'law', title: 'Title 12 - Taxation', section: 'Chapter 6 - Income Tax Act', snippet: 'State income tax regulations and rates for individuals and corporations.' },
+        { type: 'law', title: 'Title 16 - Crimes and Offenses', section: 'Chapter 3 - Offenses Against the Person', snippet: 'Criminal laws relating to offenses against persons.' },
+    ],
+    regulations: [
+        { type: 'regulation', title: 'Chapter 43 - State Board of Education', section: 'Article 1', snippet: 'Regulations governing curriculum standards and teacher certification.' },
+        { type: 'regulation', title: 'Chapter 61 - Department of Health', section: 'Article 3', snippet: 'Health and safety regulations for food service establishments.' },
+    ],
+    constitution: [
+        { type: 'constitution', title: 'Article I - Declaration of Rights', section: 'Section 1-3', snippet: 'Fundamental rights of citizens of South Carolina.' },
+        { type: 'constitution', title: 'Article III - Legislative Department', section: 'Section 1-35', snippet: 'Structure and powers of the General Assembly.' },
+        { type: 'constitution', title: 'Article XI - Public Education', section: 'Section 1-15', snippet: 'Constitutional provisions for public education in South Carolina.' },
+    ]
+};
+
+// =====================================================
+// DATA LOADING
+// =====================================================
+
+async function fetchJSON(url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.json();
+}
+
+async function loadSession() {
+    try {
+        const data = await fetchJSON(`${API}/currentsession`);
+        if (data) {
+            const sess = Array.isArray(data) ? data[0] : data;
+            state.sessionInfo = sess;
+            $sessionInfo.textContent = sess.description || sess.sessionName || `Session ${sess.sessionNumber || ''}`;
+        }
+    } catch {
+        $sessionInfo.textContent = 'SC General Assembly';
+    }
+}
+
+async function loadBills() {
+    try {
+        const [house, senate] = await Promise.all([
+            fetchJSON(`${API}/dashboard/currentbill/house`),
+            fetchJSON(`${API}/dashboard/currentbill/senate`)
+        ]);
+        const mapBill = (b, chamber) => ({
+            type: 'bill',
+            number: b.billNumber || b.number || b.billnumber || '',
+            title: b.title || b.billTitle || b.description || '',
+            summary: b.summary || b.title || b.description || b.billTitle || '',
+            sponsor: b.sponsor || b.sponsorName || b.primarySponsor || '',
+            status: b.status || b.billStatus || b.currentStatus || '',
+            session: b.session || b.sessionName || '',
+            chamber: chamber,
+            raw: b
+        });
+        const hBills = (Array.isArray(house) ? house : []).map(b => mapBill(b, 'House'));
+        const sBills = (Array.isArray(senate) ? senate : []).map(b => mapBill(b, 'Senate'));
+        state.index.bills = [...hBills, ...sBills];
+        state.loaded.bills = true;
+    } catch (e) {
+        state.errors.bills = e.message;
+        state.index.bills = FALLBACK.bills;
+        state.loaded.bills = true;
+    }
+}
+
+async function loadMembers() {
+    try {
+        const [house, senate] = await Promise.all([
+            fetchJSON(`${API}/house/bios`),
+            fetchJSON(`${API}/senate/bios`)
+        ]);
+        const mapMember = (m, chamber) => ({
+            type: 'member',
+            name: m.name || m.fullName || `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.memberName || '',
+            firstName: m.firstName || '',
+            lastName: m.lastName || '',
+            party: (m.party || m.partyAffiliation || '').charAt(0).toUpperCase(),
+            chamber: chamber,
+            district: m.district || m.districtNumber || '',
+            county: m.county || m.countyName || m.residence || '',
+            title: m.title || '',
+            raw: m
+        });
+        const hMembers = (Array.isArray(house) ? house : []).map(m => mapMember(m, 'House'));
+        const sMembers = (Array.isArray(senate) ? senate : []).map(m => mapMember(m, 'Senate'));
+        state.index.members = [...hMembers, ...sMembers];
+        state.loaded.members = true;
+    } catch (e) {
+        state.errors.members = e.message;
+        state.index.members = FALLBACK.members;
+        state.loaded.members = true;
+    }
+}
+
+async function loadCommittees() {
+    try {
+        const [house, senate] = await Promise.all([
+            fetchJSON(`${API}/house/committees`),
+            fetchJSON(`${API}/senate/committees`)
+        ]);
+        const mapComm = (c, chamber) => ({
+            type: 'committee',
+            name: c.name || c.committeeName || c.fullName || '',
+            chamber: chamber,
+            memberCount: c.memberCount || c.members?.length || c.numberOfMembers || 0,
+            room: c.room || c.meetingRoom || c.location || '',
+            raw: c
+        });
+        const hComm = (Array.isArray(house) ? house : []).map(c => mapComm(c, 'House'));
+        const sComm = (Array.isArray(senate) ? senate : []).map(c => mapComm(c, 'Senate'));
+        state.index.committees = [...hComm, ...sComm];
+        state.loaded.committees = true;
+    } catch (e) {
+        state.errors.committees = e.message;
+        state.index.committees = FALLBACK.committees;
+        state.loaded.committees = true;
+    }
+}
+
+async function loadMeetings() {
+    try {
+        const [hUp, sUp, hToday, sToday] = await Promise.all([
+            fetchJSON(`${API}/house/meetings-upcoming`).catch(() => []),
+            fetchJSON(`${API}/senate/meetings-upcoming`).catch(() => []),
+            fetchJSON(`${API}/house/meetings-today`).catch(() => []),
+            fetchJSON(`${API}/senate/meetings-today`).catch(() => [])
+        ]);
+        const mapMeeting = (m, chamber) => {
+            const dateStr = m.date || m.meetingDate || m.startDate || '';
+            const now = new Date();
+            const mDate = dateStr ? new Date(dateStr) : null;
+            let status = 'upcoming';
+            if (mDate) {
+                const diff = mDate.getTime() - now.getTime();
+                if (diff < -86400000) status = 'past';
+                else if (Math.abs(diff) < 86400000) status = 'upcoming';
+            }
+            return {
+                type: 'meeting',
+                date: dateStr,
+                time: m.time || m.startTime || m.meetingTime || '',
+                committee: m.committee || m.committeeName || m.description || '',
+                room: m.room || m.location || m.meetingRoom || '',
+                chamber: chamber,
+                status: status,
+                raw: m
+            };
+        };
+        const all = [
+            ...(Array.isArray(hUp) ? hUp : []).map(m => mapMeeting(m, 'House')),
+            ...(Array.isArray(sUp) ? sUp : []).map(m => mapMeeting(m, 'Senate')),
+            ...(Array.isArray(hToday) ? hToday : []).map(m => ({ ...mapMeeting(m, 'House'), status: 'upcoming' })),
+            ...(Array.isArray(sToday) ? sToday : []).map(m => ({ ...mapMeeting(m, 'Senate'), status: 'upcoming' }))
+        ];
+        // Deduplicate by committee+date
+        const seen = new Set();
+        state.index.meetings = all.filter(m => {
+            const key = `${m.committee}-${m.date}-${m.time}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        state.loaded.meetings = true;
+    } catch (e) {
+        state.errors.meetings = e.message;
+        state.index.meetings = FALLBACK.meetings;
+        state.loaded.meetings = true;
+    }
+}
+
+async function loadLaws() {
+    try {
+        const data = await fetchJSON(`${API}/codeoflaws`);
+        const arr = Array.isArray(data) ? data : (data?.titles || data?.chapters || []);
+        state.index.laws = arr.map(l => ({
+            type: 'law',
+            title: l.title || l.name || l.titleName || '',
+            section: l.section || l.chapter || l.chapterName || '',
+            snippet: l.description || l.summary || l.title || '',
+            raw: l
+        }));
+        state.loaded.laws = true;
+    } catch (e) {
+        state.errors.laws = e.message;
+        state.index.laws = FALLBACK.laws;
+        state.loaded.laws = true;
+    }
+}
+
+async function loadRegulations() {
+    try {
+        const data = await fetchJSON(`${API}/codeofregs`);
+        const arr = Array.isArray(data) ? data : (data?.chapters || data?.titles || []);
+        state.index.regulations = arr.map(r => ({
+            type: 'regulation',
+            title: r.title || r.name || r.chapterName || '',
+            section: r.section || r.article || r.chapter || '',
+            snippet: r.description || r.summary || r.title || '',
+            raw: r
+        }));
+        state.loaded.regulations = true;
+    } catch (e) {
+        state.errors.regulations = e.message;
+        state.index.regulations = FALLBACK.regulations;
+        state.loaded.regulations = true;
+    }
+}
+
+async function loadConstitution() {
+    try {
+        const data = await fetchJSON(`${API}/constitution`);
+        const arr = Array.isArray(data) ? data : (data?.articles || data?.sections || []);
+        state.index.constitution = arr.map(c => ({
+            type: 'constitution',
+            title: c.title || c.name || c.articleName || '',
+            section: c.section || c.sections || '',
+            snippet: c.description || c.summary || c.title || '',
+            raw: c
+        }));
+        state.loaded.constitution = true;
+    } catch (e) {
+        state.errors.constitution = e.message;
+        state.index.constitution = FALLBACK.constitution;
+        state.loaded.constitution = true;
+    }
+}
+
+async function loadAllData() {
+    updateDataStatus();
+    await Promise.all([
+        loadSession(),
+        loadBills(),
+        loadMembers(),
+        loadCommittees(),
+        loadMeetings(),
+        loadLaws(),
+        loadRegulations(),
+        loadConstitution()
+    ]);
+    updateCounts();
+    updateDataStatus();
+    render();
+}
+
+function updateDataStatus() {
+    const cats = ['bills', 'members', 'committees', 'meetings', 'laws', 'regulations', 'constitution'];
+    const loaded = cats.filter(c => state.loaded[c]).length;
+    const errored = cats.filter(c => state.errors[c]).length;
+    const pending = cats.length - loaded;
+
+    if (pending > 0) {
+        $dataStatus.innerHTML = `<div class="data-dot"><span class="dot dot-yellow"></span> Loading data... (${loaded}/${cats.length} sources)</div>`;
+    } else {
+        const items = cats.map(c => {
+            const count = state.index[c].length;
+            const hasError = !!state.errors[c];
+            const dotClass = hasError ? 'dot-yellow' : (count > 0 ? 'dot-green' : 'dot-gray');
+            const label = c.charAt(0).toUpperCase() + c.slice(1);
+            return `<div class="data-dot"><span class="dot ${dotClass}"></span> ${label} (${count})</div>`;
+        });
+        $dataStatus.innerHTML = items.join('');
+    }
+}
+
+// =====================================================
+// SEARCH ENGINE
+// =====================================================
+
+function normalizeText(str) {
+    return (str || '').toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function searchScore(item, query) {
+    const q = normalizeText(query);
+    const terms = q.split(' ').filter(Boolean);
+    if (!terms.length) return 0;
+
+    let searchableFields = [];
+    switch (item.type) {
+        case 'bill':
+            searchableFields = [item.number, item.title, item.summary, item.sponsor, item.status];
+            break;
+        case 'member':
+            searchableFields = [item.name, item.firstName, item.lastName, item.party, item.chamber, item.district, item.county];
+            break;
+        case 'committee':
+            searchableFields = [item.name, item.chamber, item.room];
+            break;
+        case 'meeting':
+            searchableFields = [item.committee, item.room, item.chamber, item.date];
+            break;
+        case 'law':
+            searchableFields = [item.title, item.section, item.snippet];
+            break;
+        case 'regulation':
+            searchableFields = [item.title, item.section, item.snippet];
+            break;
+        case 'constitution':
+            searchableFields = [item.title, item.section, item.snippet];
+            break;
+    }
+
+    const text = normalizeText(searchableFields.join(' '));
+    let score = 0;
+    let allMatch = true;
+
+    for (const term of terms) {
+        if (text.includes(term)) {
+            score += 10;
+            // Bonus for exact field matches
+            for (const f of searchableFields) {
+                const nf = normalizeText(f);
+                if (nf === term) score += 30;
+                else if (nf.startsWith(term)) score += 15;
+                else if (nf.includes(term)) score += 5;
+            }
+        } else {
+            allMatch = false;
+        }
+    }
+
+    // All terms must match for a positive score
+    if (!allMatch) return 0;
+
+    // Boost for type-specific relevance
+    if (item.type === 'bill' && normalizeText(item.number).includes(q)) score += 50;
+    if (item.type === 'member' && normalizeText(item.name).includes(q)) score += 50;
+
+    return score;
+}
+
+function searchAll(query) {
+    const cats = state.category === 'all'
+        ? ['bills', 'members', 'committees', 'meetings', 'laws', 'regulations', 'constitution']
+        : [state.category];
+
+    let results = [];
+    for (const cat of cats) {
+        for (const item of state.index[cat]) {
+            const score = searchScore(item, query);
+            if (score > 0) {
+                results.push({ ...item, _score: score });
+            }
+        }
+    }
+
+    // Apply filters
+    if (state.filters.chamber) {
+        results = results.filter(r => !r.chamber || r.chamber.toLowerCase() === state.filters.chamber.toLowerCase());
+    }
+
+    // Sort by score descending
+    results.sort((a, b) => b._score - a._score);
+    return results;
+}
+
+function updateCounts(query) {
+    const cats = ['bills', 'members', 'committees', 'meetings', 'laws', 'regulations', 'constitution'];
+    state.counts = {};
+    let total = 0;
+    for (const cat of cats) {
+        if (query) {
+            let count = 0;
+            for (const item of state.index[cat]) {
+                if (searchScore(item, query) > 0) count++;
+            }
+            state.counts[cat] = count;
+            total += count;
+        } else {
+            state.counts[cat] = state.index[cat].length;
+            total += state.index[cat].length;
+        }
+    }
+    state.counts.all = total;
+    updateTabCounts();
+}
+
+function updateTabCounts() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const cat = btn.dataset.cat;
+        const count = state.counts[cat];
+        const existing = btn.querySelector('.tab-count');
+        if (count !== undefined && state.mode === 'search') {
+            if (existing) {
+                existing.textContent = count;
+            } else {
+                const span = document.createElement('span');
+                span.className = 'tab-count';
+                span.textContent = count;
+                btn.appendChild(span);
+            }
+        } else if (existing) {
+            existing.remove();
+        }
+    });
+}
+
+// =====================================================
+// RENDERING
+// =====================================================
+
+function render() {
+    if (state.mode === 'loading') {
+        $content.innerHTML = `
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <div class="loading-text">Searching across all legislative data...</div>
+            </div>`;
+        return;
+    }
+
+    if (state.mode === 'browse') {
+        renderBrowse();
+        return;
+    }
+
+    // Search mode
+    const results = searchAll(state.query);
+    updateCounts(state.query);
+
+    if (results.length === 0) {
+        $content.innerHTML = `
+            <div class="status-bar">
+                <div class="result-count">No results for "<strong>${escapeHtml(state.query)}</strong>"</div>
+            </div>
+            <div class="empty-state fade-in">
+                <div class="empty-icon">&#128270;</div>
+                <div class="empty-title">No matches found</div>
+                <div class="empty-desc">
+                    Try different keywords or check the spelling.<br>
+                    You can also browse categories using the tabs above.
+                </div>
+            </div>`;
+        return;
+    }
+
+    const filterHtml = renderFilters(results);
+    const resultCards = results.slice(0, 50).map(renderResultCard).join('');
+
+    $content.innerHTML = `
+        <div class="status-bar">
+            <div class="result-count">
+                Found <strong>${results.length}</strong> result${results.length !== 1 ? 's' : ''} for "<strong>${escapeHtml(state.query)}</strong>"
+            </div>
+            ${filterHtml}
+        </div>
+        <div class="results-list fade-in">
+            ${resultCards}
+        </div>
+        ${results.length > 50 ? '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.9rem;">Showing first 50 results. Refine your search for more specific results.</div>' : ''}
+    `;
+}
+
+function renderFilters(results) {
+    const chambers = new Set(results.map(r => r.chamber).filter(Boolean));
+    if (chambers.size < 2) return '';
+
+    const chips = ['House', 'Senate'].map(ch => {
+        if (!chambers.has(ch)) return '';
+        const active = state.filters.chamber === ch ? 'active' : '';
+        return `<button class="filter-chip ${active}" onclick="toggleFilter('chamber','${ch}')">${ch}</button>`;
+    }).join('');
+
+    return `<div class="quick-filters">${chips}${state.filters.chamber ? '<button class="filter-chip" onclick="clearFilters()">Clear filters</button>' : ''}</div>`;
+}
+
+function renderBrowse() {
+    const recent = getRecentSearches();
+    const recentHtml = recent.length ? `
+        <div class="recent-searches">
+            <h4>Recent Searches</h4>
+            <div class="recent-list">
+                ${recent.map(s => `
+                    <div class="recent-tag" onclick="doSearch('${escapeHtml(s)}')">
+                        &#128269; ${escapeHtml(s)}
+                        <span class="remove-recent" onclick="event.stopPropagation();removeRecent('${escapeHtml(s)}')" title="Remove">&#10005;</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    ` : '';
+
+    const categories = [
+        { cat: 'bills', icon: '&#128220;', name: 'Bills & Resolutions', desc: 'Browse current legislation being considered' },
+        { cat: 'members', icon: '&#128101;', name: 'Members', desc: 'Find your representatives and senators' },
+        { cat: 'committees', icon: '&#127970;', name: 'Committees', desc: 'Standing and special committees' },
+        { cat: 'meetings', icon: '&#128197;', name: 'Meetings', desc: 'Upcoming and recent committee meetings' },
+        { cat: 'laws', icon: '&#9878;', name: 'Code of Laws', desc: 'South Carolina statutes and codes' },
+        { cat: 'regulations', icon: '&#128203;', name: 'Regulations', desc: 'State administrative regulations' },
+        { cat: 'constitution', icon: '&#128216;', name: 'Constitution', desc: 'SC State Constitution articles' },
+    ];
+
+    const cardsHtml = categories.map(c => {
+        const count = state.index[c.cat]?.length || 0;
+        const loaded = state.loaded[c.cat];
+        return `
+            <div class="browse-card fade-in" onclick="browseCat('${c.cat}')">
+                <div class="browse-icon">${c.icon}</div>
+                <h3>${c.name}</h3>
+                <p>${c.desc}</p>
+                ${loaded ? `<p style="margin-top:6px;font-size:0.78rem;color:var(--gold);font-weight:600;">${count} items</p>` : '<p style="margin-top:6px;font-size:0.78rem;color:var(--text-light);">Loading...</p>'}
+            </div>
+        `;
+    }).join('');
+
+    $content.innerHTML = `
+        ${recentHtml}
+        <div style="margin-top:${recent.length ? '28px' : '0'}">
+            <h3 style="font-size:1rem;color:var(--text-muted);margin-bottom:14px;font-weight:500;">Browse Legislative Resources</h3>
+            <div class="browse-grid">
+                ${cardsHtml}
+            </div>
+        </div>
+    `;
+}
+
+function renderResultCard(item) {
+    switch (item.type) {
+        case 'bill': return renderBillCard(item);
+        case 'member': return renderMemberCard(item);
+        case 'committee': return renderCommitteeCard(item);
+        case 'meeting': return renderMeetingCard(item);
+        case 'law': return renderLawCard(item);
+        case 'regulation': return renderRegulationCard(item);
+        case 'constitution': return renderConstitutionCard(item);
+        default: return '';
+    }
+}
+
+function renderBillCard(b) {
+    return `
+        <div class="result-card" data-type="bill">
+            <div class="card-header">
+                <span class="source-badge badge-bill">Bill</span>
+                <div>
+                    <div class="card-title">${highlight(b.number + ' - ' + (b.title || 'Untitled'))}</div>
+                    <div class="card-meta">
+                        ${b.sponsor ? `<span class="card-meta-item">&#128100; ${highlight(b.sponsor)}</span>` : ''}
+                        ${b.status ? `<span class="card-meta-item">&#128204; ${highlight(b.status)}</span>` : ''}
+                        ${b.chamber ? `<span class="card-meta-item">&#127970; ${b.chamber}</span>` : ''}
+                        ${b.session ? `<span class="card-meta-item">&#128197; ${b.session}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            ${b.summary ? `<div class="card-snippet">${highlight(b.summary)}</div>` : ''}
+            <div class="card-actions">
+                <a class="action-link" href="https://www.scstatehouse.gov/billsearch.php" target="_blank">View Full Text</a>
+                <a class="action-link" href="https://www.scstatehouse.gov/billsearch.php" target="_blank">Track This Bill</a>
+            </div>
+        </div>`;
+}
+
+function renderMemberCard(m) {
+    const partyFull = { R: 'Republican', D: 'Democrat', I: 'Independent' };
+    const partyClass = m.party === 'R' ? 'party-r' : m.party === 'D' ? 'party-d' : 'party-i';
+    return `
+        <div class="result-card" data-type="member">
+            <div class="card-header">
+                <span class="source-badge badge-member">Member</span>
+                <div>
+                    <div class="card-title">${highlight(m.name || 'Unknown Member')}</div>
+                    <div class="card-meta">
+                        <span class="card-meta-item"><span class="party-badge ${partyClass}">${m.party || '?'}</span> ${partyFull[m.party] || 'Unknown Party'}</span>
+                        ${m.chamber ? `<span class="card-meta-item">&#127970; ${m.chamber}</span>` : ''}
+                        ${m.district ? `<span class="card-meta-item">&#128205; District ${m.district}</span>` : ''}
+                        ${m.county ? `<span class="card-meta-item">&#127968; ${highlight(m.county)} County</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a class="action-link" href="https://www.scstatehouse.gov/member.php?chamber=${m.chamber === 'House' ? 'H' : 'S'}" target="_blank">View Profile</a>
+                <a class="action-link" href="https://www.scstatehouse.gov/member.php?chamber=${m.chamber === 'House' ? 'H' : 'S'}" target="_blank">View Legislation</a>
+            </div>
+        </div>`;
+}
+
+function renderCommitteeCard(c) {
+    return `
+        <div class="result-card" data-type="committee">
+            <div class="card-header">
+                <span class="source-badge badge-committee">Committee</span>
+                <div>
+                    <div class="card-title">${highlight(c.name || 'Unnamed Committee')}</div>
+                    <div class="card-meta">
+                        ${c.chamber ? `<span class="card-meta-item">&#127970; ${c.chamber}</span>` : ''}
+                        ${c.memberCount ? `<span class="card-meta-item">&#128101; ${c.memberCount} members</span>` : ''}
+                        ${c.room ? `<span class="card-meta-item">&#128206; ${highlight(c.room)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a class="action-link" href="https://www.scstatehouse.gov/committees.php" target="_blank">View Details</a>
+                <a class="action-link" href="https://www.scstatehouse.gov/committees.php" target="_blank">Meeting Schedule</a>
+            </div>
+        </div>`;
+}
+
+function renderMeetingCard(m) {
+    const statusClass = m.status === 'live' ? 'status-live' : m.status === 'upcoming' ? 'status-upcoming' : 'status-past';
+    const statusLabel = m.status === 'live' ? 'Live Now' : m.status === 'upcoming' ? 'Upcoming' : 'Past';
+    const dateFormatted = m.date ? formatDate(m.date) : 'Date TBD';
+    return `
+        <div class="result-card" data-type="meeting">
+            <div class="card-header">
+                <span class="source-badge badge-meeting">Meeting</span>
+                <div style="flex:1">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <div class="card-title">${highlight(m.committee || 'Committee Meeting')}</div>
+                        <span class="meeting-status ${statusClass}">${statusLabel}</span>
+                    </div>
+                    <div class="card-meta">
+                        <span class="card-meta-item">&#128197; ${dateFormatted}</span>
+                        ${m.time ? `<span class="card-meta-item">&#128336; ${m.time}</span>` : ''}
+                        ${m.room ? `<span class="card-meta-item">&#128206; ${highlight(m.room)}</span>` : ''}
+                        ${m.chamber ? `<span class="card-meta-item">&#127970; ${m.chamber}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a class="action-link" href="https://www.scstatehouse.gov/meetings.php" target="_blank">View Agenda</a>
+            </div>
+        </div>`;
+}
+
+function renderLawCard(l) {
+    return `
+        <div class="result-card" data-type="law">
+            <div class="card-header">
+                <span class="source-badge badge-law">Law</span>
+                <div>
+                    <div class="card-title">${highlight(l.title || 'Code of Laws')}</div>
+                    <div class="card-meta">
+                        ${l.section ? `<span class="card-meta-item">&#128196; ${highlight(l.section)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            ${l.snippet ? `<div class="card-snippet">${highlight(l.snippet)}</div>` : ''}
+            <div class="card-actions">
+                <a class="action-link" href="https://www.scstatehouse.gov/code/statmast.php" target="_blank">Read Full Text</a>
+            </div>
+        </div>`;
+}
+
+function renderRegulationCard(r) {
+    return `
+        <div class="result-card" data-type="regulation">
+            <div class="card-header">
+                <span class="source-badge badge-regulation">Regulation</span>
+                <div>
+                    <div class="card-title">${highlight(r.title || 'Regulation')}</div>
+                    <div class="card-meta">
+                        ${r.section ? `<span class="card-meta-item">&#128196; ${highlight(r.section)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            ${r.snippet ? `<div class="card-snippet">${highlight(r.snippet)}</div>` : ''}
+            <div class="card-actions">
+                <a class="action-link" href="https://www.scstatehouse.gov/coderegs/statmast.php" target="_blank">Read Full Text</a>
+            </div>
+        </div>`;
+}
+
+function renderConstitutionCard(c) {
+    return `
+        <div class="result-card" data-type="constitution">
+            <div class="card-header">
+                <span class="source-badge badge-constitution">Constitution</span>
+                <div>
+                    <div class="card-title">${highlight(c.title || 'Constitution')}</div>
+                    <div class="card-meta">
+                        ${c.section ? `<span class="card-meta-item">&#128196; ${highlight(c.section)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            ${c.snippet ? `<div class="card-snippet">${highlight(c.snippet)}</div>` : ''}
+            <div class="card-actions">
+                <a class="action-link" href="https://www.scstatehouse.gov/scconstitution/scconst.php" target="_blank">Read Full Text</a>
+            </div>
+        </div>`;
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+}
+
+function highlight(text) {
+    if (!text || !state.query) return escapeHtml(text || '');
+    const escaped = escapeHtml(text);
+    const terms = state.query.toLowerCase().split(/\s+/).filter(t => t.length > 1);
+    if (!terms.length) return escaped;
+
+    let result = escaped;
+    for (const term of terms) {
+        const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        result = result.replace(regex, '<mark>$1</mark>');
+    }
+    return result;
+}
+
+function formatDate(str) {
+    try {
+        const d = new Date(str);
+        if (isNaN(d)) return str;
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return str; }
+}
+
+// =====================================================
+// RECENT SEARCHES
+// =====================================================
+
+function getRecentSearches() {
+    try {
+        return JSON.parse(localStorage.getItem(LS_KEY)) || [];
+    } catch { return []; }
+}
+
+function saveRecentSearch(query) {
+    if (!query || query.length < 2) return;
+    let recent = getRecentSearches();
+    recent = recent.filter(s => s.toLowerCase() !== query.toLowerCase());
+    recent.unshift(query);
+    if (recent.length > MAX_RECENT) recent = recent.slice(0, MAX_RECENT);
+    try { localStorage.setItem(LS_KEY, JSON.stringify(recent)); } catch {}
+}
+
+function removeRecent(query) {
+    let recent = getRecentSearches();
+    recent = recent.filter(s => s !== query);
+    try { localStorage.setItem(LS_KEY, JSON.stringify(recent)); } catch {}
+    render();
+}
+
+// =====================================================
+// ACTIONS
+// =====================================================
+
+function doSearch(query) {
+    if (!query || !query.trim()) {
+        state.mode = 'browse';
+        state.query = '';
+        $input.value = '';
+        $clearBtn.classList.remove('visible');
+        $header.className = 'expanded';
+        updateCounts();
+        render();
+        return;
+    }
+
+    state.query = query.trim();
+    state.mode = 'search';
+    state.filters = { chamber: null, session: null };
+    $input.value = state.query;
+    $clearBtn.classList.add('visible');
+    $header.className = 'compact';
+    $suggestions.classList.remove('visible');
+
+    saveRecentSearch(state.query);
+    updateCounts(state.query);
+    render();
+}
+
+function setCategory(cat) {
+    state.category = cat;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.cat === cat);
+    });
+
+    if (state.mode === 'search') {
+        updateCounts(state.query);
+        render();
+    } else {
+        // In browse mode, clicking a category shows that category's items
+        if (cat !== 'all') {
+            browseCat(cat);
+        } else {
+            render();
+        }
+    }
+}
+
+function browseCat(cat) {
+    state.category = cat;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.cat === cat);
+    });
+
+    const items = state.index[cat] || [];
+    if (!items.length) {
+        $content.innerHTML = `
+            <div class="status-bar">
+                <div class="result-count">Browsing <strong>${cat.charAt(0).toUpperCase() + cat.slice(1)}</strong></div>
+                <button class="filter-chip" onclick="backToBrowse()">&#9664; Back to Browse</button>
+            </div>
+            <div class="empty-state">
+                <div class="empty-icon">&#128218;</div>
+                <div class="empty-title">No ${cat} loaded</div>
+                <div class="empty-desc">Data may still be loading or unavailable.</div>
+            </div>`;
+        return;
+    }
+
+    // Temporarily set query empty for no highlighting
+    const oldQuery = state.query;
+    state.query = '';
+    const cards = items.slice(0, 50).map(renderResultCard).join('');
+    state.query = oldQuery;
+
+    $content.innerHTML = `
+        <div class="status-bar">
+            <div class="result-count">Browsing <strong>${items.length}</strong> ${cat}</div>
+            <button class="filter-chip" onclick="backToBrowse()">&#9664; Back to Browse</button>
+        </div>
+        <div class="results-list fade-in">${cards}</div>
+        ${items.length > 50 ? '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.9rem;">Showing first 50 items. Use search to find specific items.</div>' : ''}
+    `;
+}
+
+function backToBrowse() {
+    state.category = 'all';
+    state.mode = 'browse';
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.cat === 'all');
+    });
+    render();
+}
+
+function toggleFilter(type, value) {
+    if (state.filters[type] === value) {
+        state.filters[type] = null;
+    } else {
+        state.filters[type] = value;
+    }
+    render();
+}
+
+function clearFilters() {
+    state.filters = { chamber: null, session: null };
+    render();
+}
+
+// =====================================================
+// SUGGESTIONS
+// =====================================================
+
+function showSuggestions(query) {
+    if (!query || query.length < 2) {
+        $suggestions.classList.remove('visible');
+        return;
+    }
+
+    const results = searchAll(query);
+    const top = results.slice(0, 6);
+
+    if (!top.length) {
+        $suggestions.classList.remove('visible');
+        return;
+    }
+
+    const typeLabels = { bill: 'Bill', member: 'Member', committee: 'Committee', meeting: 'Meeting', law: 'Law', regulation: 'Regulation', constitution: 'Constitution' };
+    const typeIcons = { bill: '&#128220;', member: '&#128100;', committee: '&#127970;', meeting: '&#128197;', law: '&#9878;', regulation: '&#128203;', constitution: '&#128216;' };
+
+    $suggestions.innerHTML = top.map(r => {
+        const label = r.type === 'bill' ? r.number : r.type === 'member' ? r.name : r.type === 'committee' ? r.name : r.type === 'meeting' ? r.committee : r.title;
+        return `<div class="suggestion-item" onclick="doSearch('${escapeHtml(query)}')">
+            <span class="sug-icon">${typeIcons[r.type] || ''}</span>
+            ${escapeHtml(label || 'Result')}
+            <span class="sug-label">${typeLabels[r.type] || ''}</span>
+        </div>`;
+    }).join('');
+
+    $suggestions.classList.add('visible');
+}
+
+// =====================================================
+// EVENT HANDLERS
+// =====================================================
+
+let debounceTimer;
+$input.addEventListener('input', () => {
+    const val = $input.value.trim();
+    $clearBtn.classList.toggle('visible', val.length > 0);
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => showSuggestions(val), 200);
+});
+
+$input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        doSearch($input.value);
+    }
+    if (e.key === 'Escape') {
+        $suggestions.classList.remove('visible');
+        if (!$input.value) {
+            $input.blur();
+        }
+    }
+});
+
+document.getElementById('searchBtn').addEventListener('click', () => doSearch($input.value));
+
+$clearBtn.addEventListener('click', () => {
+    $input.value = '';
+    $clearBtn.classList.remove('visible');
+    $suggestions.classList.remove('visible');
+    doSearch('');
+    $input.focus();
+});
+
+// Close suggestions on outside click
+document.addEventListener('click', (e) => {
+    if (!document.getElementById('searchBox').contains(e.target)) {
+        $suggestions.classList.remove('visible');
+    }
+});
+
+// Scroll to top button
+window.addEventListener('scroll', () => {
+    $scrollTop.classList.toggle('visible', window.scrollY > 400);
+});
+
+// =====================================================
+// INIT
+// =====================================================
+
+(async function init() {
+    state.mode = 'browse';
+    render();
+    await loadAllData();
+})();
+</script>
+</body>
+</html>
