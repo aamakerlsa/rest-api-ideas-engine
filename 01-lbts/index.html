@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LBTS - Legislative Bill Tracker & Status Dashboard</title>
+    <style>
+        :root {
+            --navy: #1b2a4a;
+            --navy-light: #2c3e6b;
+            --navy-dark: #111d33;
+            --gold: #c9a94e;
+            --gold-light: #e8d48b;
+            --gold-dim: #a8893e;
+            --white: #ffffff;
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --border: #e2e4e8;
+            --text: #2d3748;
+            --text-muted: #718096;
+            --shadow: 0 2px 8px rgba(27,42,74,0.08);
+            --shadow-hover: 0 8px 24px rgba(27,42,74,0.15);
+            --shadow-lg: 0 12px 40px rgba(27,42,74,0.2);
+            --green: #38a169;
+            --red: #e53e3e;
+            --blue: #3182ce;
+            --orange: #dd6b20;
+            --purple: #805ad5;
+            --teal: #319795;
+            --radius: 10px;
+            --transition: all 0.25s ease;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 50%, var(--navy-light) 100%);
+            color: var(--white);
+            padding: 20px 32px;
+            border-bottom: 4px solid var(--gold);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-link {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border: 1px solid rgba(201,169,78,0.3);
+            border-radius: 6px;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .back-link:hover {
+            background: rgba(201,169,78,0.15);
+            border-color: var(--gold);
+        }
+
+        .header-title-group h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .header-title-group .acronym {
+            color: var(--gold);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header-title-group .tagline {
+            color: var(--gold-light);
+            font-size: 0.8rem;
+            font-style: italic;
+            opacity: 0.85;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 8px 14px 8px 36px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: var(--white);
+            font-size: 0.85rem;
+            width: 260px;
+            transition: var(--transition);
+        }
+
+        .search-box input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--gold);
+            background: rgba(255,255,255,0.15);
+            width: 320px;
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.5);
+            font-size: 0.85rem;
+        }
+
+        .view-toggle {
+            display: flex;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .view-toggle button {
+            padding: 8px 14px;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .view-toggle button.active {
+            background: var(--gold);
+            color: var(--navy-dark);
+        }
+
+        .view-toggle button:hover:not(.active) {
+            background: rgba(255,255,255,0.1);
+            color: var(--white);
+        }
+
+        /* ===== STATS BAR ===== */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            padding: 14px 32px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .stat-number {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .stat-number.loading {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 32px;
+            flex-wrap: wrap;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .filter-select {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--text);
+            background: var(--white);
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .filter-btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--navy);
+            color: var(--white);
+            border-color: var(--navy);
+        }
+
+        .filter-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 6px;
+        }
+
+        /* ===== KANBAN BOARD ===== */
+        .kanban-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 16px 40px;
+        }
+
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            min-height: 500px;
+        }
+
+        .kanban-column {
+            background: rgba(0,0,0,0.02);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+
+        .column-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: var(--radius) var(--radius) 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .column-header h3 {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .column-count {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .col-introduced .column-header { background: #ebf5fb; }
+        .col-introduced .column-header h3 { color: #2471a3; }
+        .col-introduced .column-count { background: #2471a3; color: white; }
+
+        .col-committee .column-header { background: #fef9e7; }
+        .col-committee .column-header h3 { color: #b7950b; }
+        .col-committee .column-count { background: #b7950b; color: white; }
+
+        .col-floor .column-header { background: #f4ecf7; }
+        .col-floor .column-header h3 { color: #7d3c98; }
+        .col-floor .column-count { background: #7d3c98; color: white; }
+
+        .col-passed .column-header { background: #eafaf1; }
+        .col-passed .column-header h3 { color: #1e8449; }
+        .col-passed .column-count { background: #1e8449; color: white; }
+
+        .col-enacted .column-header { background: #fdf2e9; }
+        .col-enacted .column-header h3 { color: #ca6f1e; }
+        .col-enacted .column-count { background: #ca6f1e; color: white; }
+
+        .column-body {
+            padding: 10px;
+            flex: 1;
+            overflow-y: auto;
+            max-height: calc(100vh - 320px);
+        }
+
+        /* ===== BILL CARDS ===== */
+        .bill-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .bill-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-1px);
+            border-color: var(--gold);
+        }
+
+        .bill-card .bill-number {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--navy);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .bill-card .chamber-badge {
+            font-size: 0.6rem;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chamber-badge.house { background: #dbeafe; color: #1e40af; }
+        .chamber-badge.senate { background: #fce7f3; color: #9d174d; }
+
+        .bill-card .bill-title {
+            font-size: 0.8rem;
+            color: var(--text);
+            line-height: 1.4;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .bill-card .bill-meta {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .bill-card .bill-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .bill-card .bill-date {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ===== TIMELINE VIEW ===== */
+        .timeline-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 32px 40px;
+            display: none;
+        }
+
+        .timeline-container.active { display: block; }
+        .kanban-container.active { display: block; }
+        .kanban-container { display: none; }
+
+        .timeline-chart {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .timeline-chart h3 {
+            font-size: 1rem;
+            color: var(--navy);
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .velocity-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 200px;
+            padding: 0 10px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .velocity-bar {
+            flex: 1;
+            min-width: 20px;
+            border-radius: 4px 4px 0 0;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .velocity-bar:hover {
+            opacity: 0.8;
+        }
+
+        .velocity-bar .bar-tooltip {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--navy-dark);
+            color: var(--white);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            margin-bottom: 4px;
+            z-index: 10;
+        }
+
+        .velocity-bar:hover .bar-tooltip { display: block; }
+
+        .velocity-labels {
+            display: flex;
+            gap: 4px;
+            padding: 6px 10px 0;
+        }
+
+        .velocity-labels span {
+            flex: 1;
+            text-align: center;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== SESSION COMPARISON ===== */
+        .comparison-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 32px 40px;
+            display: none;
+        }
+
+        .comparison-container.active { display: block; }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .session-compare-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .session-compare-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .session-compare-card.current {
+            border-color: var(--gold);
+            border-width: 2px;
+        }
+
+        .session-compare-card .session-num {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .session-compare-card .session-years {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin: 4px 0;
+        }
+
+        .session-compare-card .session-count {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--gold-dim);
+        }
+
+        .session-compare-card .session-count-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .session-bar-wrapper {
+            margin-top: 10px;
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .session-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--navy) 0%, var(--gold) 100%);
+            transition: width 1s ease;
+        }
+
+        /* ===== DETAIL PANEL ===== */
+        .detail-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(17,29,51,0.6);
+            z-index: 200;
+            backdrop-filter: blur(4px);
+        }
+
+        .detail-overlay.active { display: flex; justify-content: flex-end; }
+
+        .detail-panel {
+            width: min(560px, 90vw);
+            background: var(--white);
+            height: 100%;
+            overflow-y: auto;
+            box-shadow: -8px 0 40px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .detail-header {
+            background: linear-gradient(135deg, var(--navy-dark), var(--navy));
+            color: var(--white);
+            padding: 24px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .detail-header .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: var(--white);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-header .close-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .detail-header .detail-bill-number {
+            font-size: 0.75rem;
+            color: var(--gold-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .detail-header .detail-bill-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-top: 6px;
+            line-height: 1.3;
+            padding-right: 40px;
+        }
+
+        .detail-body {
+            padding: 24px;
+        }
+
+        .detail-section {
+            margin-bottom: 24px;
+        }
+
+        .detail-section h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+        }
+
+        .detail-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .detail-info-item {
+            background: var(--bg);
+            padding: 10px 14px;
+            border-radius: 8px;
+        }
+
+        .detail-info-item .label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .detail-info-item .value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--navy);
+            margin-top: 2px;
+        }
+
+        .action-timeline {
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .action-timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .action-item {
+            position: relative;
+            padding: 8px 0 8px 16px;
+            font-size: 0.82rem;
+        }
+
+        .action-item::before {
+            content: '';
+            position: absolute;
+            left: -17px;
+            top: 14px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--gold);
+            border: 2px solid var(--white);
+            box-shadow: 0 0 0 2px var(--border);
+        }
+
+        .action-item .action-date {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .action-item .action-desc {
+            color: var(--text);
+            line-height: 1.4;
+        }
+
+        .sponsor-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .sponsor-tag {
+            padding: 4px 10px;
+            background: var(--bg);
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--navy);
+            border: 1px solid var(--border);
+        }
+
+        .sponsor-tag.primary {
+            background: var(--navy);
+            color: var(--white);
+            border-color: var(--navy);
+        }
+
+        .vote-result {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .vote-result .vote-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--navy);
+            min-width: 60px;
+        }
+
+        .vote-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: #fca5a5;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .vote-bar-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .vote-counts {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* ===== LOADING / ERROR ===== */
+        .loading-indicator {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .loading-indicator .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-banner {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            color: #c53030;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 16px 32px;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .error-banner.visible { display: flex; align-items: center; gap: 8px; }
+
+        .error-banner .dismiss {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #c53030;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .data-source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .data-source-badge.live { background: #c6f6d5; color: #22543d; }
+        .data-source-badge.demo { background: #fefcbf; color: #744210; }
+
+        /* ===== FOOTER ===== */
+        footer {
+            text-align: center;
+            padding: 24px 32px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+            background: var(--white);
+        }
+
+        footer a { color: var(--navy); }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1200px) {
+            .kanban-board {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .kanban-board {
+                grid-template-columns: 1fr 1fr;
+            }
+            header { padding: 14px 16px; }
+            .header-inner { gap: 10px; }
+            .header-title-group h1 { font-size: 1.1rem; }
+            .search-box input { width: 180px; }
+            .search-box input:focus { width: 220px; }
+            .stats-bar { gap: 16px; padding: 10px 16px; }
+            .filter-bar { padding: 10px 16px; }
+            .kanban-container, .timeline-container, .comparison-container { padding: 12px 8px 32px; }
+            .detail-panel { width: 100vw; }
+        }
+
+        @media (max-width: 480px) {
+            .kanban-board {
+                grid-template-columns: 1fr;
+            }
+            .header-right { width: 100%; }
+            .search-box { flex: 1; }
+            .search-box input { width: 100%; }
+            .search-box input:focus { width: 100%; }
+            .comparison-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 30px 16px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        .empty-state .empty-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            opacity: 0.4;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        .column-body::-webkit-scrollbar { width: 4px; }
+        .column-body::-webkit-scrollbar-track { background: transparent; }
+        .column-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .column-body::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        .detail-panel::-webkit-scrollbar { width: 6px; }
+        .detail-panel::-webkit-scrollbar-track { background: transparent; }
+        .detail-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+    <div class="header-inner">
+        <div class="header-left">
+            <a href="../index.html" class="back-link">&#8592; Ideas Engine</a>
+            <div class="header-title-group">
+                <div class="acronym">LBTS</div>
+                <h1>Legislative Bill Tracker &amp; Status</h1>
+                <div class="tagline">"Every bill's journey, at a glance."</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="search-box">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" id="searchInput" placeholder="Search bills by number, title, or sponsor..." />
+            </div>
+            <div class="view-toggle">
+                <button class="active" onclick="switchView('kanban')">Board</button>
+                <button onclick="switchView('timeline')">Timeline</button>
+                <button onclick="switchView('comparison')">Sessions</button>
+            </div>
+            <span id="dataSourceBadge" class="data-source-badge demo">DEMO DATA</span>
+        </div>
+    </div>
+</header>
+
+<!-- STATS BAR -->
+<div class="stats-bar" id="statsBar">
+    <div class="stat">
+        <div class="stat-number loading" id="statTotal">--</div>
+        <div class="stat-label">Total Bills</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number loading" id="statIntroduced">--</div>
+        <div class="stat-label">Introduced</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number loading" id="statCommittee">--</div>
+        <div class="stat-label">In Committee</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number loading" id="statFloor">--</div>
+        <div class="stat-label">Floor Vote</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number loading" id="statPassed">--</div>
+        <div class="stat-label">Passed</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number loading" id="statEnacted">--</div>
+        <div class="stat-label">Enacted</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number loading" id="statPassRate">--</div>
+        <div class="stat-label">Pass Rate</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number loading" id="statSession">--</div>
+        <div class="stat-label">Session</div>
+    </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+    <div class="filter-group">
+        <label>Chamber:</label>
+        <button class="filter-btn active" onclick="filterChamber('all', this)">All</button>
+        <button class="filter-btn" onclick="filterChamber('house', this)">House</button>
+        <button class="filter-btn" onclick="filterChamber('senate', this)">Senate</button>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+        <label>Session:</label>
+        <select class="filter-select" id="sessionSelect" onchange="changeSession(this.value)">
+            <option value="">Loading...</option>
+        </select>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+        <label>Subject:</label>
+        <select class="filter-select" id="subjectSelect" onchange="filterBySubject(this.value)">
+            <option value="">All Subjects</option>
+        </select>
+    </div>
+</div>
+
+<!-- ERROR BANNER -->
+<div class="error-banner" id="errorBanner">
+    <span>&#9888;</span>
+    <span id="errorMessage">Could not load data from the API. Showing demo data.</span>
+    <button class="dismiss" onclick="this.parentElement.classList.remove('visible')">&times;</button>
+</div>
+
+<!-- KANBAN VIEW -->
+<div class="kanban-container active" id="kanbanView">
+    <div class="kanban-board" id="kanbanBoard">
+        <div class="kanban-column col-introduced">
+            <div class="column-header">
+                <h3>Introduced</h3>
+                <span class="column-count" id="countIntroduced">0</span>
+            </div>
+            <div class="column-body" id="colIntroduced">
+                <div class="loading-indicator"><div class="spinner"></div>Loading bills...</div>
+            </div>
+        </div>
+        <div class="kanban-column col-committee">
+            <div class="column-header">
+                <h3>In Committee</h3>
+                <span class="column-count" id="countCommittee">0</span>
+            </div>
+            <div class="column-body" id="colCommittee">
+                <div class="loading-indicator"><div class="spinner"></div>Loading bills...</div>
+            </div>
+        </div>
+        <div class="kanban-column col-floor">
+            <div class="column-header">
+                <h3>Floor Vote</h3>
+                <span class="column-count" id="countFloor">0</span>
+            </div>
+            <div class="column-body" id="colFloor">
+                <div class="loading-indicator"><div class="spinner"></div>Loading bills...</div>
+            </div>
+        </div>
+        <div class="kanban-column col-passed">
+            <div class="column-header">
+                <h3>Passed / Failed</h3>
+                <span class="column-count" id="countPassed">0</span>
+            </div>
+            <div class="column-body" id="colPassed">
+                <div class="loading-indicator"><div class="spinner"></div>Loading bills...</div>
+            </div>
+        </div>
+        <div class="kanban-column col-enacted">
+            <div class="column-header">
+                <h3>Ratified / Enacted</h3>
+                <span class="column-count" id="countEnacted">0</span>
+            </div>
+            <div class="column-body" id="colEnacted">
+                <div class="loading-indicator"><div class="spinner"></div>Loading bills...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TIMELINE VIEW -->
+<div class="timeline-container" id="timelineView">
+    <div class="timeline-chart">
+        <h3>Bill Velocity - Days in Each Stage</h3>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:16px;">
+            Average number of days bills spend in each stage of the legislative process.
+        </p>
+        <div class="velocity-bars" id="velocityBars"></div>
+        <div class="velocity-labels" id="velocityLabels"></div>
+    </div>
+    <div class="timeline-chart">
+        <h3>Bills Introduced Over Time</h3>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:16px;">
+            Monthly bill introduction count for the current session.
+        </p>
+        <div class="velocity-bars" id="monthlyBars" style="height:160px;"></div>
+        <div class="velocity-labels" id="monthlyLabels"></div>
+    </div>
+    <div class="timeline-chart">
+        <h3>Stage Distribution</h3>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:16px;">
+            Current distribution of bills across pipeline stages.
+        </p>
+        <div id="stageDistribution" style="display:flex; gap:4px; height: 40px; border-radius: 8px; overflow: hidden;"></div>
+        <div id="stageLegend" style="display:flex; gap:16px; flex-wrap:wrap; margin-top:12px;"></div>
+    </div>
+</div>
+
+<!-- SESSION COMPARISON VIEW -->
+<div class="comparison-container" id="comparisonView">
+    <div class="timeline-chart" style="margin-bottom: 24px;">
+        <h3>Session Comparison - Bill Counts</h3>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:16px;">
+            Total bills filed per legislative session. Click a card to load that session's data.
+        </p>
+    </div>
+    <div class="comparison-grid" id="comparisonGrid">
+        <div class="loading-indicator"><div class="spinner"></div>Loading session data...</div>
+    </div>
+</div>
+
+<!-- DETAIL PANEL OVERLAY -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
+    <div class="detail-panel" id="detailPanel" onclick="event.stopPropagation()">
+        <div class="detail-header">
+            <button class="close-btn" onclick="closeDetail()">&times;</button>
+            <div class="detail-bill-number" id="detailBillNumber">--</div>
+            <div class="detail-bill-title" id="detailBillTitle">Loading...</div>
+        </div>
+        <div class="detail-body" id="detailBody">
+            <div class="loading-indicator"><div class="spinner"></div>Loading bill details...</div>
+        </div>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+    <p>LBTS - Legislative Bill Tracker &amp; Status Dashboard</p>
+    <p style="margin-top:4px;">Data from <a href="https://rest.scstatehouse.gov" target="_blank">SC Statehouse REST API</a> | <a href="../index.html">Ideas Engine Home</a></p>
+</footer>
+
+<script>
+(function() {
+    'use strict';
+
+    const API_BASE = 'https://rest.scstatehouse.gov';
+    let currentSession = 126;
+    let allBills = [];
+    let filteredBills = [];
+    let currentChamberFilter = 'all';
+    let currentSubjectFilter = '';
+    let currentSearchTerm = '';
+    let usingLiveData = false;
+    let sessionsList = [];
+    let billCountData = [];
+
+    // ===== DEMO / FALLBACK DATA =====
+    const DEMO_BILLS = generateDemoBills();
+
+    function generateDemoBills() {
+        const houseBills = [
+            { billNumber: 'H. 3001', title: 'A BILL TO AMEND THE CODE OF LAWS OF SOUTH CAROLINA, RELATING TO INCOME TAX RATES, SO AS TO REDUCE THE TOP MARGINAL RATE.', sponsor: 'Rep. Smith', chamber: 'House', status: 'introduced', lastAction: '2025-01-14', lastActionDesc: 'Introduced and read first time', subject: 'Taxation', actions: [{date:'2025-01-14', desc:'Introduced and read first time'}, {date:'2025-01-14', desc:'Referred to Ways and Means Committee'}] },
+            { billNumber: 'H. 3015', title: 'A BILL TO ENACT THE "SOUTH CAROLINA EDUCATION REFORM ACT" INCLUDING PROVISIONS FOR TEACHER PAY INCREASES AND CLASSROOM SIZE REDUCTION.', sponsor: 'Rep. Johnson', chamber: 'House', status: 'committee', lastAction: '2025-02-03', lastActionDesc: 'Committee hearing scheduled', subject: 'Education', committee: 'Education and Public Works', actions: [{date:'2025-01-15', desc:'Introduced and read first time'},{date:'2025-01-15', desc:'Referred to Education and Public Works Committee'},{date:'2025-02-03', desc:'Committee hearing scheduled'}] },
+            { billNumber: 'H. 3042', title: 'A BILL TO AMEND SECTION 16-23-20, CODE OF LAWS OF SOUTH CAROLINA, RELATING TO UNLAWFUL CARRYING OF HANDGUNS.', sponsor: 'Rep. Williams', chamber: 'House', status: 'committee', lastAction: '2025-02-10', lastActionDesc: 'Testimony received in committee', subject: 'Judiciary', committee: 'Judiciary Committee', actions: [{date:'2025-01-21', desc:'Introduced and read first time'},{date:'2025-01-21', desc:'Referred to Judiciary Committee'},{date:'2025-02-10', desc:'Testimony received in committee'}] },
+            { billNumber: 'H. 3078', title: 'A BILL TO PROVIDE INFRASTRUCTURE FUNDING FOR RURAL BROADBAND EXPANSION IN UNDERSERVED AREAS OF SOUTH CAROLINA.', sponsor: 'Rep. Davis', chamber: 'House', status: 'floor', lastAction: '2025-03-01', lastActionDesc: 'Read second time, ordered to third reading', subject: 'Technology', actions: [{date:'2025-01-28', desc:'Introduced'},{date:'2025-02-05', desc:'Committee favorable report'},{date:'2025-02-20', desc:'Read second time'},{date:'2025-03-01', desc:'Ordered to third reading'}] },
+            { billNumber: 'H. 3102', title: 'A BILL TO CREATE THE SOUTH CAROLINA CLEAN ENERGY INCENTIVE PROGRAM.', sponsor: 'Rep. Anderson', chamber: 'House', status: 'floor', lastAction: '2025-03-05', lastActionDesc: 'Debate adjourned', subject: 'Environment', actions: [{date:'2025-02-01', desc:'Introduced'},{date:'2025-02-15', desc:'Committee favorable report'},{date:'2025-03-05', desc:'Debate adjourned on the floor'}] },
+            { billNumber: 'H. 3155', title: 'A BILL TO AMEND THE SOUTH CAROLINA RETIREMENT SYSTEM FOR STATE EMPLOYEES.', sponsor: 'Rep. Martin', chamber: 'House', status: 'passed', lastAction: '2025-03-12', lastActionDesc: 'Passed House, sent to Senate', subject: 'Government', actions: [{date:'2025-01-20', desc:'Introduced'},{date:'2025-02-10', desc:'Committee favorable report'},{date:'2025-02-28', desc:'Read third time'},{date:'2025-03-12', desc:'Passed House 85-30'}], yeas: 85, nays: 30 },
+            { billNumber: 'H. 3200', title: 'A JOINT RESOLUTION TO APPROVE REGULATIONS OF THE DEPARTMENT OF HEALTH AND ENVIRONMENTAL CONTROL.', sponsor: 'Rep. Clark', chamber: 'House', status: 'enacted', lastAction: '2025-03-20', lastActionDesc: 'Ratified, Act No. 15', subject: 'Health', actNumber: '15', actions: [{date:'2025-01-10', desc:'Introduced'},{date:'2025-01-25', desc:'Committee favorable report'},{date:'2025-02-08', desc:'Passed House'},{date:'2025-02-22', desc:'Passed Senate'},{date:'2025-03-10', desc:'Enrolled for ratification'},{date:'2025-03-20', desc:'Ratified, Act No. 15'}], yeas: 110, nays: 5 },
+            { billNumber: 'H. 3210', title: 'A BILL TO AMEND THE VEHICLE REGISTRATION REQUIREMENTS FOR ELECTRIC VEHICLES.', sponsor: 'Rep. Taylor', chamber: 'House', status: 'introduced', lastAction: '2025-03-01', lastActionDesc: 'Introduced and read first time', subject: 'Transportation', actions: [{date:'2025-03-01', desc:'Introduced and read first time'}] },
+            { billNumber: 'H. 3225', title: 'A BILL TO PROVIDE TAX CREDITS FOR SMALL BUSINESSES HIRING VETERANS.', sponsor: 'Rep. Brown', chamber: 'House', status: 'committee', lastAction: '2025-03-08', lastActionDesc: 'Subcommittee appointed', subject: 'Taxation', committee: 'Ways and Means', actions: [{date:'2025-02-15', desc:'Introduced'},{date:'2025-02-15', desc:'Referred to Ways and Means'},{date:'2025-03-08', desc:'Subcommittee appointed'}] },
+            { billNumber: 'H. 3250', title: 'A BILL TO ESTABLISH THE SOUTH CAROLINA WORKFORCE DEVELOPMENT TRAINING FUND.', sponsor: 'Rep. Wilson', chamber: 'House', status: 'passed', lastAction: '2025-03-18', lastActionDesc: 'Passed House, sent to Senate', subject: 'Labor', actions: [{date:'2025-01-22', desc:'Introduced'},{date:'2025-02-12', desc:'Committee favorable report'},{date:'2025-03-01', desc:'Read third time'},{date:'2025-03-18', desc:'Passed House 92-22'}], yeas: 92, nays: 22 },
+        ];
+
+        const senateBills = [
+            { billNumber: 'S. 100', title: 'A BILL TO AMEND THE SOUTH CAROLINA CODE RELATING TO MEDICAID EXPANSION AND HEALTHCARE ACCESS.', sponsor: 'Sen. Thompson', chamber: 'Senate', status: 'committee', lastAction: '2025-02-12', lastActionDesc: 'Referred to Medical Affairs Committee', subject: 'Health', committee: 'Medical Affairs', actions: [{date:'2025-01-16', desc:'Introduced and read first time'},{date:'2025-01-16', desc:'Referred to Medical Affairs Committee'},{date:'2025-02-12', desc:'Hearing scheduled'}] },
+            { billNumber: 'S. 115', title: 'A BILL TO CREATE JUDICIAL CIRCUIT COURT REFORM AND CASE MANAGEMENT EFFICIENCY.', sponsor: 'Sen. Rodriguez', chamber: 'Senate', status: 'floor', lastAction: '2025-02-25', lastActionDesc: 'Read third time', subject: 'Judiciary', actions: [{date:'2025-01-18', desc:'Introduced'},{date:'2025-02-05', desc:'Committee favorable report'},{date:'2025-02-25', desc:'Read third time'}] },
+            { billNumber: 'S. 130', title: 'A BILL TO ESTABLISH THE COASTAL RESILIENCE AND FLOOD MITIGATION PROGRAM.', sponsor: 'Sen. Adams', chamber: 'Senate', status: 'introduced', lastAction: '2025-01-22', lastActionDesc: 'Introduced and read first time', subject: 'Environment', actions: [{date:'2025-01-22', desc:'Introduced and read first time'}] },
+            { billNumber: 'S. 145', title: 'A JOINT RESOLUTION PROPOSING AN AMENDMENT TO THE CONSTITUTION RELATING TO THE APPOINTMENT OF JUDGES.', sponsor: 'Sen. Harris', chamber: 'Senate', status: 'committee', lastAction: '2025-02-28', lastActionDesc: 'Favorable report with amendments', subject: 'Judiciary', committee: 'Judiciary Committee', actions: [{date:'2025-01-25', desc:'Introduced'},{date:'2025-01-25', desc:'Referred to Judiciary Committee'},{date:'2025-02-28', desc:'Favorable report with amendments'}] },
+            { billNumber: 'S. 160', title: 'A BILL TO AMEND TITLE 59, RELATING TO CHARTER SCHOOL AUTHORIZATION AND OVERSIGHT.', sponsor: 'Sen. Baker', chamber: 'Senate', status: 'enacted', lastAction: '2025-03-15', lastActionDesc: 'Signed by Governor, Act No. 22', subject: 'Education', actNumber: '22', actions: [{date:'2025-01-12', desc:'Introduced'},{date:'2025-01-28', desc:'Committee favorable report'},{date:'2025-02-10', desc:'Passed Senate'},{date:'2025-02-28', desc:'Passed House with amendments'},{date:'2025-03-05', desc:'Conference committee appointed'},{date:'2025-03-10', desc:'Conference report adopted'},{date:'2025-03-15', desc:'Signed by Governor, Act No. 22'}], yeas: 95, nays: 18 },
+            { billNumber: 'S. 175', title: 'A BILL TO REGULATE CRYPTOCURRENCY AND DIGITAL ASSET TRANSACTIONS IN SOUTH CAROLINA.', sponsor: 'Sen. Chen', chamber: 'Senate', status: 'introduced', lastAction: '2025-02-05', lastActionDesc: 'Introduced and read first time', subject: 'Banking', actions: [{date:'2025-02-05', desc:'Introduced and read first time'},{date:'2025-02-05', desc:'Referred to Banking and Insurance Committee'}] },
+            { billNumber: 'S. 190', title: 'A BILL TO AMEND SECTION 12-6-1110, RELATING TO SOUTH CAROLINA TAXABLE INCOME FOR MILITARY RETIREES.', sponsor: 'Sen. Mitchell', chamber: 'Senate', status: 'passed', lastAction: '2025-03-10', lastActionDesc: 'Passed Senate, sent to House', subject: 'Taxation', actions: [{date:'2025-01-30', desc:'Introduced'},{date:'2025-02-20', desc:'Committee favorable report'},{date:'2025-03-10', desc:'Passed Senate 40-5'}], yeas: 40, nays: 5 },
+            { billNumber: 'S. 205', title: 'A BILL TO PROTECT AGRICULTURAL LANDS FROM COMMERCIAL OVERDEVELOPMENT.', sponsor: 'Sen. Parker', chamber: 'Senate', status: 'committee', lastAction: '2025-03-02', lastActionDesc: 'Public hearing scheduled', subject: 'Agriculture', committee: 'Agriculture and Natural Resources', actions: [{date:'2025-02-10', desc:'Introduced'},{date:'2025-02-10', desc:'Referred to Agriculture and Natural Resources'},{date:'2025-03-02', desc:'Public hearing scheduled'}] },
+            { billNumber: 'S. 220', title: 'A BILL TO AMEND THE SOUTH CAROLINA FREEDOM OF INFORMATION ACT TO INCLUDE DIGITAL COMMUNICATIONS.', sponsor: 'Sen. Wright', chamber: 'Senate', status: 'floor', lastAction: '2025-03-08', lastActionDesc: 'Amended on floor, debate continues', subject: 'Government', actions: [{date:'2025-02-01', desc:'Introduced'},{date:'2025-02-18', desc:'Committee favorable report'},{date:'2025-03-08', desc:'Amended on floor, debate continues'}] },
+            { billNumber: 'S. 235', title: 'A BILL TO PROVIDE MENTAL HEALTH RESOURCES FOR FIRST RESPONDERS AND LAW ENFORCEMENT.', sponsor: 'Sen. Garcia', chamber: 'Senate', status: 'enacted', lastAction: '2025-03-22', lastActionDesc: 'Ratified, Act No. 28', subject: 'Health', actNumber: '28', actions: [{date:'2025-01-08', desc:'Pre-filed'},{date:'2025-01-14', desc:'Introduced'},{date:'2025-02-01', desc:'Committee favorable report'},{date:'2025-02-15', desc:'Passed Senate'},{date:'2025-03-01', desc:'Passed House'},{date:'2025-03-22', desc:'Ratified, Act No. 28'}], yeas: 120, nays: 2 },
+        ];
+
+        return [...houseBills, ...senateBills];
+    }
+
+    const DEMO_SESSIONS = [
+        { sessionNumber: 126, description: '126th Session', years: '2025-2026', isCurrent: true },
+        { sessionNumber: 125, description: '125th Session', years: '2023-2024', isCurrent: false },
+        { sessionNumber: 124, description: '124th Session', years: '2021-2022', isCurrent: false },
+        { sessionNumber: 123, description: '123rd Session', years: '2019-2020', isCurrent: false },
+        { sessionNumber: 122, description: '122nd Session', years: '2017-2018', isCurrent: false },
+        { sessionNumber: 121, description: '121st Session', years: '2015-2016', isCurrent: false },
+        { sessionNumber: 120, description: '120th Session', years: '2013-2014', isCurrent: false },
+    ];
+
+    const DEMO_BILL_COUNTS = [
+        { session: 126, count: 1247, years: '2025-2026' },
+        { session: 125, count: 4832, years: '2023-2024' },
+        { session: 124, count: 4618, years: '2021-2022' },
+        { session: 123, count: 5102, years: '2019-2020' },
+        { session: 122, count: 4756, years: '2017-2018' },
+        { session: 121, count: 4391, years: '2015-2016' },
+        { session: 120, count: 4215, years: '2013-2014' },
+    ];
+
+    const DEMO_SUBJECTS = [
+        'Agriculture', 'Banking', 'Education', 'Environment', 'Government',
+        'Health', 'Judiciary', 'Labor', 'Taxation', 'Technology', 'Transportation'
+    ];
+
+    // ===== API FETCH HELPERS =====
+    async function apiFetch(endpoint) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        try {
+            const resp = await fetch(`${API_BASE}${endpoint}`, {
+                signal: controller.signal,
+                headers: { 'Accept': 'application/json' }
+            });
+            clearTimeout(timeout);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            return await resp.json();
+        } catch (e) {
+            clearTimeout(timeout);
+            throw e;
+        }
+    }
+
+    function showError(msg) {
+        document.getElementById('errorMessage').textContent = msg;
+        document.getElementById('errorBanner').classList.add('visible');
+    }
+
+    function setDataBadge(isLive) {
+        const badge = document.getElementById('dataSourceBadge');
+        if (isLive) {
+            badge.textContent = 'LIVE API';
+            badge.className = 'data-source-badge live';
+        } else {
+            badge.textContent = 'DEMO DATA';
+            badge.className = 'data-source-badge demo';
+        }
+        usingLiveData = isLive;
+    }
+
+    // ===== CLASSIFY BILL STAGE =====
+    function classifyStage(bill) {
+        if (bill._stage) return bill._stage;
+
+        const lastAction = (bill.lastActionDesc || bill.lastAction || '').toLowerCase();
+        const allActions = (bill.actions || []).map(a => (a.desc || a.description || '').toLowerCase()).join(' ');
+        const combined = lastAction + ' ' + allActions;
+
+        if (/ratified|enacted|signed by governor|act no|became law|approved by governor/i.test(combined)) return 'enacted';
+        if (/passed (house|senate)|passed both|sent to (house|senate)|enrolled/i.test(combined)) return 'passed';
+        if (/read (second|third|2nd|3rd) time|ordered to third|floor|debate|amended on floor|special order/i.test(combined)) return 'floor';
+        if (/committee|referred|hearing|subcommittee|testimony|favorable report|tabled in committee/i.test(combined)) return 'committee';
+        return 'introduced';
+    }
+
+    // ===== PARSE LIVE BILL DATA =====
+    function parseLiveBill(raw) {
+        // The API returns data in varied formats; attempt to normalize
+        const bill = {};
+
+        // Bill number: might be in billNumber, bill_number, prefixedNumber, etc.
+        bill.billNumber = raw.billNumber || raw.prefixedNumber || raw.bill_number ||
+            ((raw.prefix || '') + ' ' + (raw.number || raw.billId || '')).trim() || 'Unknown';
+
+        // Title
+        bill.title = raw.title || raw.billTitle || raw.description || raw.summary || 'No title available';
+        if (bill.title.length > 300) bill.title = bill.title.substring(0, 297) + '...';
+
+        // Sponsor
+        bill.sponsor = raw.sponsor || raw.sponsorName || raw.primarySponsor ||
+            (raw.sponsors && raw.sponsors.length > 0 ? (raw.sponsors[0].name || raw.sponsors[0]) : '') || 'Unknown';
+
+        // Chamber
+        const bn = bill.billNumber.toUpperCase();
+        if (bn.startsWith('H') || bn.startsWith('H.')) {
+            bill.chamber = 'House';
+        } else if (bn.startsWith('S') || bn.startsWith('S.')) {
+            bill.chamber = 'Senate';
+        } else {
+            bill.chamber = raw.chamber || raw.body || 'Unknown';
+        }
+
+        // Subject
+        bill.subject = raw.subject || raw.subjectArea || raw.category || '';
+
+        // Committee
+        bill.committee = raw.committee || raw.currentCommittee || '';
+
+        // Actions
+        bill.actions = [];
+        if (raw.actions && Array.isArray(raw.actions)) {
+            bill.actions = raw.actions.map(a => ({
+                date: a.date || a.actionDate || '',
+                desc: a.description || a.actionDescription || a.desc || ''
+            }));
+        } else if (raw.history && Array.isArray(raw.history)) {
+            bill.actions = raw.history.map(h => ({
+                date: h.date || h.actionDate || '',
+                desc: h.description || h.action || h.desc || ''
+            }));
+        }
+
+        // Last action
+        if (bill.actions.length > 0) {
+            const last = bill.actions[bill.actions.length - 1];
+            bill.lastAction = last.date;
+            bill.lastActionDesc = last.desc;
+        } else {
+            bill.lastAction = raw.lastActionDate || raw.dateOfAction || '';
+            bill.lastActionDesc = raw.lastAction || raw.lastActionDescription || '';
+        }
+
+        // Votes
+        bill.yeas = raw.yeas || raw.ayes || null;
+        bill.nays = raw.nays || raw.nos || null;
+
+        // Act number
+        bill.actNumber = raw.actNumber || raw.act_number || '';
+
+        // Sponsors list
+        bill.sponsorsList = [];
+        if (raw.sponsors && Array.isArray(raw.sponsors)) {
+            bill.sponsorsList = raw.sponsors.map(s => typeof s === 'string' ? s : (s.name || s.sponsorName || ''));
+        }
+        if (bill.sponsorsList.length === 0 && bill.sponsor) {
+            bill.sponsorsList = [bill.sponsor];
+        }
+
+        // Status classification
+        bill.status = raw.status || '';
+        bill._stage = classifyStage(bill);
+
+        return bill;
+    }
+
+    // ===== LOAD DATA =====
+    async function initialize() {
+        // Try loading current session
+        try {
+            const sessionData = await apiFetch('/currentsession');
+            if (sessionData && (sessionData.sessionNumber || sessionData.session || typeof sessionData === 'number')) {
+                currentSession = sessionData.sessionNumber || sessionData.session || sessionData;
+                if (typeof currentSession === 'object') currentSession = 126;
+            }
+        } catch (e) {
+            console.warn('Could not fetch current session, using default 126');
+        }
+
+        // Load sessions list, subjects, bill counts in parallel
+        await Promise.allSettled([
+            loadSessions(),
+            loadSubjects(),
+            loadBillCounts()
+        ]);
+
+        // Load bills
+        await loadBills();
+    }
+
+    async function loadSessions() {
+        try {
+            const data = await apiFetch('/sessions');
+            if (Array.isArray(data) && data.length > 0) {
+                sessionsList = data.map(s => ({
+                    sessionNumber: s.sessionNumber || s.session || s.id,
+                    description: s.description || s.sessionDescription || `Session ${s.sessionNumber || s.session}`,
+                    years: s.years || s.sessionYears || '',
+                    isCurrent: (s.sessionNumber || s.session) == currentSession
+                })).filter(s => s.sessionNumber);
+                sessionsList.sort((a, b) => b.sessionNumber - a.sessionNumber);
+            } else {
+                sessionsList = DEMO_SESSIONS;
+            }
+        } catch (e) {
+            sessionsList = DEMO_SESSIONS;
+        }
+        populateSessionSelect();
+    }
+
+    function populateSessionSelect() {
+        const sel = document.getElementById('sessionSelect');
+        sel.innerHTML = '';
+        sessionsList.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.sessionNumber;
+            opt.textContent = s.years ? `${s.description} (${s.years})` : s.description;
+            if (s.sessionNumber == currentSession) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function loadSubjects() {
+        try {
+            const data = await apiFetch('/subjects/current');
+            if (Array.isArray(data) && data.length > 0) {
+                const subjects = data.map(s => s.subject || s.name || s.description || s).filter(Boolean);
+                populateSubjectSelect(subjects);
+                return;
+            }
+        } catch (e) { /* fall through */ }
+        populateSubjectSelect(DEMO_SUBJECTS);
+    }
+
+    function populateSubjectSelect(subjects) {
+        const sel = document.getElementById('subjectSelect');
+        sel.innerHTML = '<option value="">All Subjects</option>';
+        subjects.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function loadBillCounts() {
+        try {
+            const data = await apiFetch('/session-billcount');
+            if (Array.isArray(data) && data.length > 0) {
+                billCountData = data.map(d => ({
+                    session: d.session || d.sessionNumber,
+                    count: d.count || d.billCount || d.total || 0,
+                    years: d.years || d.sessionYears || ''
+                }));
+                return;
+            } else if (data && typeof data === 'object') {
+                // Might be an object with session keys
+                billCountData = Object.entries(data).map(([key, val]) => ({
+                    session: parseInt(key) || key,
+                    count: typeof val === 'number' ? val : (val.count || val.total || 0),
+                    years: val.years || ''
+                }));
+                return;
+            }
+        } catch (e) { /* fall through */ }
+        billCountData = DEMO_BILL_COUNTS;
+    }
+
+    async function loadBills() {
+        showColumnLoading();
+        let bills = [];
+        let liveSuccess = false;
+
+        // Strategy 1: Try dashboard endpoints for bulk data
+        try {
+            const [houseData, senateData] = await Promise.allSettled([
+                apiFetch('/dashboard/currentbill/house'),
+                apiFetch('/dashboard/currentbill/senate')
+            ]);
+
+            let houseBills = [];
+            let senateBills = [];
+
+            if (houseData.status === 'fulfilled' && houseData.value) {
+                const hd = houseData.value;
+                houseBills = Array.isArray(hd) ? hd : (hd.bills || hd.data || []);
+            }
+            if (senateData.status === 'fulfilled' && senateData.value) {
+                const sd = senateData.value;
+                senateBills = Array.isArray(sd) ? sd : (sd.bills || sd.data || []);
+            }
+
+            if (houseBills.length > 0 || senateBills.length > 0) {
+                bills = [...houseBills, ...senateBills].map(parseLiveBill);
+                liveSuccess = true;
+            }
+        } catch (e) {
+            console.warn('Dashboard endpoints failed:', e);
+        }
+
+        // Strategy 2: Try individual bill endpoints
+        if (!liveSuccess) {
+            try {
+                const promises = [];
+                for (let i = 1; i <= 30; i++) {
+                    promises.push(
+                        apiFetch(`/bills/${currentSession}/${i}`)
+                            .then(data => ({ success: true, data }))
+                            .catch(() => ({ success: false }))
+                    );
+                }
+                const results = await Promise.allSettled(promises);
+                const fetched = results
+                    .filter(r => r.status === 'fulfilled' && r.value.success && r.value.data)
+                    .map(r => r.value.data);
+
+                if (fetched.length > 0) {
+                    // Each result might be a single bill or an array
+                    fetched.forEach(item => {
+                        if (Array.isArray(item)) {
+                            bills.push(...item.map(parseLiveBill));
+                        } else {
+                            bills.push(parseLiveBill(item));
+                        }
+                    });
+                    liveSuccess = bills.length > 0;
+                }
+            } catch (e) {
+                console.warn('Individual bill fetch failed:', e);
+            }
+        }
+
+        // Strategy 3: Try /bills/current
+        if (!liveSuccess) {
+            try {
+                const data = await apiFetch('/bills/current');
+                if (data) {
+                    const arr = Array.isArray(data) ? data : (data.bills || data.data || []);
+                    if (arr.length > 0) {
+                        bills = arr.slice(0, 50).map(parseLiveBill);
+                        liveSuccess = true;
+                    }
+                }
+            } catch (e) {
+                console.warn('/bills/current failed:', e);
+            }
+        }
+
+        // Fallback to demo data
+        if (!liveSuccess || bills.length === 0) {
+            bills = DEMO_BILLS.map(b => {
+                b._stage = classifyStage(b);
+                return b;
+            });
+            showError('Could not load live data from the SC Statehouse API. Displaying demo data for demonstration purposes.');
+            setDataBadge(false);
+        } else {
+            setDataBadge(true);
+        }
+
+        allBills = bills;
+        applyFilters();
+    }
+
+    function showColumnLoading() {
+        ['colIntroduced','colCommittee','colFloor','colPassed','colEnacted'].forEach(id => {
+            document.getElementById(id).innerHTML = '<div class="loading-indicator"><div class="spinner"></div>Loading...</div>';
+        });
+    }
+
+    // ===== FILTERS =====
+    function applyFilters() {
+        filteredBills = allBills.filter(bill => {
+            if (currentChamberFilter !== 'all' && bill.chamber.toLowerCase() !== currentChamberFilter) return false;
+            if (currentSubjectFilter && bill.subject !== currentSubjectFilter) return false;
+            if (currentSearchTerm) {
+                const term = currentSearchTerm.toLowerCase();
+                const searchable = [bill.billNumber, bill.title, bill.sponsor, bill.subject, bill.committee || ''].join(' ').toLowerCase();
+                if (!searchable.includes(term)) return false;
+            }
+            return true;
+        });
+        renderKanban();
+        updateStats();
+        renderTimeline();
+    }
+
+    window.filterChamber = function(chamber, btn) {
+        currentChamberFilter = chamber;
+        document.querySelectorAll('.filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+    };
+
+    window.filterBySubject = function(subject) {
+        currentSubjectFilter = subject;
+        applyFilters();
+    };
+
+    window.changeSession = function(sessionNum) {
+        currentSession = parseInt(sessionNum) || 126;
+        loadBills();
+    };
+
+    // Search
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        currentSearchTerm = e.target.value;
+        applyFilters();
+    });
+
+    // ===== RENDER KANBAN =====
+    function renderKanban() {
+        const stages = {
+            introduced: [],
+            committee: [],
+            floor: [],
+            passed: [],
+            enacted: []
+        };
+
+        filteredBills.forEach(bill => {
+            const stage = bill._stage || classifyStage(bill);
+            if (stages[stage]) stages[stage].push(bill);
+            else stages.introduced.push(bill);
+        });
+
+        renderColumn('colIntroduced', stages.introduced, 'countIntroduced');
+        renderColumn('colCommittee', stages.committee, 'countCommittee');
+        renderColumn('colFloor', stages.floor, 'countFloor');
+        renderColumn('colPassed', stages.passed, 'countPassed');
+        renderColumn('colEnacted', stages.enacted, 'countEnacted');
+    }
+
+    function renderColumn(containerId, bills, countId) {
+        const container = document.getElementById(containerId);
+        const countEl = document.getElementById(countId);
+        countEl.textContent = bills.length;
+
+        if (bills.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128196;</div>No bills in this stage</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        bills.forEach(bill => {
+            const card = document.createElement('div');
+            card.className = 'bill-card';
+            card.onclick = () => openDetail(bill);
+
+            const chamberClass = bill.chamber.toLowerCase() === 'house' ? 'house' : 'senate';
+            const chamberLabel = bill.chamber.toLowerCase() === 'house' ? 'H' : 'S';
+
+            card.innerHTML = `
+                <div class="bill-number">
+                    <span>${escHtml(bill.billNumber)}</span>
+                    <span class="chamber-badge ${chamberClass}">${chamberLabel}</span>
+                </div>
+                <div class="bill-title">${escHtml(bill.title)}</div>
+                <div class="bill-meta">
+                    <span>&#9998; ${escHtml(bill.sponsor)}</span>
+                    ${bill.subject ? `<span>&#128218; ${escHtml(bill.subject)}</span>` : ''}
+                    ${bill.committee ? `<span>&#127963; ${escHtml(bill.committee)}</span>` : ''}
+                </div>
+                ${bill.lastAction ? `<div class="bill-date">${escHtml(formatDate(bill.lastAction))}${bill.lastActionDesc ? ' &mdash; ' + escHtml(truncate(bill.lastActionDesc, 60)) : ''}</div>` : ''}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // ===== UPDATE STATS =====
+    function updateStats() {
+        const stages = { introduced: 0, committee: 0, floor: 0, passed: 0, enacted: 0 };
+        filteredBills.forEach(b => {
+            const s = b._stage || classifyStage(b);
+            if (stages[s] !== undefined) stages[s]++;
+        });
+
+        setStatEl('statTotal', filteredBills.length);
+        setStatEl('statIntroduced', stages.introduced);
+        setStatEl('statCommittee', stages.committee);
+        setStatEl('statFloor', stages.floor);
+        setStatEl('statPassed', stages.passed);
+        setStatEl('statEnacted', stages.enacted);
+
+        const passable = stages.passed + stages.enacted;
+        const total = filteredBills.length || 1;
+        setStatEl('statPassRate', Math.round((passable / total) * 100) + '%');
+        setStatEl('statSession', currentSession + getSuffix(currentSession));
+    }
+
+    function setStatEl(id, val) {
+        const el = document.getElementById(id);
+        el.textContent = val;
+        el.classList.remove('loading');
+    }
+
+    function getSuffix(n) {
+        const s = ['th','st','nd','rd'];
+        const v = n % 100;
+        return s[(v - 20) % 10] || s[v] || s[0];
+    }
+
+    // ===== DETAIL PANEL =====
+    window.openDetail = function(bill) {
+        const overlay = document.getElementById('detailOverlay');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        document.getElementById('detailBillNumber').textContent = bill.billNumber + ' | ' + bill.chamber;
+        document.getElementById('detailBillTitle').textContent = bill.title;
+
+        const body = document.getElementById('detailBody');
+        const stage = bill._stage || classifyStage(bill);
+        const stageLabels = { introduced: 'Introduced', committee: 'In Committee', floor: 'Floor Vote', passed: 'Passed', enacted: 'Ratified/Enacted' };
+
+        let html = '';
+
+        // Info grid
+        html += '<div class="detail-section"><h4>Bill Information</h4><div class="detail-info-grid">';
+        html += infoItem('Status', stageLabels[stage] || stage);
+        html += infoItem('Chamber', bill.chamber);
+        html += infoItem('Primary Sponsor', bill.sponsor);
+        html += infoItem('Subject', bill.subject || 'N/A');
+        if (bill.committee) html += infoItem('Committee', bill.committee);
+        if (bill.actNumber) html += infoItem('Act Number', bill.actNumber);
+        if (bill.lastAction) html += infoItem('Last Action', formatDate(bill.lastAction));
+        html += '</div></div>';
+
+        // Pipeline progress
+        html += '<div class="detail-section"><h4>Pipeline Progress</h4>';
+        html += renderPipelineProgress(stage);
+        html += '</div>';
+
+        // Sponsors
+        if (bill.sponsorsList && bill.sponsorsList.length > 0) {
+            html += '<div class="detail-section"><h4>Sponsors</h4><div class="sponsor-list">';
+            bill.sponsorsList.forEach((s, i) => {
+                html += `<span class="sponsor-tag ${i === 0 ? 'primary' : ''}">${escHtml(s)}</span>`;
+            });
+            html += '</div></div>';
+        }
+
+        // Vote results
+        if (bill.yeas != null || bill.nays != null) {
+            const yeas = bill.yeas || 0;
+            const nays = bill.nays || 0;
+            const total = yeas + nays || 1;
+            const pct = Math.round((yeas / total) * 100);
+            html += '<div class="detail-section"><h4>Vote Results</h4>';
+            html += `<div class="vote-result">
+                <span class="vote-label">Result</span>
+                <div class="vote-bar-bg"><div class="vote-bar-fill" style="width:${pct}%"></div></div>
+                <span class="vote-counts">${yeas}Y / ${nays}N</span>
+            </div></div>`;
+        }
+
+        // Action timeline
+        if (bill.actions && bill.actions.length > 0) {
+            html += '<div class="detail-section"><h4>Action Timeline</h4><div class="action-timeline">';
+            const sortedActions = [...bill.actions].sort((a, b) => {
+                if (!a.date || !b.date) return 0;
+                return new Date(b.date) - new Date(a.date);
+            });
+            sortedActions.forEach(a => {
+                html += `<div class="action-item">
+                    <div class="action-date">${escHtml(formatDate(a.date))}</div>
+                    <div class="action-desc">${escHtml(a.desc || a.description || '')}</div>
+                </div>`;
+            });
+            html += '</div></div>';
+        }
+
+        // Full title
+        html += '<div class="detail-section"><h4>Full Title</h4>';
+        html += `<p style="font-size:0.85rem; line-height:1.5; color:var(--text);">${escHtml(bill.title)}</p></div>`;
+
+        body.innerHTML = html;
+    };
+
+    window.closeDetail = function(event) {
+        if (event && event.target !== document.getElementById('detailOverlay')) return;
+        document.getElementById('detailOverlay').classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.getElementById('detailOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+
+    function renderPipelineProgress(currentStage) {
+        const stages = ['introduced', 'committee', 'floor', 'passed', 'enacted'];
+        const labels = ['Introduced', 'Committee', 'Floor Vote', 'Passed', 'Enacted'];
+        const colors = ['#2471a3', '#b7950b', '#7d3c98', '#1e8449', '#ca6f1e'];
+        const idx = stages.indexOf(currentStage);
+
+        let html = '<div style="display:flex; align-items:center; gap:4px; padding:8px 0;">';
+        stages.forEach((s, i) => {
+            const active = i <= idx;
+            html += `<div style="flex:1; text-align:center;">
+                <div style="height:6px; border-radius:3px; background:${active ? colors[i] : '#e2e4e8'}; margin-bottom:4px;"></div>
+                <span style="font-size:0.65rem; font-weight:${active ? '700' : '400'}; color:${active ? colors[i] : '#a0aec0'};">${labels[i]}</span>
+            </div>`;
+            if (i < stages.length - 1) {
+                html += `<div style="width:8px; height:2px; background:${i < idx ? colors[i] : '#e2e4e8'}; margin-top:-10px;"></div>`;
+            }
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function infoItem(label, value) {
+        return `<div class="detail-info-item"><div class="label">${escHtml(label)}</div><div class="value">${escHtml(value)}</div></div>`;
+    }
+
+    // ===== TIMELINE VIEW =====
+    function renderTimeline() {
+        // Velocity bars - average days in each stage
+        const stageColors = {
+            introduced: '#2471a3',
+            committee: '#b7950b',
+            floor: '#7d3c98',
+            passed: '#1e8449',
+            enacted: '#ca6f1e'
+        };
+        const stageLabelsArr = ['Introduced', 'In Committee', 'Floor Vote', 'Passed', 'Enacted'];
+        const stageKeys = ['introduced', 'committee', 'floor', 'passed', 'enacted'];
+
+        // Calculate average "days" per stage (simulated from action dates)
+        const stageDays = { introduced: 14, committee: 28, floor: 12, passed: 8, enacted: 5 };
+
+        // Calculate from actual data if available
+        filteredBills.forEach(bill => {
+            if (bill.actions && bill.actions.length >= 2) {
+                const dates = bill.actions
+                    .map(a => new Date(a.date))
+                    .filter(d => !isNaN(d.getTime()))
+                    .sort((a, b) => a - b);
+                if (dates.length >= 2) {
+                    const total = (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24);
+                    const stage = bill._stage || classifyStage(bill);
+                    if (stageDays[stage] !== undefined) {
+                        stageDays[stage] = Math.round((stageDays[stage] + total) / 2);
+                    }
+                }
+            }
+        });
+
+        const maxDays = Math.max(...Object.values(stageDays), 1);
+        const barsEl = document.getElementById('velocityBars');
+        const labelsEl = document.getElementById('velocityLabels');
+        barsEl.innerHTML = '';
+        labelsEl.innerHTML = '';
+
+        stageKeys.forEach((key, i) => {
+            const pct = (stageDays[key] / maxDays) * 100;
+            const bar = document.createElement('div');
+            bar.className = 'velocity-bar';
+            bar.style.height = pct + '%';
+            bar.style.background = stageColors[key];
+            bar.innerHTML = `<div class="bar-tooltip">${stageLabelsArr[i]}: ~${stageDays[key]} days avg</div>`;
+            barsEl.appendChild(bar);
+
+            const label = document.createElement('span');
+            label.textContent = stageLabelsArr[i];
+            labelsEl.appendChild(label);
+        });
+
+        // Monthly introduction bars
+        const monthlyData = {};
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        filteredBills.forEach(bill => {
+            const firstAction = bill.actions && bill.actions.length > 0 ? bill.actions[0] : null;
+            const dateStr = firstAction ? firstAction.date : bill.lastAction;
+            if (dateStr) {
+                const d = new Date(dateStr);
+                if (!isNaN(d.getTime())) {
+                    const key = months[d.getMonth()] + ' ' + d.getFullYear();
+                    monthlyData[key] = (monthlyData[key] || 0) + 1;
+                }
+            }
+        });
+
+        const monthlyBars = document.getElementById('monthlyBars');
+        const monthlyLabelsEl = document.getElementById('monthlyLabels');
+        monthlyBars.innerHTML = '';
+        monthlyLabelsEl.innerHTML = '';
+
+        const entries = Object.entries(monthlyData).sort((a, b) => {
+            const parseDate = s => new Date(s.split(' ')[0] + ' 1, ' + s.split(' ')[1]);
+            return parseDate(a[0]) - parseDate(b[0]);
+        });
+
+        if (entries.length === 0) {
+            monthlyBars.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;color:var(--text-muted);font-size:0.8rem;">No monthly data available</div>';
+        } else {
+            const maxMonth = Math.max(...entries.map(e => e[1]), 1);
+            entries.forEach(([month, count]) => {
+                const pct = (count / maxMonth) * 100;
+                const bar = document.createElement('div');
+                bar.className = 'velocity-bar';
+                bar.style.height = pct + '%';
+                bar.style.background = `linear-gradient(180deg, var(--gold) 0%, var(--navy) 100%)`;
+                bar.innerHTML = `<div class="bar-tooltip">${month}: ${count} bills</div>`;
+                monthlyBars.appendChild(bar);
+
+                const label = document.createElement('span');
+                label.textContent = month;
+                monthlyLabelsEl.appendChild(label);
+            });
+        }
+
+        // Stage distribution bar
+        const stageCounts = { introduced: 0, committee: 0, floor: 0, passed: 0, enacted: 0 };
+        filteredBills.forEach(b => {
+            const s = b._stage || classifyStage(b);
+            if (stageCounts[s] !== undefined) stageCounts[s]++;
+        });
+
+        const distEl = document.getElementById('stageDistribution');
+        const legendEl = document.getElementById('stageLegend');
+        distEl.innerHTML = '';
+        legendEl.innerHTML = '';
+        const total = filteredBills.length || 1;
+
+        stageKeys.forEach((key, i) => {
+            const pct = (stageCounts[key] / total) * 100;
+            if (pct > 0) {
+                const seg = document.createElement('div');
+                seg.style.width = pct + '%';
+                seg.style.background = stageColors[key];
+                seg.style.transition = 'width 0.5s ease';
+                seg.title = `${stageLabelsArr[i]}: ${stageCounts[key]} (${Math.round(pct)}%)`;
+                distEl.appendChild(seg);
+            }
+
+            const legend = document.createElement('div');
+            legend.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:0.75rem;';
+            legend.innerHTML = `<span style="width:10px;height:10px;border-radius:2px;background:${stageColors[key]};display:inline-block;"></span>
+                ${stageLabelsArr[i]}: ${stageCounts[key]}`;
+            legendEl.appendChild(legend);
+        });
+    }
+
+    // ===== SESSION COMPARISON =====
+    function renderComparison() {
+        const grid = document.getElementById('comparisonGrid');
+        if (billCountData.length === 0) {
+            grid.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128202;</div>No session comparison data available</div>';
+            return;
+        }
+
+        const maxCount = Math.max(...billCountData.map(d => d.count), 1);
+        grid.innerHTML = '';
+
+        // Sort by session descending
+        const sorted = [...billCountData].sort((a, b) => b.session - a.session);
+
+        sorted.forEach(d => {
+            const card = document.createElement('div');
+            card.className = 'session-compare-card' + (d.session == currentSession ? ' current' : '');
+            const pct = (d.count / maxCount) * 100;
+
+            const sessionInfo = sessionsList.find(s => s.sessionNumber == d.session);
+            const years = d.years || (sessionInfo ? sessionInfo.years : '');
+            const desc = sessionInfo ? sessionInfo.description : `Session ${d.session}`;
+
+            card.innerHTML = `
+                <div class="session-num">${escHtml(desc)}</div>
+                <div class="session-years">${escHtml(years)}</div>
+                <div class="session-count">${d.count.toLocaleString()}</div>
+                <div class="session-count-label">Bills Filed</div>
+                <div class="session-bar-wrapper">
+                    <div class="session-bar-fill" style="width:${pct}%"></div>
+                </div>
+            `;
+
+            card.style.cursor = 'pointer';
+            card.onclick = () => {
+                document.getElementById('sessionSelect').value = d.session;
+                changeSession(d.session);
+                switchView('kanban');
+            };
+
+            grid.appendChild(card);
+        });
+    }
+
+    // ===== VIEW SWITCHING =====
+    window.switchView = function(view) {
+        document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+
+        document.getElementById('kanbanView').classList.remove('active');
+        document.getElementById('timelineView').classList.remove('active');
+        document.getElementById('comparisonView').classList.remove('active');
+
+        if (view === 'kanban') {
+            document.getElementById('kanbanView').classList.add('active');
+        } else if (view === 'timeline') {
+            document.getElementById('timelineView').classList.add('active');
+            renderTimeline();
+        } else if (view === 'comparison') {
+            document.getElementById('comparisonView').classList.add('active');
+            renderComparison();
+        }
+    };
+
+    // ===== UTILITIES =====
+    function escHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (e) {
+            return dateStr;
+        }
+    }
+
+    function truncate(str, len) {
+        if (!str) return '';
+        return str.length > len ? str.substring(0, len) + '...' : str;
+    }
+
+    // ===== INIT =====
+    initialize();
+
+})();
+</script>
+
+</body>
+</html>
