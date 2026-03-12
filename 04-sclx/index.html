@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCLX - SC Legal Code Cross-Reference Engine</title>
+    <style>
+        :root {
+            --navy: #1b2a4a;
+            --navy-light: #243660;
+            --navy-dark: #131e36;
+            --gold: #c9a94e;
+            --gold-light: #dfc574;
+            --gold-dim: #a08838;
+            --bg: #f5f5f0;
+            --card-bg: #ffffff;
+            --border: #d4d0c8;
+            --text: #2c2c2c;
+            --text-muted: #6b6b6b;
+            --text-light: #999;
+            --law-color: #2563eb;
+            --reg-color: #059669;
+            --const-color: #9333ea;
+            --law-bg: #eff6ff;
+            --reg-bg: #ecfdf5;
+            --const-bg: #faf5ff;
+            --danger: #dc2626;
+            --radius: 6px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-lg: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Georgia", "Times New Roman", serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ─── HEADER ─── */
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+            color: #fff;
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-link {
+            color: var(--gold);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+
+        .back-link:hover { opacity: 1; }
+
+        .header-brand h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .header-brand h1 span {
+            color: var(--gold);
+        }
+
+        .header-brand .tagline {
+            font-size: 0.78rem;
+            opacity: 0.7;
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.75rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: rgba(255,255,255,0.08);
+            padding: 6px 14px;
+            border-radius: var(--radius);
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--gold);
+            display: block;
+        }
+
+        .stat-label {
+            opacity: 0.7;
+            display: block;
+        }
+
+        /* ─── SEARCH BAR ─── */
+        .search-bar {
+            background: rgba(0,0,0,0.2);
+            padding: 10px 24px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-bar input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 16px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-bar input::placeholder { color: rgba(255,255,255,0.5); }
+        .search-bar input:focus { border-color: var(--gold); }
+
+        .search-bar .quick-jump {
+            width: 180px;
+            min-width: 120px;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background: var(--gold);
+            color: var(--navy-dark);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .search-bar button:hover { background: var(--gold-light); }
+
+        .bookmark-toggle {
+            background: transparent !important;
+            color: var(--gold) !important;
+            border: 2px solid var(--gold) !important;
+            font-size: 0.85rem !important;
+        }
+
+        .bookmark-toggle:hover {
+            background: var(--gold) !important;
+            color: var(--navy-dark) !important;
+        }
+
+        /* ─── TAB NAVIGATION ─── */
+        .tab-bar {
+            display: flex;
+            background: var(--navy-dark);
+            border-bottom: 2px solid var(--gold-dim);
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover { color: rgba(255,255,255,0.9); }
+
+        .tab-btn.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* ─── MAIN LAYOUT ─── */
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 180px);
+        }
+
+        /* ─── NAVIGATION PANEL ─── */
+        .nav-panel {
+            width: 340px;
+            min-width: 340px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            height: calc(100vh - 180px);
+            position: sticky;
+            top: 180px;
+        }
+
+        .nav-panel-header {
+            padding: 12px 16px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-filter {
+            width: calc(100% - 32px);
+            margin: 8px 16px;
+            padding: 7px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            outline: none;
+        }
+
+        .nav-filter:focus { border-color: var(--gold); }
+
+        .tree-container {
+            padding: 4px 0;
+        }
+
+        .tree-item {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .tree-title {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text);
+            transition: background 0.15s;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .tree-title:hover { background: var(--bg); }
+
+        .tree-title.active {
+            background: var(--law-bg);
+            color: var(--navy);
+            font-weight: 600;
+        }
+
+        .tree-chevron {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+            width: 12px;
+        }
+
+        .tree-chevron.open { transform: rotate(90deg); }
+
+        .tree-label { flex: 1; line-height: 1.4; }
+
+        .tree-children {
+            display: none;
+            padding-left: 16px;
+            border-left: 1px solid var(--border);
+            margin-left: 22px;
+        }
+
+        .tree-children.open { display: block; }
+
+        .tree-child {
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .tree-child:hover { color: var(--navy); background: var(--bg); }
+        .tree-child.active { color: var(--navy); font-weight: 600; background: var(--law-bg); }
+
+        /* ─── CONTENT PANEL ─── */
+        .content-panel {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .breadcrumb {
+            padding: 10px 24px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb a {
+            color: var(--navy);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb .sep { color: var(--text-light); }
+
+        .content-body {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .content-body h2 {
+            color: var(--navy);
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gold);
+        }
+
+        .content-body .section-meta {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .bookmark-btn {
+            padding: 4px 12px;
+            border: 1px solid var(--gold);
+            background: transparent;
+            color: var(--gold-dim);
+            border-radius: var(--radius);
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            transition: all 0.2s;
+        }
+
+        .bookmark-btn:hover, .bookmark-btn.bookmarked {
+            background: var(--gold);
+            color: var(--navy-dark);
+        }
+
+        .legal-text {
+            font-size: 1rem;
+            line-height: 1.8;
+            max-width: 800px;
+        }
+
+        .legal-text p { margin-bottom: 12px; }
+        .legal-text h3 { color: var(--navy); margin: 20px 0 8px; font-size: 1.1rem; }
+        .legal-text h4 { color: var(--navy-light); margin: 16px 0 6px; font-size: 1rem; }
+        .legal-text table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+        .legal-text td, .legal-text th { border: 1px solid var(--border); padding: 6px 10px; font-size: 0.9rem; }
+
+        /* ─── CROSS-REFERENCE SIDEBAR ─── */
+        .xref-panel {
+            width: 300px;
+            min-width: 300px;
+            background: var(--card-bg);
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+            height: calc(100vh - 180px);
+            position: sticky;
+            top: 180px;
+        }
+
+        .xref-header {
+            padding: 12px 16px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .xref-section {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .xref-section h4 {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .xref-item {
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.8rem;
+            color: var(--text);
+            transition: background 0.15s;
+        }
+
+        .xref-item:hover { background: var(--bg); }
+
+        .xref-empty {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            font-style: italic;
+            padding: 8px 0;
+        }
+
+        /* ─── SEARCH RESULTS ─── */
+        .search-results {
+            padding: 16px 24px;
+        }
+
+        .search-results-header {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-result {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .search-result:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: var(--gold);
+        }
+
+        .search-result-title {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--navy);
+            margin-bottom: 4px;
+        }
+
+        .search-result-snippet {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .search-result-snippet mark {
+            background: #fef08a;
+            color: var(--text);
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        /* ─── BADGES ─── */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-law { background: var(--law-bg); color: var(--law-color); }
+        .badge-reg { background: var(--reg-bg); color: var(--reg-color); }
+        .badge-const { background: var(--const-bg); color: var(--const-color); }
+
+        /* ─── LOADING / EMPTY STATES ─── */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+        .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 6px; }
+        .empty-state p { font-size: 0.85rem; }
+
+        .error-banner {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--danger);
+            padding: 10px 16px;
+            margin: 8px 16px;
+            border-radius: var(--radius);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 0.8rem;
+        }
+
+        /* ─── BOOKMARKS PANEL ─── */
+        .bookmarks-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 80px;
+        }
+
+        .bookmarks-overlay.open { display: flex; }
+
+        .bookmarks-modal {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            width: 90%;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .bookmarks-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .bookmarks-modal-header h3 { font-size: 1rem; color: var(--navy); }
+
+        .bookmarks-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .bookmark-entry {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .bookmark-entry:hover { background: var(--bg); }
+
+        .bookmark-entry-info { flex: 1; }
+        .bookmark-entry-title { font-size: 0.9rem; font-weight: 600; color: var(--navy); }
+        .bookmark-entry-path { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+        .bookmark-remove {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 4px 8px;
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 1100px) {
+            .xref-panel { display: none; }
+        }
+
+        @media (max-width: 850px) {
+            .nav-panel {
+                width: 100%;
+                min-width: 0;
+                height: auto;
+                max-height: 50vh;
+                position: relative;
+                top: 0;
+            }
+
+            .main-container {
+                flex-direction: column;
+                min-height: auto;
+            }
+
+            .content-panel { min-height: 60vh; }
+
+            .header-stats { display: none; }
+
+            .search-bar { flex-direction: column; }
+            .search-bar input, .search-bar .quick-jump { width: 100%; min-width: 0; }
+
+            .stat-item { display: none; }
+        }
+
+        /* ─── SCROLLBAR STYLING ─── */
+        .nav-panel::-webkit-scrollbar,
+        .xref-panel::-webkit-scrollbar,
+        .content-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .nav-panel::-webkit-scrollbar-track,
+        .xref-panel::-webkit-scrollbar-track,
+        .content-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .nav-panel::-webkit-scrollbar-thumb,
+        .xref-panel::-webkit-scrollbar-thumb,
+        .content-body::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .nav-panel::-webkit-scrollbar-thumb:hover,
+        .xref-panel::-webkit-scrollbar-thumb:hover,
+        .content-body::-webkit-scrollbar-thumb:hover {
+            background: var(--text-light);
+        }
+
+        /* hidden helper */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<!-- ═══════ HEADER ═══════ -->
+<header>
+    <div class="header-top">
+        <div class="header-left">
+            <a href="../index.html" class="back-link">&larr; Back to Projects</a>
+            <div class="header-brand">
+                <h1><span>SCLX</span> - SC Legal Code Cross-Reference Engine</h1>
+                <div class="tagline">Connect the dots between laws, regulations, and the constitution.</div>
+            </div>
+        </div>
+        <div class="header-stats" id="headerStats">
+            <div class="stat-item">
+                <span class="stat-value" id="statLaws">--</span>
+                <span class="stat-label">Law Titles</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="statRegs">--</span>
+                <span class="stat-label">Reg Chapters</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="statConst">--</span>
+                <span class="stat-label">Const Articles</span>
+            </div>
+        </div>
+    </div>
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search across all legal codes..." aria-label="Unified search">
+        <input type="text" id="quickJump" class="quick-jump" placeholder="Quick jump: e.g. title12, ch43, art5" aria-label="Quick jump">
+        <button onclick="performSearch()" id="searchBtn">Search</button>
+        <button class="bookmark-toggle" onclick="toggleBookmarks()">Bookmarks</button>
+    </div>
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="laws" onclick="switchTab('laws')">Code of Laws</button>
+        <button class="tab-btn" data-tab="regs" onclick="switchTab('regs')">Code of Regulations</button>
+        <button class="tab-btn" data-tab="constitution" onclick="switchTab('constitution')">Constitution</button>
+        <button class="tab-btn" data-tab="search" onclick="switchTab('search')" id="searchTab" style="display:none">Search Results</button>
+    </div>
+</header>
+
+<!-- ═══════ MAIN LAYOUT ═══════ -->
+<div class="main-container">
+    <!-- Navigation Panel -->
+    <div class="nav-panel" id="navPanel">
+        <div class="nav-panel-header">
+            <span id="navPanelTitle">Code of Laws</span>
+            <span id="navItemCount"></span>
+        </div>
+        <input type="text" class="nav-filter" id="navFilter" placeholder="Filter titles..." oninput="filterNav()">
+        <div class="tree-container" id="treeContainer">
+            <div class="loading" id="navLoading">
+                <div class="spinner"></div>
+                <span>Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Panel -->
+    <div class="content-panel">
+        <div class="breadcrumb" id="breadcrumb">
+            <a onclick="goHome()">Home</a>
+        </div>
+        <div class="content-body" id="contentBody">
+            <div class="empty-state" id="welcomeState">
+                <div class="icon">&#9878;</div>
+                <h3>South Carolina Legal Code Explorer</h3>
+                <p>Select a title, chapter, or article from the navigation panel to view its contents.</p>
+                <p style="margin-top:8px;">Use the search bar to find sections across all three legal code sources.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cross-Reference Sidebar -->
+    <div class="xref-panel" id="xrefPanel">
+        <div class="xref-header">Cross-References</div>
+        <div id="xrefContent">
+            <div class="xref-section">
+                <div class="xref-empty">Select a section to see related cross-references across legal codes.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ BOOKMARKS MODAL ═══════ -->
+<div class="bookmarks-overlay" id="bookmarksOverlay" onclick="closeBookmarks(event)">
+    <div class="bookmarks-modal">
+        <div class="bookmarks-modal-header">
+            <h3>Saved Bookmarks</h3>
+            <button class="bookmarks-modal-close" onclick="toggleBookmarks()">&times;</button>
+        </div>
+        <div id="bookmarksList"></div>
+    </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SCLX - SC Legal Code Cross-Reference Engine
+   ═══════════════════════════════════════════════════════ */
+
+const API = 'https://rest.scstatehouse.gov';
+
+// ─── STATE ───
+const state = {
+    currentTab: 'laws',
+    lawsData: null,
+    regsData: null,
+    constData: null,
+    lawsTitles: [],   // processed flat list for search
+    regsTitles: [],
+    constTitles: [],
+    currentView: null, // { type, path, name, ... }
+    searchResults: [],
+    bookmarks: JSON.parse(localStorage.getItem('sclx-bookmarks') || '[]'),
+    loadErrors: {}
+};
+
+// ─── FALLBACK DEMO DATA ───
+const FALLBACK = {
+    laws: [
+        { name: "Title 1 - Administration of the Government", path: "/codeoflaws/title1", children: [
+            { name: "Chapter 1 - General Provisions", data: { CHAPTER_TEXT: "<h3>CHAPTER 1</h3><p>General provisions regarding the administration of state government in South Carolina.</p><p>SECTION 1-1-10. Short title.</p><p>This Title shall be known and may be cited as the 'Administration of the Government.'</p>" }},
+            { name: "Chapter 3 - Secretary of State", data: { CHAPTER_TEXT: "<h3>CHAPTER 3</h3><p>Provisions relating to the Office of the Secretary of State.</p>" }}
+        ]},
+        { name: "Title 2 - General Assembly", path: "/codeoflaws/title2", children: [
+            { name: "Chapter 1 - General Provisions", data: { CHAPTER_TEXT: "<h3>CHAPTER 1</h3><p>General provisions regarding the South Carolina General Assembly.</p>" }},
+        ]},
+        { name: "Title 5 - Municipalities", path: "/codeoflaws/title5", children: [] },
+        { name: "Title 6 - Local Government", path: "/codeoflaws/title6", children: [] },
+        { name: "Title 8 - Public Officers and Employees", path: "/codeoflaws/title8", children: [] },
+        { name: "Title 10 - Public Buildings and Property", path: "/codeoflaws/title10", children: [] },
+        { name: "Title 11 - Public Finance", path: "/codeoflaws/title11", children: [] },
+        { name: "Title 12 - Taxation", path: "/codeoflaws/title12", children: [
+            { name: "Chapter 6 - South Carolina Income Tax Act", data: { CHAPTER_TEXT: "<h3>CHAPTER 6</h3><p>South Carolina Income Tax Act provisions.</p>" }},
+        ]},
+        { name: "Title 16 - Crimes and Offenses", path: "/codeoflaws/title16", children: [] },
+        { name: "Title 23 - Law Enforcement and Public Safety", path: "/codeoflaws/title23", children: [] },
+        { name: "Title 38 - Insurance", path: "/codeoflaws/title38", children: [] },
+        { name: "Title 40 - Professions and Occupations", path: "/codeoflaws/title40", children: [] },
+        { name: "Title 44 - Health", path: "/codeoflaws/title44", children: [] },
+        { name: "Title 48 - Environmental Protection", path: "/codeoflaws/title48", children: [] },
+        { name: "Title 56 - Motor Vehicles", path: "/codeoflaws/title56", children: [] },
+        { name: "Title 59 - Education", path: "/codeoflaws/title59", children: [] },
+        { name: "Title 63 - South Carolina Children's Code", path: "/codeoflaws/title63", children: [] },
+    ],
+    regs: [
+        { name: "Chapter 7 - Department of Revenue", path: "/codeofregs/chapter7", children: [] },
+        { name: "Chapter 20 - Department of Insurance", path: "/codeofregs/chapter20", children: [] },
+        { name: "Chapter 43 - Department of Health and Environmental Control", path: "/codeofregs/chapter43", children: [] },
+        { name: "Chapter 61 - Department of Education", path: "/codeofregs/chapter61", children: [] },
+        { name: "Chapter 71 - Department of Natural Resources", path: "/codeofregs/chapter71", children: [] },
+        { name: "Chapter 103 - Department of Labor, Licensing and Regulation", path: "/codeofregs/chapter103", children: [] },
+        { name: "Chapter 123 - Department of Motor Vehicles", path: "/codeofregs/chapter123", children: [] },
+        { name: "Chapter 137 - Department of Social Services", path: "/codeofregs/chapter137", children: [] },
+    ],
+    constitution: [
+        { name: "Article I - Declaration of Rights", path: "/constitution/article_i", children: [] },
+        { name: "Article II - Right of Suffrage", path: "/constitution/article_ii", children: [] },
+        { name: "Article III - Legislative Department", path: "/constitution/article_iii", children: [] },
+        { name: "Article IV - Executive Department", path: "/constitution/article_iv", children: [] },
+        { name: "Article V - Judicial Department", path: "/constitution/article_v", children: [] },
+        { name: "Article VI - Officers and Employees", path: "/constitution/article_vi", children: [] },
+        { name: "Article VII - Counties, County Government", path: "/constitution/article_vii", children: [] },
+        { name: "Article VIII - Municipal Corporations", path: "/constitution/article_viii", children: [] },
+        { name: "Article IX - Taxation", path: "/constitution/article_ix", children: [] },
+        { name: "Article X - Finance and Taxation", path: "/constitution/article_x", children: [] },
+        { name: "Article XI - Public Education", path: "/constitution/article_xi", children: [] },
+        { name: "Article XII - Corporations", path: "/constitution/article_xii", children: [] },
+        { name: "Article XIII - Militia", path: "/constitution/article_xiii", children: [] },
+        { name: "Article XIV - Miscellaneous Matters", path: "/constitution/article_xiv", children: [] },
+        { name: "Article XV - Impeachment", path: "/constitution/article_xv", children: [] },
+        { name: "Article XVI - Amendments", path: "/constitution/article_xvi", children: [] },
+        { name: "Article XVII - Miscellaneous", path: "/constitution/article_xvii", children: [] },
+        { name: "Amendments", path: "/constitution/amendments", children: [] },
+    ]
+};
+
+// ─── API HELPERS ───
+async function apiFetch(endpoint) {
+    try {
+        const res = await fetch(API + endpoint);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (err) {
+        console.warn(`API fetch failed for ${endpoint}:`, err.message);
+        throw err;
+    }
+}
+
+function processLawsData(data) {
+    if (!Array.isArray(data)) return [];
+    return data.map(item => ({
+        name: item.name || 'Unknown Title',
+        path: item.path || '',
+        parent: item.parent || '',
+        children: Array.isArray(item.children) ? item.children.map(ch => ({
+            name: ch.name || ch.data?.name || 'Unknown Chapter',
+            data: ch.data || ch,
+            path: ch.path || ''
+        })) : []
+    }));
+}
+
+function processRegsData(data) {
+    if (!Array.isArray(data)) return [];
+    return data.map(item => ({
+        name: item.name || 'Unknown Chapter',
+        path: item.path || '',
+        children: Array.isArray(item.children) ? item.children.map(ch => ({
+            name: ch.name || 'Unknown Section',
+            data: ch.data || ch,
+            path: ch.path || ''
+        })) : []
+    }));
+}
+
+function processConstData(data) {
+    if (!Array.isArray(data)) return [];
+    return data.map(item => ({
+        name: item.name || 'Unknown Article',
+        path: item.path || '',
+        children: Array.isArray(item.children) ? item.children.map(ch => ({
+            name: ch.name || 'Unknown Section',
+            data: ch.data || ch,
+            path: ch.path || ''
+        })) : []
+    }));
+}
+
+// ─── DATA LOADING ───
+async function loadAllData() {
+    // Load in parallel
+    const [lawsResult, regsResult, constResult] = await Promise.allSettled([
+        apiFetch('/codeoflaws'),
+        apiFetch('/codeofregs'),
+        apiFetch('/constitution')
+    ]);
+
+    if (lawsResult.status === 'fulfilled') {
+        state.lawsData = processLawsData(lawsResult.value);
+    } else {
+        state.loadErrors.laws = lawsResult.reason?.message;
+        state.lawsData = FALLBACK.laws;
+    }
+
+    if (regsResult.status === 'fulfilled') {
+        state.regsData = processRegsData(regsResult.value);
+    } else {
+        state.loadErrors.regs = regsResult.reason?.message;
+        state.regsData = FALLBACK.regs;
+    }
+
+    if (constResult.status === 'fulfilled') {
+        state.constData = processConstData(constResult.value);
+    } else {
+        state.loadErrors.constitution = constResult.reason?.message;
+        state.constData = FALLBACK.constitution;
+    }
+
+    updateStats();
+    renderNav();
+}
+
+function updateStats() {
+    document.getElementById('statLaws').textContent = state.lawsData ? state.lawsData.length : '--';
+    document.getElementById('statRegs').textContent = state.regsData ? state.regsData.length : '--';
+    const constCount = state.constData ? state.constData.filter(a => a.name.toLowerCase().startsWith('article')).length : '--';
+    document.getElementById('statConst').textContent = constCount;
+}
+
+// ─── TAB SWITCHING ───
+function switchTab(tab) {
+    state.currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+
+    const navPanel = document.getElementById('navPanel');
+    const navFilter = document.getElementById('navFilter');
+
+    if (tab === 'search') {
+        navPanel.classList.add('hidden');
+        renderSearchResults();
+        return;
+    }
+
+    navPanel.classList.remove('hidden');
+    navFilter.value = '';
+
+    const labels = { laws: 'Code of Laws', regs: 'Code of Regulations', constitution: 'Constitution' };
+    document.getElementById('navPanelTitle').textContent = labels[tab] || tab;
+    navFilter.placeholder = tab === 'laws' ? 'Filter titles...' : tab === 'regs' ? 'Filter chapters...' : 'Filter articles...';
+
+    renderNav();
+    showWelcome();
+}
+
+// ─── NAVIGATION RENDERING ───
+function renderNav() {
+    const container = document.getElementById('treeContainer');
+    const data = getCurrentData();
+
+    if (!data) {
+        container.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
+        return;
+    }
+
+    const errorKey = state.currentTab === 'laws' ? 'laws' : state.currentTab === 'regs' ? 'regs' : 'constitution';
+    let html = '';
+
+    if (state.loadErrors[errorKey]) {
+        html += `<div class="error-banner">API unavailable - showing demo data. (${escapeHtml(state.loadErrors[errorKey])})</div>`;
+    }
+
+    const countEl = document.getElementById('navItemCount');
+    countEl.textContent = `${data.length} items`;
+
+    data.forEach((item, idx) => {
+        const hasChildren = item.children && item.children.length > 0;
+        html += `<div class="tree-item" data-idx="${idx}" data-name="${escapeAttr(item.name)}">
+            <div class="tree-title" onclick="toggleTreeItem(${idx})">
+                ${hasChildren ? '<span class="tree-chevron">&#9654;</span>' : '<span class="tree-chevron" style="visibility:hidden">&#9654;</span>'}
+                <span class="tree-label">${escapeHtml(item.name)}</span>
+            </div>`;
+
+        if (hasChildren) {
+            html += `<div class="tree-children" id="children-${idx}">`;
+            item.children.forEach((child, cidx) => {
+                html += `<div class="tree-child" onclick="selectChild(${idx}, ${cidx})">${escapeHtml(child.name)}</div>`;
+            });
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+    });
+
+    if (data.length === 0) {
+        html += '<div class="empty-state"><p>No items found.</p></div>';
+    }
+
+    container.innerHTML = html;
+}
+
+function getCurrentData() {
+    switch (state.currentTab) {
+        case 'laws': return state.lawsData;
+        case 'regs': return state.regsData;
+        case 'constitution': return state.constData;
+        default: return null;
+    }
+}
+
+function toggleTreeItem(idx) {
+    const children = document.getElementById(`children-${idx}`);
+    const item = document.querySelectorAll('.tree-item')[idx];
+    if (!item) return;
+    const chevron = item.querySelector('.tree-chevron');
+    const data = getCurrentData();
+    const entry = data[idx];
+
+    if (children) {
+        const isOpen = children.classList.contains('open');
+        children.classList.toggle('open');
+        if (chevron) chevron.classList.toggle('open');
+
+        if (!isOpen && entry.children && entry.children.length === 0) {
+            // Load children on demand
+            loadItemDetail(entry, idx);
+        }
+    }
+
+    // If no children, load the item directly
+    if (!entry.children || entry.children.length === 0) {
+        loadItemDetail(entry, idx);
+    }
+}
+
+async function loadItemDetail(entry, idx) {
+    const path = entry.path;
+    if (!path) return;
+
+    updateBreadcrumb([
+        { label: getTabLabel(), action: 'goHome()' },
+        { label: entry.name }
+    ]);
+
+    const contentBody = document.getElementById('contentBody');
+    contentBody.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading content...</span></div>';
+
+    try {
+        const data = await apiFetch(path);
+        // Re-process and store children if they were fetched
+        if (data && Array.isArray(data.children) && data.children.length > 0) {
+            const currentData = getCurrentData();
+            currentData[idx].children = data.children.map(ch => ({
+                name: ch.name || ch.data?.name || 'Section',
+                data: ch.data || ch,
+                path: ch.path || ''
+            }));
+            renderNav();
+        } else if (data) {
+            renderContent(entry.name, data, path);
+            updateCrossReferences(entry.name);
+        }
+    } catch (err) {
+        contentBody.innerHTML = `<div class="error-banner">Failed to load content: ${escapeHtml(err.message)}</div>
+            <div class="empty-state"><p>The API may be temporarily unavailable.</p></div>`;
+    }
+}
+
+function selectChild(parentIdx, childIdx) {
+    const data = getCurrentData();
+    if (!data || !data[parentIdx]) return;
+    const parent = data[parentIdx];
+    const child = parent.children[childIdx];
+    if (!child) return;
+
+    // Highlight active
+    document.querySelectorAll('.tree-child').forEach(el => el.classList.remove('active'));
+    const treeChildren = document.getElementById(`children-${parentIdx}`);
+    if (treeChildren) {
+        const childEl = treeChildren.children[childIdx];
+        if (childEl) childEl.classList.add('active');
+    }
+
+    updateBreadcrumb([
+        { label: getTabLabel(), action: 'goHome()' },
+        { label: parent.name, action: `toggleTreeItem(${parentIdx})` },
+        { label: child.name }
+    ]);
+
+    state.currentView = {
+        type: state.currentTab,
+        parentName: parent.name,
+        childName: child.name,
+        path: child.path || parent.path,
+        name: child.name
+    };
+
+    // Render child content
+    const text = extractText(child);
+    if (text) {
+        renderContentHTML(child.name, text, state.currentView);
+        updateCrossReferences(child.name + ' ' + parent.name);
+    } else if (child.path) {
+        loadChildDetail(child, parent.name);
+    } else {
+        const contentBody = document.getElementById('contentBody');
+        contentBody.innerHTML = `<div class="empty-state"><p>No content available for this section.</p></div>`;
+    }
+}
+
+async function loadChildDetail(child, parentName) {
+    const contentBody = document.getElementById('contentBody');
+    contentBody.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading section...</span></div>';
+
+    try {
+        const data = await apiFetch(child.path);
+        const text = data?.CHAPTER_TEXT || data?.text || data?.content || JSON.stringify(data, null, 2);
+        renderContentHTML(child.name, text, state.currentView);
+        updateCrossReferences(child.name + ' ' + parentName);
+    } catch (err) {
+        contentBody.innerHTML = `<div class="error-banner">Failed to load: ${escapeHtml(err.message)}</div>`;
+    }
+}
+
+function extractText(child) {
+    if (!child || !child.data) return null;
+    const d = child.data;
+    return d.CHAPTER_TEXT || d.text || d.content || d.SECTION_TEXT || d.ARTICLE_TEXT || null;
+}
+
+function renderContent(name, data, path) {
+    const contentBody = document.getElementById('contentBody');
+    let html = '';
+
+    // Try to extract meaningful content from various shapes
+    if (typeof data === 'string') {
+        html = data;
+    } else if (data.CHAPTER_TEXT) {
+        html = data.CHAPTER_TEXT;
+    } else if (data.text) {
+        html = data.text;
+    } else if (data.content) {
+        html = data.content;
+    } else if (Array.isArray(data)) {
+        html = '<div class="legal-text">';
+        data.forEach(item => {
+            html += `<div style="margin-bottom:12px;"><strong>${escapeHtml(item.name || '')}</strong></div>`;
+        });
+        html += '</div>';
+    } else {
+        html = `<pre style="white-space:pre-wrap;font-size:0.85rem;">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+    }
+
+    state.currentView = { type: state.currentTab, name, path };
+    renderContentHTML(name, html, state.currentView);
+}
+
+function renderContentHTML(title, html, viewData) {
+    const contentBody = document.getElementById('contentBody');
+    const isBookmarked = state.bookmarks.some(b => b.name === title && b.type === viewData?.type);
+    const badge = getBadgeForType(viewData?.type);
+
+    contentBody.innerHTML = `
+        <h2>${escapeHtml(title)}</h2>
+        <div class="section-meta">
+            ${badge}
+            <button class="bookmark-btn ${isBookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark('${escapeAttr(title)}', '${escapeAttr(viewData?.type || '')}', '${escapeAttr(viewData?.path || '')}', '${escapeAttr(viewData?.parentName || '')}')">
+                ${isBookmarked ? 'Bookmarked' : 'Bookmark'}
+            </button>
+        </div>
+        <div class="legal-text">${html}</div>
+    `;
+}
+
+function getBadgeForType(type) {
+    switch (type) {
+        case 'laws': return '<span class="badge badge-law">Code of Laws</span>';
+        case 'regs': return '<span class="badge badge-reg">Regulation</span>';
+        case 'constitution': return '<span class="badge badge-const">Constitution</span>';
+        default: return '';
+    }
+}
+
+// ─── BREADCRUMB ───
+function updateBreadcrumb(items) {
+    const bc = document.getElementById('breadcrumb');
+    let html = '<a onclick="goHome()">Home</a>';
+    items.forEach((item, i) => {
+        html += ' <span class="sep">/</span> ';
+        if (i < items.length - 1 && item.action) {
+            html += `<a onclick="${item.action}">${escapeHtml(item.label)}</a>`;
+        } else {
+            html += `<span>${escapeHtml(item.label)}</span>`;
+        }
+    });
+    bc.innerHTML = html;
+}
+
+function goHome() {
+    showWelcome();
+    updateBreadcrumb([{ label: getTabLabel() }]);
+}
+
+function showWelcome() {
+    document.getElementById('contentBody').innerHTML = `
+        <div class="empty-state">
+            <div class="icon">&#9878;</div>
+            <h3>South Carolina Legal Code Explorer</h3>
+            <p>Select a title, chapter, or article from the navigation panel to view its contents.</p>
+            <p style="margin-top:8px;">Use the search bar to find sections across all three legal code sources.</p>
+        </div>`;
+    document.getElementById('xrefContent').innerHTML = `
+        <div class="xref-section">
+            <div class="xref-empty">Select a section to see related cross-references across legal codes.</div>
+        </div>`;
+}
+
+function getTabLabel() {
+    return { laws: 'Code of Laws', regs: 'Code of Regulations', constitution: 'Constitution' }[state.currentTab] || '';
+}
+
+// ─── SEARCH ───
+function performSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) return;
+
+    const results = [];
+    const q = query.toLowerCase();
+
+    // Search Code of Laws
+    if (state.lawsData) {
+        state.lawsData.forEach(title => {
+            if (title.name.toLowerCase().includes(q)) {
+                results.push({ type: 'laws', name: title.name, path: title.path, parentName: '', snippet: title.name });
+            }
+            if (title.children) {
+                title.children.forEach(ch => {
+                    const chName = ch.name || '';
+                    const chText = extractText(ch) || '';
+                    if (chName.toLowerCase().includes(q) || chText.toLowerCase().includes(q)) {
+                        const snippet = getSnippet(chText || chName, q);
+                        results.push({ type: 'laws', name: chName, path: ch.path || title.path, parentName: title.name, snippet });
+                    }
+                });
+            }
+        });
+    }
+
+    // Search Regulations
+    if (state.regsData) {
+        state.regsData.forEach(ch => {
+            if (ch.name.toLowerCase().includes(q)) {
+                results.push({ type: 'regs', name: ch.name, path: ch.path, parentName: '', snippet: ch.name });
+            }
+            if (ch.children) {
+                ch.children.forEach(sec => {
+                    const secName = sec.name || '';
+                    const secText = extractText(sec) || '';
+                    if (secName.toLowerCase().includes(q) || secText.toLowerCase().includes(q)) {
+                        const snippet = getSnippet(secText || secName, q);
+                        results.push({ type: 'regs', name: secName, path: sec.path || ch.path, parentName: ch.name, snippet });
+                    }
+                });
+            }
+        });
+    }
+
+    // Search Constitution
+    if (state.constData) {
+        state.constData.forEach(art => {
+            if (art.name.toLowerCase().includes(q)) {
+                results.push({ type: 'constitution', name: art.name, path: art.path, parentName: '', snippet: art.name });
+            }
+            if (art.children) {
+                art.children.forEach(sec => {
+                    const secName = sec.name || '';
+                    const secText = extractText(sec) || '';
+                    if (secName.toLowerCase().includes(q) || secText.toLowerCase().includes(q)) {
+                        const snippet = getSnippet(secText || secName, q);
+                        results.push({ type: 'constitution', name: secName, path: sec.path || art.path, parentName: art.name, snippet });
+                    }
+                });
+            }
+        });
+    }
+
+    state.searchResults = results;
+    document.getElementById('searchTab').style.display = '';
+    switchTab('search');
+}
+
+function getSnippet(text, query) {
+    // Strip HTML tags for snippet
+    const plain = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const idx = plain.toLowerCase().indexOf(query);
+    if (idx === -1) return plain.substring(0, 200);
+    const start = Math.max(0, idx - 80);
+    const end = Math.min(plain.length, idx + query.length + 120);
+    let snippet = '';
+    if (start > 0) snippet += '...';
+    snippet += plain.substring(start, end);
+    if (end < plain.length) snippet += '...';
+    return snippet;
+}
+
+function highlightSnippet(snippet, query) {
+    if (!query) return escapeHtml(snippet);
+    const escaped = escapeHtml(snippet);
+    const q = escapeHtml(query);
+    const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return escaped.replace(regex, '<mark>$1</mark>');
+}
+
+function renderSearchResults() {
+    const contentBody = document.getElementById('contentBody');
+    const query = document.getElementById('searchInput').value.trim();
+    const results = state.searchResults;
+
+    if (results.length === 0) {
+        contentBody.innerHTML = `
+            <div class="search-results">
+                <div class="search-results-header">No results found for "${escapeHtml(query)}"</div>
+                <div class="empty-state">
+                    <p>Try different keywords or broaden your search terms.</p>
+                </div>
+            </div>`;
+        return;
+    }
+
+    let html = `<div class="search-results">
+        <div class="search-results-header">
+            <span>${results.length} result${results.length !== 1 ? 's' : ''} for "${escapeHtml(query)}"</span>
+        </div>`;
+
+    results.forEach((r, i) => {
+        const badge = r.type === 'laws' ? '<span class="badge badge-law">Law</span>'
+            : r.type === 'regs' ? '<span class="badge badge-reg">Regulation</span>'
+            : '<span class="badge badge-const">Constitution</span>';
+
+        html += `<div class="search-result" onclick="openSearchResult(${i})">
+            <div class="search-result-title">${badge} ${escapeHtml(r.name)}</div>
+            ${r.parentName ? `<div style="font-size:0.75rem;color:var(--text-light);margin-bottom:4px;">${escapeHtml(r.parentName)}</div>` : ''}
+            <div class="search-result-snippet">${highlightSnippet(r.snippet, query)}</div>
+        </div>`;
+    });
+
+    html += '</div>';
+    contentBody.innerHTML = html;
+}
+
+function openSearchResult(idx) {
+    const r = state.searchResults[idx];
+    if (!r) return;
+
+    // Switch to appropriate tab
+    const tabMap = { laws: 'laws', regs: 'regs', constitution: 'constitution' };
+    switchTab(tabMap[r.type]);
+
+    // Try to find and display the item
+    const data = getCurrentData();
+    if (!data) return;
+
+    // Find matching parent
+    for (let pi = 0; pi < data.length; pi++) {
+        const parent = data[pi];
+        if (parent.name === r.parentName || parent.name === r.name) {
+            if (parent.name === r.name && !r.parentName) {
+                toggleTreeItem(pi);
+                return;
+            }
+            if (parent.children) {
+                for (let ci = 0; ci < parent.children.length; ci++) {
+                    if (parent.children[ci].name === r.name) {
+                        // Open tree and select child
+                        const children = document.getElementById(`children-${pi}`);
+                        if (children && !children.classList.contains('open')) {
+                            toggleTreeItem(pi);
+                        }
+                        selectChild(pi, ci);
+                        return;
+                    }
+                }
+            }
+            toggleTreeItem(pi);
+            return;
+        }
+    }
+
+    // Fallback: load via path
+    if (r.path) {
+        loadItemDetail({ name: r.name, path: r.path }, 0);
+    }
+}
+
+// ─── QUICK JUMP ───
+document.getElementById('quickJump').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const val = this.value.trim().toLowerCase();
+        if (!val) return;
+
+        // Parse input
+        let match;
+        if ((match = val.match(/^title\s*(\d+)$/i))) {
+            switchTab('laws');
+            jumpToTitle(parseInt(match[1]));
+        } else if ((match = val.match(/^ch(?:apter)?\s*(\d+)$/i))) {
+            switchTab('regs');
+            jumpToChapter(parseInt(match[1]));
+        } else if ((match = val.match(/^art(?:icle)?\s*(\d+)$/i))) {
+            switchTab('constitution');
+            jumpToArticle(parseInt(match[1]));
+        } else {
+            // Try as search
+            document.getElementById('searchInput').value = val;
+            performSearch();
+        }
+    }
+});
+
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') performSearch();
+});
+
+function jumpToTitle(num) {
+    if (!state.lawsData) return;
+    for (let i = 0; i < state.lawsData.length; i++) {
+        const name = state.lawsData[i].name.toLowerCase();
+        if (name.includes(`title ${num} `) || name.includes(`title ${num}-`)) {
+            toggleTreeItem(i);
+            // Scroll into view
+            const items = document.querySelectorAll('.tree-item');
+            if (items[i]) items[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+    }
+}
+
+function jumpToChapter(num) {
+    if (!state.regsData) return;
+    for (let i = 0; i < state.regsData.length; i++) {
+        const name = state.regsData[i].name.toLowerCase();
+        if (name.includes(`chapter ${num} `) || name.includes(`chapter ${num}-`) || name.endsWith(`chapter ${num}`)) {
+            toggleTreeItem(i);
+            const items = document.querySelectorAll('.tree-item');
+            if (items[i]) items[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+    }
+}
+
+function jumpToArticle(num) {
+    if (!state.constData) return;
+    const romans = ['', 'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi', 'xvii'];
+    const roman = romans[num] || '';
+    for (let i = 0; i < state.constData.length; i++) {
+        const name = state.constData[i].name.toLowerCase();
+        if (name.includes(`article ${roman}`) || name.includes(`article ${num}`)) {
+            toggleTreeItem(i);
+            const items = document.querySelectorAll('.tree-item');
+            if (items[i]) items[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+    }
+}
+
+// ─── FILTER NAVIGATION ───
+function filterNav() {
+    const query = document.getElementById('navFilter').value.trim().toLowerCase();
+    const items = document.querySelectorAll('.tree-item');
+    items.forEach(item => {
+        const name = (item.dataset.name || '').toLowerCase();
+        item.style.display = name.includes(query) ? '' : 'none';
+    });
+}
+
+// ─── CROSS-REFERENCES ───
+function updateCrossReferences(text) {
+    const xrefContent = document.getElementById('xrefContent');
+    if (!text) {
+        xrefContent.innerHTML = '<div class="xref-section"><div class="xref-empty">No cross-references available.</div></div>';
+        return;
+    }
+
+    // Extract meaningful keywords from the title
+    const stopWords = new Set(['the', 'of', 'and', 'or', 'a', 'an', 'in', 'to', 'for', 'on', 'by', 'is', 'at', 'as', 'it', 'its',
+        'chapter', 'title', 'article', 'section', 'general', 'provisions', 'south', 'carolina', 'department', 'state']);
+    const words = text.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
+
+    if (words.length === 0) {
+        xrefContent.innerHTML = '<div class="xref-section"><div class="xref-empty">No keywords found for cross-referencing.</div></div>';
+        return;
+    }
+
+    let html = '';
+
+    // Find related laws
+    if (state.currentTab !== 'laws' && state.lawsData) {
+        const matches = findMatches(state.lawsData, words);
+        html += `<div class="xref-section"><h4>Related Laws</h4>`;
+        if (matches.length > 0) {
+            matches.slice(0, 8).forEach(m => {
+                html += `<div class="xref-item" onclick="jumpToXref('laws', '${escapeAttr(m.name)}')">${escapeHtml(m.name)}</div>`;
+            });
+        } else {
+            html += `<div class="xref-empty">No related laws found.</div>`;
+        }
+        html += `</div>`;
+    }
+
+    // Find related regulations
+    if (state.currentTab !== 'regs' && state.regsData) {
+        const matches = findMatches(state.regsData, words);
+        html += `<div class="xref-section"><h4>Related Regulations</h4>`;
+        if (matches.length > 0) {
+            matches.slice(0, 8).forEach(m => {
+                html += `<div class="xref-item" onclick="jumpToXref('regs', '${escapeAttr(m.name)}')">${escapeHtml(m.name)}</div>`;
+            });
+        } else {
+            html += `<div class="xref-empty">No related regulations found.</div>`;
+        }
+        html += `</div>`;
+    }
+
+    // Find related constitutional provisions
+    if (state.currentTab !== 'constitution' && state.constData) {
+        const matches = findMatches(state.constData, words);
+        html += `<div class="xref-section"><h4>Related Constitutional Provisions</h4>`;
+        if (matches.length > 0) {
+            matches.slice(0, 8).forEach(m => {
+                html += `<div class="xref-item" onclick="jumpToXref('constitution', '${escapeAttr(m.name)}')">${escapeHtml(m.name)}</div>`;
+            });
+        } else {
+            html += `<div class="xref-empty">No related provisions found.</div>`;
+        }
+        html += `</div>`;
+    }
+
+    // Also find within same source
+    const currentData = getCurrentData();
+    if (currentData) {
+        const sameSourceMatches = findMatches(currentData, words, text);
+        if (sameSourceMatches.length > 0) {
+            html += `<div class="xref-section"><h4>Related in Same Source</h4>`;
+            sameSourceMatches.slice(0, 6).forEach(m => {
+                html += `<div class="xref-item" onclick="jumpToXref('${state.currentTab}', '${escapeAttr(m.name)}')">${escapeHtml(m.name)}</div>`;
+            });
+            html += `</div>`;
+        }
+    }
+
+    if (!html) {
+        html = '<div class="xref-section"><div class="xref-empty">No cross-references found.</div></div>';
+    }
+
+    xrefContent.innerHTML = html;
+}
+
+function findMatches(data, keywords, excludeText) {
+    const results = [];
+    data.forEach(item => {
+        if (excludeText && item.name === excludeText) return;
+        const name = item.name.toLowerCase();
+        let score = 0;
+        keywords.forEach(kw => {
+            if (name.includes(kw)) score++;
+        });
+        if (score > 0) {
+            results.push({ name: item.name, path: item.path, score });
+        }
+        // Also check children
+        if (item.children) {
+            item.children.forEach(ch => {
+                if (excludeText && ch.name === excludeText) return;
+                const chName = (ch.name || '').toLowerCase();
+                let chScore = 0;
+                keywords.forEach(kw => {
+                    if (chName.includes(kw)) chScore++;
+                });
+                if (chScore > 0) {
+                    results.push({ name: ch.name, path: ch.path || item.path, score: chScore });
+                }
+            });
+        }
+    });
+    results.sort((a, b) => b.score - a.score);
+    return results;
+}
+
+function jumpToXref(tab, name) {
+    switchTab(tab);
+    const data = getCurrentData();
+    if (!data) return;
+
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].name === name) {
+            toggleTreeItem(i);
+            const items = document.querySelectorAll('.tree-item');
+            if (items[i]) items[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        if (data[i].children) {
+            for (let j = 0; j < data[i].children.length; j++) {
+                if (data[i].children[j].name === name) {
+                    const children = document.getElementById(`children-${i}`);
+                    if (children && !children.classList.contains('open')) {
+                        toggleTreeItem(i);
+                    }
+                    selectChild(i, j);
+                    return;
+                }
+            }
+        }
+    }
+}
+
+// ─── BOOKMARKS ───
+function toggleBookmark(name, type, path, parentName) {
+    const idx = state.bookmarks.findIndex(b => b.name === name && b.type === type);
+    if (idx >= 0) {
+        state.bookmarks.splice(idx, 1);
+    } else {
+        state.bookmarks.push({ name, type, path, parentName, timestamp: Date.now() });
+    }
+    localStorage.setItem('sclx-bookmarks', JSON.stringify(state.bookmarks));
+
+    // Re-render bookmark button
+    const btn = document.querySelector('.bookmark-btn');
+    if (btn) {
+        const isNowBookmarked = state.bookmarks.some(b => b.name === name && b.type === type);
+        btn.classList.toggle('bookmarked', isNowBookmarked);
+        btn.textContent = isNowBookmarked ? 'Bookmarked' : 'Bookmark';
+    }
+}
+
+function toggleBookmarks() {
+    const overlay = document.getElementById('bookmarksOverlay');
+    overlay.classList.toggle('open');
+    if (overlay.classList.contains('open')) {
+        renderBookmarksList();
+    }
+}
+
+function closeBookmarks(e) {
+    if (e.target === document.getElementById('bookmarksOverlay')) {
+        toggleBookmarks();
+    }
+}
+
+function renderBookmarksList() {
+    const list = document.getElementById('bookmarksList');
+    if (state.bookmarks.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding:32px;"><p>No bookmarks saved yet.</p><p style="margin-top:4px;font-size:0.8rem;">Click "Bookmark" when viewing a section to save it here.</p></div>';
+        return;
+    }
+
+    let html = '';
+    state.bookmarks.forEach((b, i) => {
+        const badge = b.type === 'laws' ? '<span class="badge badge-law">Law</span>'
+            : b.type === 'regs' ? '<span class="badge badge-reg">Reg</span>'
+            : '<span class="badge badge-const">Const</span>';
+
+        html += `<div class="bookmark-entry" onclick="openBookmark(${i})">
+            <div class="bookmark-entry-info">
+                <div class="bookmark-entry-title">${badge} ${escapeHtml(b.name)}</div>
+                ${b.parentName ? `<div class="bookmark-entry-path">${escapeHtml(b.parentName)}</div>` : ''}
+            </div>
+            <button class="bookmark-remove" onclick="event.stopPropagation(); removeBookmark(${i})">Remove</button>
+        </div>`;
+    });
+
+    list.innerHTML = html;
+}
+
+function openBookmark(idx) {
+    const b = state.bookmarks[idx];
+    if (!b) return;
+    toggleBookmarks(); // close modal
+    jumpToXref(b.type, b.name);
+}
+
+function removeBookmark(idx) {
+    state.bookmarks.splice(idx, 1);
+    localStorage.setItem('sclx-bookmarks', JSON.stringify(state.bookmarks));
+    renderBookmarksList();
+}
+
+// ─── UTILITY ───
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function escapeAttr(str) {
+    if (!str) return '';
+    return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+// ─── INITIALIZATION ───
+document.addEventListener('DOMContentLoaded', () => {
+    loadAllData();
+});
+</script>
+</body>
+</html>
