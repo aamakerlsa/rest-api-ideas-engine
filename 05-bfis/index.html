@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BFIS - Budget & Fiscal Impact Synthesizer</title>
+    <style>
+        :root {
+            --navy: #1b2a4a;
+            --navy-light: #2c3e6b;
+            --navy-dark: #111d33;
+            --gold: #c9a94e;
+            --gold-light: #e8d48b;
+            --gold-dim: #a68b3a;
+            --white: #ffffff;
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --border: #e2e4e8;
+            --text: #2d3748;
+            --text-muted: #718096;
+            --shadow: 0 2px 8px rgba(27,42,74,0.08);
+            --shadow-hover: 0 8px 24px rgba(27,42,74,0.15);
+            --green: #38a169;
+            --green-bg: #f0fff4;
+            --red: #e53e3e;
+            --red-bg: #fff5f5;
+            --blue: #3182ce;
+            --blue-bg: #ebf8ff;
+            --orange: #dd6b20;
+            --orange-bg: #fffaf0;
+            --radius: 10px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* ── Header ── */
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            color: var(--white);
+            padding: 0;
+            border-bottom: 4px solid var(--gold);
+        }
+
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 32px 24px;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .back-link {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover { opacity: 1; }
+
+        .header-badge {
+            background: rgba(201, 169, 78, 0.15);
+            border: 1px solid rgba(201, 169, 78, 0.3);
+            color: var(--gold-light);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 2px;
+        }
+
+        header h1 span { color: var(--gold); }
+
+        .tagline {
+            color: var(--gold-light);
+            font-size: 0.95rem;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        /* ── Controls Bar ── */
+        .controls-bar {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 32px;
+        }
+
+        .controls-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-group select {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--text);
+            background: var(--white);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .control-group select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(201, 169, 78, 0.2);
+        }
+
+        .refresh-btn {
+            margin-left: auto;
+            padding: 6px 16px;
+            background: var(--navy);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover { background: var(--navy-light); }
+
+        .last-updated {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Main Layout ── */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px 48px;
+        }
+
+        /* ── Section Headers ── */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin: 32px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title:first-child { margin-top: 0; }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        /* ── Metric Cards ── */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--gold);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .metric-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .metric-card.navy-accent { border-left-color: var(--navy); }
+        .metric-card.green-accent { border-left-color: var(--green); }
+        .metric-card.blue-accent { border-left-color: var(--blue); }
+        .metric-card.orange-accent { border-left-color: var(--orange); }
+
+        .metric-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.2;
+        }
+
+        .metric-value.money { color: var(--green); }
+
+        .metric-sub {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .metric-sparkline {
+            margin-top: 8px;
+            height: 24px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .spark-bar {
+            flex: 1;
+            background: var(--gold);
+            border-radius: 2px 2px 0 0;
+            min-width: 3px;
+            transition: height 0.4s ease;
+            opacity: 0.6;
+        }
+
+        .spark-bar:last-child { opacity: 1; background: var(--navy); }
+
+        /* ── Budget Treemap / Bar Chart ── */
+        .budget-chart-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 8px;
+        }
+
+        .chart-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 16px;
+        }
+
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bar-label {
+            width: 180px;
+            min-width: 180px;
+            font-size: 0.8rem;
+            color: var(--text);
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 28px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--navy) 0%, var(--navy-light) 100%);
+            transition: width 0.8s ease;
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            min-width: 40px;
+        }
+
+        .bar-fill-alt {
+            background: linear-gradient(90deg, var(--gold-dim) 0%, var(--gold) 100%);
+        }
+
+        .bar-amount {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--white);
+            white-space: nowrap;
+        }
+
+        /* ── Treemap ── */
+        .treemap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            height: 200px;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .treemap-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 6px;
+            color: var(--white);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 4px;
+            cursor: default;
+            transition: opacity 0.2s;
+            overflow: hidden;
+            min-width: 50px;
+        }
+
+        .treemap-cell:hover { opacity: 0.85; }
+
+        .treemap-cell-label { font-size: 0.65rem; opacity: 0.85; }
+
+        /* ── Data Tables ── */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header h3 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--navy);
+        }
+
+        .card-count {
+            background: var(--navy);
+            color: var(--white);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table td {
+            padding: 10px 16px;
+            font-size: 0.83rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .data-table tbody tr {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .data-table tbody tr:hover { background: rgba(201, 169, 78, 0.06); }
+
+        .data-table tbody tr:last-child td { border-bottom: none; }
+
+        .table-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        /* ── Status Badges ── */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-house { background: #dbeafe; color: #1e40af; }
+        .badge-senate { background: #fce7f3; color: #9d174d; }
+        .badge-ratified { background: var(--green-bg); color: var(--green); }
+        .badge-act { background: #faf5ff; color: #7c3aed; }
+        .badge-pending { background: var(--orange-bg); color: var(--orange); }
+        .badge-fiscal { background: #fef3c7; color: #92400e; }
+        .badge-vetoed { background: var(--red-bg); color: var(--red); }
+
+        .chamber-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .chamber-dot.house { background: #3b82f6; }
+        .chamber-dot.senate { background: #ec4899; }
+
+        /* ── Bill Detail Expansion ── */
+        .bill-detail {
+            display: none;
+            padding: 16px 20px;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+        }
+
+        .bill-detail.active { display: block; }
+
+        .bill-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        .detail-field {
+            font-size: 0.8rem;
+        }
+
+        .detail-field .label {
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .detail-field .value {
+            color: var(--text);
+            margin-top: 2px;
+        }
+
+        .detail-field a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        .detail-field a:hover { text-decoration: underline; }
+
+        /* ── Session Comparison ── */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .session-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .session-card h4 {
+            font-size: 0.85rem;
+            color: var(--navy);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .session-card h4 .year {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .mini-bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mini-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mini-bar-label {
+            width: 55px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        .mini-bar-track {
+            flex: 1;
+            height: 16px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .mini-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+
+        .mini-bar-fill.house-fill { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+        .mini-bar-fill.senate-fill { background: linear-gradient(90deg, #ec4899, #f472b6); }
+        .mini-bar-fill.total-fill { background: linear-gradient(90deg, var(--navy), var(--navy-light)); }
+
+        .mini-bar-count {
+            width: 40px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        /* ── Sparkline (CSS-only) ── */
+        .css-sparkline {
+            display: flex;
+            align-items: flex-end;
+            gap: 1px;
+            height: 30px;
+        }
+
+        .css-sparkline .spark {
+            flex: 1;
+            border-radius: 1px 1px 0 0;
+            min-width: 4px;
+            transition: height 0.5s ease;
+        }
+
+        /* ── Skeleton Loaders ── */
+        .skeleton {
+            background: linear-gradient(90deg, #e2e4e8 25%, #f0f1f3 50%, #e2e4e8 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-card {
+            height: 100px;
+            border-radius: var(--radius);
+        }
+
+        .skeleton-row {
+            height: 40px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .skeleton-bar {
+            height: 28px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        /* ── Error / Empty States ── */
+        .state-message {
+            text-align: center;
+            padding: 32px 20px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .state-message .icon { font-size: 2rem; margin-bottom: 8px; }
+
+        .error-message {
+            background: var(--red-bg);
+            border: 1px solid #feb2b2;
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            color: var(--red);
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .error-message.visible { display: block; }
+
+        .demo-badge {
+            display: inline-block;
+            background: var(--orange-bg);
+            color: var(--orange);
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 8px;
+            margin-left: 8px;
+            text-transform: uppercase;
+        }
+
+        /* ── Tabs ── */
+        .tab-bar {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 0;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover { color: var(--navy); }
+
+        .tab-btn.active {
+            color: var(--navy);
+            border-bottom-color: var(--gold);
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Two Column Layout ── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 24px 32px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            border-top: 1px solid var(--border);
+            margin-top: 32px;
+        }
+
+        footer a { color: var(--gold-dim); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .two-col { grid-template-columns: 1fr; }
+            .bar-label { width: 120px; min-width: 120px; }
+            .header-inner { padding: 16px 16px 20px; }
+            .main-container { padding: 16px 16px 32px; }
+            .controls-bar { padding: 12px 16px; }
+        }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.3rem; }
+            .metrics-grid { grid-template-columns: 1fr 1fr; }
+            .metric-value { font-size: 1.4rem; }
+            .bar-label { width: 80px; min-width: 80px; font-size: 0.7rem; }
+            .data-table th, .data-table td { padding: 8px 10px; font-size: 0.75rem; }
+            .comparison-grid { grid-template-columns: 1fr; }
+            .header-top { flex-direction: column; align-items: flex-start; gap: 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="header-top">
+            <a href="../index.html" class="back-link">&larr; Ideas Engine</a>
+            <span class="header-badge">SC General Assembly</span>
+        </div>
+        <h1><span>BFIS</span> &mdash; Budget & Fiscal Impact Synthesizer</h1>
+        <p class="tagline">"Follow the money through the legislative process."</p>
+    </div>
+</header>
+
+<div class="controls-bar">
+    <div class="controls-inner">
+        <div class="control-group">
+            <label for="sessionSelect">Session</label>
+            <select id="sessionSelect"><option value="">Loading...</option></select>
+        </div>
+        <div class="control-group">
+            <label for="chamberSelect">Chamber</label>
+            <select id="chamberSelect">
+                <option value="">All</option>
+                <option value="H">House</option>
+                <option value="S">Senate</option>
+            </select>
+        </div>
+        <span class="last-updated" id="lastUpdated"></span>
+        <button class="refresh-btn" onclick="loadAllData()">Refresh</button>
+    </div>
+</div>
+
+<div id="globalError" class="error-message" style="max-width:1400px;margin:12px auto 0;"></div>
+
+<div class="main-container">
+
+    <!-- ═══════ Summary Statistics ═══════ -->
+    <div class="section-title"><span class="section-icon">$</span> Budget Overview</div>
+    <div class="metrics-grid" id="metricsGrid">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+    </div>
+
+    <!-- ═══════ Budget Allocation Chart ═══════ -->
+    <div class="section-title"><span class="section-icon">|||</span> Budget Allocations</div>
+    <div class="budget-chart-container" id="budgetChartContainer">
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="barView">Bar Chart</button>
+            <button class="tab-btn" data-tab="treemapView">Treemap</button>
+        </div>
+        <div id="barView" class="tab-panel active" style="padding-top:16px;">
+            <div id="barChart" class="bar-chart">
+                <div class="skeleton skeleton-bar"></div>
+                <div class="skeleton skeleton-bar"></div>
+                <div class="skeleton skeleton-bar"></div>
+                <div class="skeleton skeleton-bar"></div>
+                <div class="skeleton skeleton-bar"></div>
+            </div>
+        </div>
+        <div id="treemapView" class="tab-panel" style="padding-top:16px;">
+            <div id="treemap" class="treemap">
+                <div class="skeleton" style="width:100%;height:200px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ Budget Bills & Fiscal Impact ═══════ -->
+    <div class="two-col">
+        <div>
+            <div class="section-title"><span class="section-icon">B</span> Budget Bills</div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Budget-Related Bills</h3>
+                    <span class="card-count" id="budgetBillCount">--</span>
+                </div>
+                <div class="table-scroll" id="budgetBillsTable">
+                    <div style="padding:12px;">
+                        <div class="skeleton skeleton-row"></div>
+                        <div class="skeleton skeleton-row"></div>
+                        <div class="skeleton skeleton-row"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="section-title"><span class="section-icon">FI</span> Fiscal Impact Statements</div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Bills with Fiscal Impact</h3>
+                    <span class="card-count" id="fiscalCount">--</span>
+                </div>
+                <div class="table-scroll" id="fiscalTable">
+                    <div style="padding:12px;">
+                        <div class="skeleton skeleton-row"></div>
+                        <div class="skeleton skeleton-row"></div>
+                        <div class="skeleton skeleton-row"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ Current Budget Detail ═══════ -->
+    <div class="section-title"><span class="section-icon">$</span> Current Budget Detail</div>
+    <div class="card" id="currentBudgetCard">
+        <div class="card-header">
+            <h3>Current Fiscal Year Budget Breakdown</h3>
+        </div>
+        <div class="table-scroll" id="currentBudgetTable">
+            <div style="padding:12px;">
+                <div class="skeleton skeleton-row"></div>
+                <div class="skeleton skeleton-row"></div>
+                <div class="skeleton skeleton-row"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ Session-over-Session Comparison ═══════ -->
+    <div class="section-title"><span class="section-icon">&lt;&gt;</span> Session-over-Session Comparison</div>
+    <div class="comparison-grid" id="sessionComparison">
+        <div class="skeleton skeleton-card" style="height:160px;"></div>
+        <div class="skeleton skeleton-card" style="height:160px;"></div>
+        <div class="skeleton skeleton-card" style="height:160px;"></div>
+    </div>
+
+    <!-- ═══════ Trend Sparklines ═══════ -->
+    <div class="section-title"><span class="section-icon">~</span> Bill Count Trends</div>
+    <div class="metrics-grid" id="sparklineCards">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+    </div>
+
+</div>
+
+<footer>
+    BFIS &mdash; Budget & Fiscal Impact Synthesizer &bull;
+    Data from <a href="https://www.scstatehouse.gov" target="_blank">scstatehouse.gov</a> &bull;
+    SC General Assembly Ideas Engine
+</footer>
+
+<script>
+// ═══════════════════════════════════════════
+// BFIS - Budget & Fiscal Impact Synthesizer
+// ═══════════════════════════════════════════
+
+const BASE = 'https://rest.scstatehouse.gov';
+
+// ── State ──
+let state = {
+    sessions: [],
+    currentSession: null,
+    budgets: null,
+    budgetBills: [],
+    currentBudget: null,
+    dashboardBudget: null,
+    fiscalImpact: [],
+    sessionBillCounts: [],
+    houseBills: [],
+    senateBills: [],
+    usingDemo: {}
+};
+
+// ── Fallback Demo Data ──
+const DEMO = {
+    sessions: [
+        { SESS_NUMBER: "126", SESS_START_DATE: "2025", SESS_END_DATE: "2026" },
+        { SESS_NUMBER: "125", SESS_START_DATE: "2023", SESS_END_DATE: "2024" },
+        { SESS_NUMBER: "124", SESS_START_DATE: "2021", SESS_END_DATE: "2022" },
+        { SESS_NUMBER: "123", SESS_START_DATE: "2019", SESS_END_DATE: "2020" },
+        { SESS_NUMBER: "122", SESS_START_DATE: "2017", SESS_END_DATE: "2018" }
+    ],
+    currentSession: [{ SESS_NUMBER: "126", SESS_START_DATE: "2025", SESS_END_DATE: "2026" }],
+    budgets: [
+        { BUDGET_NAME: "General Fund", BUDGET_AMOUNT: 10542000000, FISCAL_YEAR: "2025-2026", CATEGORY: "General" },
+        { BUDGET_NAME: "Education", BUDGET_AMOUNT: 4215000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Education" },
+        { BUDGET_NAME: "Health & Human Services", BUDGET_AMOUNT: 2380000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Health" },
+        { BUDGET_NAME: "Transportation", BUDGET_AMOUNT: 1150000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Infrastructure" },
+        { BUDGET_NAME: "Public Safety", BUDGET_AMOUNT: 890000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Safety" },
+        { BUDGET_NAME: "Higher Education", BUDGET_AMOUNT: 720000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Education" },
+        { BUDGET_NAME: "Natural Resources", BUDGET_AMOUNT: 340000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Environment" },
+        { BUDGET_NAME: "Judicial", BUDGET_AMOUNT: 285000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Government" },
+        { BUDGET_NAME: "Legislative", BUDGET_AMOUNT: 65000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Government" },
+        { BUDGET_NAME: "Other Agencies", BUDGET_AMOUNT: 497000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Government" }
+    ],
+    budgetBills: [
+        { KEY: "126-3700", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "3700", SUMMARY: "General Appropriations Bill for FY 2025-2026", TITLE: "A BILL TO MAKE APPROPRIATIONS FOR STATE GOVERNMENT", SPONSORTEXT: "Ways and Means Committee", RAT_NUMBER: null, ACT_NUMBER: null, STATUS: [{ step: "Committee" }] },
+        { KEY: "126-3701", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "3701", SUMMARY: "Capital Reserve Fund Appropriations", TITLE: "A BILL FOR CAPITAL RESERVE FUND", SPONSORTEXT: "Ways and Means Committee", RAT_NUMBER: null, ACT_NUMBER: null, STATUS: [{ step: "Introduced" }] },
+        { KEY: "126-0935", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "935", SUMMARY: "Supplemental Appropriations", TITLE: "A BILL FOR SUPPLEMENTAL APPROPRIATIONS", SPONSORTEXT: "Finance Committee", RAT_NUMBER: null, ACT_NUMBER: null, STATUS: [{ step: "Committee" }] },
+        { KEY: "126-3702", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "3702", SUMMARY: "Bond Bill for Infrastructure", TITLE: "A BILL TO AUTHORIZE GENERAL OBLIGATION BONDS", SPONSORTEXT: "Ways and Means Committee", RAT_NUMBER: "R125", ACT_NUMBER: "A98", STATUS: [{ step: "Ratified" }] },
+        { KEY: "126-0940", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "940", SUMMARY: "Revenue adjustments and tax conformity", TITLE: "A BILL TO AMEND REVENUE AND TAXATION", SPONSORTEXT: "Finance Committee", RAT_NUMBER: null, ACT_NUMBER: null, STATUS: [{ step: "Introduced" }] }
+    ],
+    currentBudget: [
+        { SECTION: "Part IA", AGENCY: "Department of Education", AMOUNT: 4215000000, FUND: "General" },
+        { SECTION: "Part IA", AGENCY: "Department of Health", AMOUNT: 2380000000, FUND: "General" },
+        { SECTION: "Part IA", AGENCY: "Department of Transportation", AMOUNT: 1150000000, FUND: "Federal" },
+        { SECTION: "Part IA", AGENCY: "Law Enforcement Division", AMOUNT: 890000000, FUND: "General" },
+        { SECTION: "Part IA", AGENCY: "University System", AMOUNT: 720000000, FUND: "General" },
+        { SECTION: "Part IB", AGENCY: "Proviso - Teacher Pay", AMOUNT: 385000000, FUND: "General" },
+        { SECTION: "Part IB", AGENCY: "Proviso - Infrastructure", AMOUNT: 220000000, FUND: "Capital Reserve" },
+        { SECTION: "Part IA", AGENCY: "Judicial Department", AMOUNT: 285000000, FUND: "General" },
+        { SECTION: "Part IA", AGENCY: "Legislative Services", AMOUNT: 65000000, FUND: "General" },
+        { SECTION: "Part IA", AGENCY: "Natural Resources", AMOUNT: 340000000, FUND: "Other" }
+    ],
+    fiscalImpact: [
+        { KEY: "126-0045", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "45", SUMMARY: "Income tax reduction phased over three years", FISCALIMPACT_URL: "#", SPONSORTEXT: "Rep. Smith" },
+        { KEY: "126-0102", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "102", SUMMARY: "Increase teacher minimum salary", FISCALIMPACT_URL: "#", SPONSORTEXT: "Sen. Johnson" },
+        { KEY: "126-0230", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "230", SUMMARY: "Create new cybersecurity division", FISCALIMPACT_URL: "#", SPONSORTEXT: "Rep. Williams" },
+        { KEY: "126-0415", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "415", SUMMARY: "Rural broadband expansion program", FISCALIMPACT_URL: "#", SPONSORTEXT: "Sen. Davis" },
+        { KEY: "126-0520", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "520", SUMMARY: "Medicaid expansion provisions", FISCALIMPACT_URL: "#", SPONSORTEXT: "Rep. Martinez" },
+        { KEY: "126-0633", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "633", SUMMARY: "State employee retirement reform", FISCALIMPACT_URL: "#", SPONSORTEXT: "Sen. Brown" }
+    ],
+    sessionBillCounts: [
+        { SESS_NUMBER: "122", HOUSE_PRE: 892, SENATE_PRE: 541, HOUSE_BILL_COUNT: 892, SENATE_BILL_COUNT: 541, TOTAL: 1433, SESS_START_DATE: "2017", SESS_END_DATE: "2018" },
+        { SESS_NUMBER: "123", HOUSE_PRE: 956, SENATE_PRE: 603, HOUSE_BILL_COUNT: 956, SENATE_BILL_COUNT: 603, TOTAL: 1559, SESS_START_DATE: "2019", SESS_END_DATE: "2020" },
+        { SESS_NUMBER: "124", HOUSE_PRE: 1024, SENATE_PRE: 618, HOUSE_BILL_COUNT: 1024, SENATE_BILL_COUNT: 618, TOTAL: 1642, SESS_START_DATE: "2021", SESS_END_DATE: "2022" },
+        { SESS_NUMBER: "125", HOUSE_PRE: 1087, SENATE_PRE: 672, HOUSE_BILL_COUNT: 1087, SENATE_BILL_COUNT: 672, TOTAL: 1759, SESS_START_DATE: "2023", SESS_END_DATE: "2024" },
+        { SESS_NUMBER: "126", HOUSE_PRE: 548, SENATE_PRE: 310, HOUSE_BILL_COUNT: 548, SENATE_BILL_COUNT: 310, TOTAL: 858, SESS_START_DATE: "2025", SESS_END_DATE: "2026" }
+    ],
+    dashboardBudget: {
+        TOTAL_BUDGET: 10542000000,
+        GENERAL_FUND: 10542000000,
+        FEDERAL_FUND: 8200000000,
+        OTHER_FUND: 3100000000,
+        TOTAL_ALL_FUNDS: 21842000000
+    }
+};
+
+// ── Utilities ──
+function fmt(n) {
+    if (n == null || isNaN(n)) return '$0';
+    const num = Number(n);
+    if (num >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
+    if (num >= 1e6) return '$' + (num / 1e6).toFixed(1) + 'M';
+    if (num >= 1e3) return '$' + (num / 1e3).toFixed(0) + 'K';
+    return '$' + num.toLocaleString();
+}
+
+function fmtFull(n) {
+    if (n == null || isNaN(n)) return '$0';
+    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function num(n) {
+    if (n == null || isNaN(n)) return 0;
+    return Number(n);
+}
+
+function chamberBadge(c) {
+    if (c === 'H') return '<span class="badge badge-house">House</span>';
+    if (c === 'S') return '<span class="badge badge-senate">Senate</span>';
+    return '<span class="badge">' + (c || '?') + '</span>';
+}
+
+function statusBadge(bill) {
+    if (bill.ACT_NUMBER) return '<span class="badge badge-act">Act ' + bill.ACT_NUMBER + '</span>';
+    if (bill.RAT_NUMBER) return '<span class="badge badge-ratified">Ratified</span>';
+    if (bill.VETOED) return '<span class="badge badge-vetoed">Vetoed</span>';
+    const lastStatus = Array.isArray(bill.STATUS) && bill.STATUS.length > 0
+        ? (bill.STATUS[bill.STATUS.length - 1].step || bill.STATUS[bill.STATUS.length - 1].DESCRIPTION || 'Pending')
+        : 'Pending';
+    return '<span class="badge badge-pending">' + lastStatus + '</span>';
+}
+
+function demoLabel(key) {
+    return state.usingDemo[key] ? '<span class="demo-badge">Demo Data</span>' : '';
+}
+
+// ── API Fetch with Fallback ──
+async function apiFetch(endpoint, demoKey) {
+    try {
+        const resp = await fetch(BASE + endpoint);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (!data || (Array.isArray(data) && data.length === 0)) throw new Error('Empty');
+        state.usingDemo[demoKey] = false;
+        return data;
+    } catch (e) {
+        console.warn('API fallback for ' + endpoint + ':', e.message);
+        state.usingDemo[demoKey] = true;
+        return DEMO[demoKey] || [];
+    }
+}
+
+// ── Data Loading ──
+async function loadAllData() {
+    document.getElementById('lastUpdated').textContent = 'Loading...';
+
+    const [sessions, currentSession, budgets, budgetBills, currentBudget, fiscalImpact, sessionBillCounts, dashboardBudget] = await Promise.all([
+        apiFetch('/sessions', 'sessions'),
+        apiFetch('/currentsession', 'currentSession'),
+        apiFetch('/budgets', 'budgets'),
+        apiFetch('/budgetbills', 'budgetBills'),
+        apiFetch('/currentbudget', 'currentBudget'),
+        apiFetch('/bills/fiscalimpact', 'fiscalImpact'),
+        apiFetch('/session-billcount', 'sessionBillCounts'),
+        apiFetch('/dashboard/currentbudget', 'dashboardBudget')
+    ]);
+
+    state.sessions = Array.isArray(sessions) ? sessions : [];
+    state.currentSession = Array.isArray(currentSession) && currentSession.length > 0 ? currentSession[0] : (currentSession && currentSession.SESS_NUMBER ? currentSession : null);
+    state.budgets = Array.isArray(budgets) ? budgets : (budgets ? [budgets] : []);
+    state.budgetBills = Array.isArray(budgetBills) ? budgetBills : (budgetBills ? [budgetBills] : []);
+    state.currentBudget = Array.isArray(currentBudget) ? currentBudget : (currentBudget ? [currentBudget] : []);
+    state.fiscalImpact = Array.isArray(fiscalImpact) ? fiscalImpact : (fiscalImpact ? [fiscalImpact] : []);
+    state.sessionBillCounts = Array.isArray(sessionBillCounts) ? sessionBillCounts : (sessionBillCounts ? [sessionBillCounts] : []);
+    state.dashboardBudget = Array.isArray(dashboardBudget) ? (dashboardBudget[0] || dashboardBudget) : (dashboardBudget || {});
+
+    populateSessionSelect();
+    renderAll();
+
+    const now = new Date();
+    document.getElementById('lastUpdated').textContent = 'Updated ' + now.toLocaleTimeString();
+}
+
+function populateSessionSelect() {
+    const sel = document.getElementById('sessionSelect');
+    const sessions = state.sessions.sort((a, b) => num(b.SESS_NUMBER) - num(a.SESS_NUMBER));
+    const currentNum = state.currentSession ? state.currentSession.SESS_NUMBER : (sessions.length > 0 ? sessions[0].SESS_NUMBER : '');
+
+    sel.innerHTML = '<option value="">All Sessions</option>' +
+        sessions.map(s =>
+            '<option value="' + s.SESS_NUMBER + '"' +
+            (s.SESS_NUMBER === currentNum ? ' selected' : '') +
+            '>Session ' + s.SESS_NUMBER + ' (' + s.SESS_START_DATE + '-' + s.SESS_END_DATE + ')</option>'
+        ).join('');
+}
+
+// ── Filters ──
+function getFilters() {
+    return {
+        session: document.getElementById('sessionSelect').value,
+        chamber: document.getElementById('chamberSelect').value
+    };
+}
+
+function filterBills(bills) {
+    const f = getFilters();
+    return bills.filter(b => {
+        if (f.session && b.SESS_NUMBER !== f.session) return false;
+        if (f.chamber && b.CHAMBER !== f.chamber) return false;
+        return true;
+    });
+}
+
+// ── Render All ──
+function renderAll() {
+    renderMetrics();
+    renderBudgetChart();
+    renderBudgetBills();
+    renderFiscalImpact();
+    renderCurrentBudget();
+    renderSessionComparison();
+    renderSparklines();
+}
+
+// ── Render: Metrics ──
+function renderMetrics() {
+    const grid = document.getElementById('metricsGrid');
+    const budgetBills = filterBills(state.budgetBills);
+    const fiscalBills = filterBills(state.fiscalImpact);
+    const db = state.dashboardBudget;
+
+    // Calculate totals
+    const totalBudget = db.TOTAL_ALL_FUNDS || db.TOTAL_BUDGET || db.TOTAL ||
+        state.budgets.reduce((s, b) => s + num(b.BUDGET_AMOUNT || b.AMOUNT || 0), 0);
+    const generalFund = db.GENERAL_FUND || db.TOTAL_BUDGET ||
+        state.budgets.filter(b => (b.FUND || b.CATEGORY || '').toLowerCase().includes('general'))
+            .reduce((s, b) => s + num(b.BUDGET_AMOUNT || b.AMOUNT || 0), 0);
+
+    const ratified = budgetBills.filter(b => b.RAT_NUMBER).length;
+    const acts = budgetBills.filter(b => b.ACT_NUMBER).length;
+
+    // Session bill counts for sparkline
+    const counts = state.sessionBillCounts
+        .sort((a, b) => num(a.SESS_NUMBER) - num(b.SESS_NUMBER))
+        .map(s => num(s.TOTAL || (num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0) + num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0))));
+    const maxCount = Math.max(...counts, 1);
+
+    grid.innerHTML = `
+        <div class="metric-card">
+            <div class="metric-label">Total Budget (All Funds)${demoLabel('dashboardBudget')}</div>
+            <div class="metric-value money">${fmt(totalBudget)}</div>
+            <div class="metric-sub">${fmtFull(totalBudget)}</div>
+        </div>
+        <div class="metric-card navy-accent">
+            <div class="metric-label">General Fund${demoLabel('budgets')}</div>
+            <div class="metric-value money">${fmt(generalFund)}</div>
+            <div class="metric-sub">${fmtFull(generalFund)}</div>
+        </div>
+        <div class="metric-card green-accent">
+            <div class="metric-label">Budget Bills${demoLabel('budgetBills')}</div>
+            <div class="metric-value">${budgetBills.length}</div>
+            <div class="metric-sub">${ratified} ratified, ${acts} enacted</div>
+        </div>
+        <div class="metric-card blue-accent">
+            <div class="metric-label">Fiscal Impact Bills${demoLabel('fiscalImpact')}</div>
+            <div class="metric-value">${fiscalBills.length}</div>
+            <div class="metric-sub">Bills with fiscal analysis</div>
+        </div>
+        <div class="metric-card orange-accent">
+            <div class="metric-label">Bill Trend (Sessions)${demoLabel('sessionBillCounts')}</div>
+            <div class="metric-value">${counts.length > 0 ? counts[counts.length - 1] : '--'}</div>
+            <div class="metric-sub">Current session total</div>
+            <div class="metric-sparkline">
+                ${counts.map((c, i) => `<div class="spark-bar" style="height:${Math.max((c / maxCount) * 100, 8)}%" title="${c} bills"></div>`).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// ── Render: Budget Chart ──
+function renderBudgetChart() {
+    const items = getBudgetItems();
+    if (items.length === 0) {
+        document.getElementById('barChart').innerHTML = '<div class="state-message"><div class="icon">$</div>No budget allocation data available</div>';
+        document.getElementById('treemap').innerHTML = '<div class="state-message"><div class="icon">$</div>No data available</div>';
+        return;
+    }
+
+    const maxVal = Math.max(...items.map(i => i.amount), 1);
+
+    // Bar chart
+    document.getElementById('barChart').innerHTML = items.map((item, i) =>
+        `<div class="bar-row">
+            <div class="bar-label" title="${item.name}">${item.name}</div>
+            <div class="bar-track">
+                <div class="bar-fill ${i % 2 === 0 ? '' : 'bar-fill-alt'}" style="width:${Math.max((item.amount / maxVal) * 100, 3)}%">
+                    <span class="bar-amount">${fmt(item.amount)}</span>
+                </div>
+            </div>
+        </div>`
+    ).join('');
+
+    // Treemap
+    const total = items.reduce((s, i) => s + i.amount, 0);
+    const colors = ['#1b2a4a', '#2c3e6b', '#c9a94e', '#38a169', '#3182ce', '#dd6b20', '#805ad5', '#e53e3e', '#319795', '#718096'];
+    document.getElementById('treemap').innerHTML = items.map((item, i) => {
+        const pct = (item.amount / total) * 100;
+        return `<div class="treemap-cell" style="flex-basis:${Math.max(pct, 5)}%;flex-grow:${pct};background:${colors[i % colors.length]};" title="${item.name}: ${fmtFull(item.amount)}">
+            ${pct > 6 ? item.name : ''}
+            <span class="treemap-cell-label">${fmt(item.amount)}</span>
+        </div>`;
+    }).join('');
+}
+
+function getBudgetItems() {
+    // Try to extract meaningful budget line items
+    const items = [];
+    const data = state.budgets.length > 0 ? state.budgets : state.currentBudget;
+
+    if (data.length === 0) return items;
+
+    // Detect fields
+    const sample = data[0];
+    const nameField = sample.BUDGET_NAME || sample.AGENCY || sample.NAME || sample.DESCRIPTION || sample.SECTION;
+    const amtField = Object.keys(sample).find(k => /amount|total|budget_amount/i.test(k));
+
+    data.forEach(d => {
+        const name = d.BUDGET_NAME || d.AGENCY || d.NAME || d.DESCRIPTION || d.SECTION || 'Unknown';
+        const amount = num(d[amtField] || d.BUDGET_AMOUNT || d.AMOUNT || d.TOTAL || 0);
+        if (amount > 0) {
+            items.push({ name, amount });
+        }
+    });
+
+    // Sort descending by amount
+    items.sort((a, b) => b.amount - a.amount);
+
+    // Limit to top 12
+    return items.slice(0, 12);
+}
+
+// ── Render: Budget Bills Table ──
+function renderBudgetBills() {
+    const container = document.getElementById('budgetBillsTable');
+    const countEl = document.getElementById('budgetBillCount');
+    const bills = filterBills(state.budgetBills);
+    countEl.textContent = bills.length;
+
+    if (bills.length === 0) {
+        container.innerHTML = '<div class="state-message"><div class="icon">B</div>No budget bills found for current filters</div>';
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="data-table">
+            <thead><tr>
+                <th>Bill</th>
+                <th>Chamber</th>
+                <th>Summary</th>
+                <th>Status</th>
+            </tr></thead>
+            <tbody>
+                ${bills.map(b => `
+                    <tr onclick="toggleBillDetail(this, '${b.KEY || ''}')">
+                        <td style="font-weight:700;white-space:nowrap;">${b.CHAMBER || ''}${b.BILL_NUMBER || ''}</td>
+                        <td>${chamberBadge(b.CHAMBER)}</td>
+                        <td>${truncate(b.SUMMARY || b.TITLE || '', 60)}</td>
+                        <td>${statusBadge(b)}</td>
+                    </tr>
+                    <tr class="bill-detail-row"><td colspan="4">
+                        <div class="bill-detail" id="detail-${b.KEY || ''}">
+                            <div class="bill-detail-grid">
+                                <div class="detail-field">
+                                    <div class="label">Full Title</div>
+                                    <div class="value">${b.TITLE || b.SUMMARY || 'N/A'}</div>
+                                </div>
+                                <div class="detail-field">
+                                    <div class="label">Sponsor</div>
+                                    <div class="value">${b.SPONSORTEXT || b.PERM_SPONSOR_CODE || 'N/A'}</div>
+                                </div>
+                                <div class="detail-field">
+                                    <div class="label">Session</div>
+                                    <div class="value">${b.SESS_NUMBER || 'N/A'}</div>
+                                </div>
+                                ${b.RAT_NUMBER ? `<div class="detail-field"><div class="label">Ratification #</div><div class="value">${b.RAT_NUMBER}</div></div>` : ''}
+                                ${b.ACT_NUMBER ? `<div class="detail-field"><div class="label">Act #</div><div class="value">${b.ACT_NUMBER}</div></div>` : ''}
+                                ${b.FULLTEXT_URL ? `<div class="detail-field"><div class="label">Full Text</div><div class="value"><a href="${b.FULLTEXT_URL}" target="_blank">View Full Text</a></div></div>` : ''}
+                                ${b.FISCALIMPACT_URL ? `<div class="detail-field"><div class="label">Fiscal Impact</div><div class="value"><a href="${b.FISCALIMPACT_URL}" target="_blank">View Statement</a></div></div>` : ''}
+                            </div>
+                        </div>
+                    </td></tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function truncate(str, len) {
+    if (!str) return '';
+    return str.length > len ? str.substring(0, len) + '...' : str;
+}
+
+function toggleBillDetail(row, key) {
+    const detail = document.getElementById('detail-' + key);
+    if (detail) {
+        detail.classList.toggle('active');
+    }
+}
+
+// ── Render: Fiscal Impact ──
+function renderFiscalImpact() {
+    const container = document.getElementById('fiscalTable');
+    const countEl = document.getElementById('fiscalCount');
+    const bills = filterBills(state.fiscalImpact);
+    countEl.textContent = bills.length;
+
+    if (bills.length === 0) {
+        container.innerHTML = '<div class="state-message"><div class="icon">FI</div>No fiscal impact statements found</div>';
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="data-table">
+            <thead><tr>
+                <th>Bill</th>
+                <th>Chamber</th>
+                <th>Summary</th>
+                <th>Impact</th>
+            </tr></thead>
+            <tbody>
+                ${bills.map(b => `
+                    <tr onclick="toggleBillDetail(this, 'fi-${b.KEY || ''}')">
+                        <td style="font-weight:700;white-space:nowrap;">${b.CHAMBER || ''}${b.BILL_NUMBER || ''}</td>
+                        <td>${chamberBadge(b.CHAMBER)}</td>
+                        <td>${truncate(b.SUMMARY || b.TITLE || '', 50)}</td>
+                        <td>${b.FISCALIMPACT_URL ? '<span class="badge badge-fiscal">Statement</span>' : '<span class="badge badge-pending">Pending</span>'}</td>
+                    </tr>
+                    <tr class="bill-detail-row"><td colspan="4">
+                        <div class="bill-detail" id="detail-fi-${b.KEY || ''}">
+                            <div class="bill-detail-grid">
+                                <div class="detail-field">
+                                    <div class="label">Full Title</div>
+                                    <div class="value">${b.TITLE || b.SUMMARY || 'N/A'}</div>
+                                </div>
+                                <div class="detail-field">
+                                    <div class="label">Sponsor</div>
+                                    <div class="value">${b.SPONSORTEXT || b.PERM_SPONSOR_CODE || 'N/A'}</div>
+                                </div>
+                                ${b.FISCALIMPACT_URL ? `<div class="detail-field"><div class="label">Fiscal Impact Statement</div><div class="value"><a href="${b.FISCALIMPACT_URL}" target="_blank">View Fiscal Impact</a></div></div>` : ''}
+                            </div>
+                        </div>
+                    </td></tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+// ── Render: Current Budget Detail ──
+function renderCurrentBudget() {
+    const container = document.getElementById('currentBudgetTable');
+    let data = state.currentBudget;
+
+    if (!Array.isArray(data)) data = data ? [data] : [];
+
+    if (data.length === 0) {
+        container.innerHTML = '<div class="state-message"><div class="icon">$</div>No current budget detail available' + demoLabel('currentBudget') + '</div>';
+        return;
+    }
+
+    // Detect columns dynamically
+    const sample = data[0];
+    const keys = Object.keys(sample);
+    const nameKey = keys.find(k => /agency|name|section|description|department/i.test(k)) || keys[0];
+    const amtKey = keys.find(k => /amount|total|budget/i.test(k)) || keys[1];
+    const catKey = keys.find(k => /fund|category|section|part/i.test(k));
+
+    const totalAmount = data.reduce((s, d) => s + num(d[amtKey]), 0);
+
+    container.innerHTML = `
+        <table class="data-table">
+            <thead><tr>
+                ${catKey ? '<th>Section</th>' : ''}
+                <th>Agency / Item</th>
+                <th style="text-align:right;">Amount</th>
+                <th style="text-align:right;">% of Total</th>
+            </tr></thead>
+            <tbody>
+                ${data.sort((a, b) => num(b[amtKey]) - num(a[amtKey])).map(d => {
+                    const pct = totalAmount > 0 ? ((num(d[amtKey]) / totalAmount) * 100).toFixed(1) : '0';
+                    return `<tr>
+                        ${catKey ? `<td>${d[catKey] || ''}</td>` : ''}
+                        <td>${d[nameKey] || ''}</td>
+                        <td style="text-align:right;font-weight:600;">${fmtFull(d[amtKey])}</td>
+                        <td style="text-align:right;">
+                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                                <div style="width:60px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
+                                    <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:4px;"></div>
+                                </div>
+                                <span style="font-size:0.75rem;min-width:36px;">${pct}%</span>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('')}
+                <tr style="background:var(--bg);font-weight:700;">
+                    ${catKey ? '<td></td>' : ''}
+                    <td>Total</td>
+                    <td style="text-align:right;">${fmtFull(totalAmount)}</td>
+                    <td style="text-align:right;">100%</td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+}
+
+// ── Render: Session Comparison ──
+function renderSessionComparison() {
+    const container = document.getElementById('sessionComparison');
+    let data = state.sessionBillCounts
+        .sort((a, b) => num(b.SESS_NUMBER) - num(a.SESS_NUMBER))
+        .slice(0, 6);
+
+    if (data.length === 0) {
+        container.innerHTML = '<div class="state-message"><div class="icon">&lt;&gt;</div>No session comparison data available</div>';
+        return;
+    }
+
+    const maxTotal = Math.max(...data.map(s => {
+        const h = num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0);
+        const se = num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0);
+        return h + se;
+    }), 1);
+
+    container.innerHTML = data.map(s => {
+        const h = num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0);
+        const se = num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0);
+        const total = num(s.TOTAL) || (h + se);
+        return `
+        <div class="session-card">
+            <h4>
+                Session ${s.SESS_NUMBER}
+                <span class="year">${s.SESS_START_DATE || ''}-${s.SESS_END_DATE || ''}</span>
+            </h4>
+            <div class="mini-bar-chart">
+                <div class="mini-bar-row">
+                    <div class="mini-bar-label">House</div>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill house-fill" style="width:${(h / maxTotal) * 100}%"></div>
+                    </div>
+                    <div class="mini-bar-count">${h.toLocaleString()}</div>
+                </div>
+                <div class="mini-bar-row">
+                    <div class="mini-bar-label">Senate</div>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill senate-fill" style="width:${(se / maxTotal) * 100}%"></div>
+                    </div>
+                    <div class="mini-bar-count">${se.toLocaleString()}</div>
+                </div>
+                <div class="mini-bar-row" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border);">
+                    <div class="mini-bar-label" style="font-weight:700;">Total</div>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill total-fill" style="width:${(total / maxTotal) * 100}%"></div>
+                    </div>
+                    <div class="mini-bar-count" style="font-weight:700;">${total.toLocaleString()}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Render: Sparkline Cards ──
+function renderSparklines() {
+    const container = document.getElementById('sparklineCards');
+    const data = state.sessionBillCounts.sort((a, b) => num(a.SESS_NUMBER) - num(b.SESS_NUMBER));
+
+    if (data.length === 0) {
+        container.innerHTML = '<div class="state-message"><div class="icon">~</div>No trend data available</div>';
+        return;
+    }
+
+    const houseVals = data.map(s => num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0));
+    const senateVals = data.map(s => num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0));
+    const totalVals = data.map(s => num(s.TOTAL) || (num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0) + num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0)));
+
+    function sparkline(values, color, lightColor) {
+        const max = Math.max(...values, 1);
+        return `<div class="css-sparkline">${values.map((v, i) =>
+            `<div class="spark" style="height:${Math.max((v / max) * 100, 5)}%;background:${i === values.length - 1 ? color : lightColor};" title="Session ${data[i].SESS_NUMBER}: ${v}"></div>`
+        ).join('')}</div>`;
+    }
+
+    function change(vals) {
+        if (vals.length < 2) return '';
+        const prev = vals[vals.length - 2];
+        const curr = vals[vals.length - 1];
+        if (prev === 0) return '';
+        const pct = ((curr - prev) / prev * 100).toFixed(1);
+        const arrow = pct >= 0 ? '&#9650;' : '&#9660;';
+        const color = pct >= 0 ? 'var(--green)' : 'var(--red)';
+        return `<span style="color:${color};font-size:0.75rem;">${arrow} ${Math.abs(pct)}%</span>`;
+    }
+
+    container.innerHTML = `
+        <div class="metric-card">
+            <div class="metric-label">House Bills Trend${demoLabel('sessionBillCounts')}</div>
+            <div class="metric-value" style="display:flex;align-items:baseline;gap:8px;">
+                ${houseVals[houseVals.length - 1] || '--'} ${change(houseVals)}
+            </div>
+            <div class="metric-sub">Across ${data.length} sessions</div>
+            ${sparkline(houseVals, '#3b82f6', '#93c5fd')}
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Senate Bills Trend${demoLabel('sessionBillCounts')}</div>
+            <div class="metric-value" style="display:flex;align-items:baseline;gap:8px;">
+                ${senateVals[senateVals.length - 1] || '--'} ${change(senateVals)}
+            </div>
+            <div class="metric-sub">Across ${data.length} sessions</div>
+            ${sparkline(senateVals, '#ec4899', '#f9a8d4')}
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Total Bills Trend${demoLabel('sessionBillCounts')}</div>
+            <div class="metric-value" style="display:flex;align-items:baseline;gap:8px;">
+                ${totalVals[totalVals.length - 1] || '--'} ${change(totalVals)}
+            </div>
+            <div class="metric-sub">Across ${data.length} sessions</div>
+            ${sparkline(totalVals, 'var(--navy)', 'var(--navy-light)')}
+        </div>
+    `;
+}
+
+// ── Tab Switching ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        btn.closest('.budget-chart-container').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.closest('.budget-chart-container').querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(target).classList.add('active');
+    });
+});
+
+// ── Filter Events ──
+document.getElementById('sessionSelect').addEventListener('change', renderAll);
+document.getElementById('chamberSelect').addEventListener('change', renderAll);
+
+// ── Init ──
+loadAllData();
+
+</script>
+</body>
+</html>
