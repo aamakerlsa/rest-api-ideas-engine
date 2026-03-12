@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DMAP - District & Delegation Mapper</title>
+<style>
+/* ── Reset & Base ────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1b2a4a;--navy-light:#253a5e;--navy-dark:#111d33;
+  --gold:#c9a94e;--gold-light:#dcc06e;--gold-dark:#a8882e;
+  --rep:#c0392b;--rep-light:#e74c3c;--rep-bg:rgba(192,57,43,.12);
+  --dem:#2471a3;--dem-light:#2e86c1;--dem-bg:rgba(36,113,163,.12);
+  --ind:#7d3c98;--ind-light:#a569bd;--ind-bg:rgba(125,60,152,.12);
+  --bg:#0e1726;--surface:#151f30;--surface2:#1c2940;
+  --text:#e8e8e8;--text-dim:#8899aa;--border:#2a3a52;
+  --radius:8px;--shadow:0 4px 20px rgba(0,0,0,.35);
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.55;min-height:100vh}
+a{color:var(--gold);text-decoration:none}
+a:hover{color:var(--gold-light);text-decoration:underline}
+button{cursor:pointer;font-family:inherit}
+input,select{font-family:inherit}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.app-header{
+  background:linear-gradient(135deg,var(--navy-dark),var(--navy));
+  border-bottom:3px solid var(--gold);
+  padding:1rem 2rem;display:flex;align-items:center;gap:1.2rem;
+  position:sticky;top:0;z-index:100;
+}
+.app-header .back-link{
+  font-size:.85rem;color:var(--gold);padding:.35rem .7rem;
+  border:1px solid var(--gold-dark);border-radius:var(--radius);
+  transition:all .2s;white-space:nowrap;
+}
+.app-header .back-link:hover{background:var(--gold);color:var(--navy-dark);text-decoration:none}
+.app-header h1{font-size:1.4rem;color:#fff;font-weight:700;letter-spacing:.5px}
+.app-header h1 span{color:var(--gold);font-weight:400;font-size:.85rem;margin-left:.6rem;font-style:italic}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:.8rem}
+
+/* ── Loading & Error ─────────────────────────────────────────── */
+.loading-overlay{
+  position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:999;transition:opacity .5s;
+}
+.loading-overlay.hidden{opacity:0;pointer-events:none}
+.spinner{width:56px;height:56px;border:4px solid var(--border);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .8s linear infinite;margin-bottom:1.2rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:var(--gold);font-size:1.1rem}
+.error-banner{
+  background:#5c1a1a;border:1px solid #8b3030;color:#ffaaaa;
+  padding:.6rem 1rem;border-radius:var(--radius);margin:.5rem 1.5rem;
+  font-size:.85rem;display:none;
+}
+.error-banner.show{display:block}
+
+/* ── Layout ──────────────────────────────────────────────────── */
+.main-container{max-width:1600px;margin:0 auto;padding:1rem 1.5rem 3rem}
+.section-title{
+  font-size:1.15rem;font-weight:600;color:var(--gold);
+  margin:1.5rem 0 .8rem;padding-bottom:.4rem;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.6rem;
+}
+.section-title .icon{font-size:1.2rem}
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.tab-bar{
+  display:flex;gap:.3rem;background:var(--navy-dark);
+  border-radius:var(--radius);padding:.25rem;margin-bottom:1rem;flex-wrap:wrap;
+}
+.tab-btn{
+  padding:.5rem 1rem;border:none;background:transparent;color:var(--text-dim);
+  border-radius:6px;font-size:.85rem;font-weight:500;transition:all .2s;
+}
+.tab-btn:hover{color:var(--text);background:var(--surface2)}
+.tab-btn.active{background:var(--gold);color:var(--navy-dark);font-weight:600}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── Search Bar ──────────────────────────────────────────────── */
+.search-bar{
+  display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;
+}
+.search-bar input{
+  flex:1;min-width:200px;padding:.6rem 1rem;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);border-radius:var(--radius);font-size:.9rem;
+  transition:border-color .2s;
+}
+.search-bar input:focus{outline:none;border-color:var(--gold)}
+.search-bar input::placeholder{color:var(--text-dim)}
+.search-bar select{
+  padding:.6rem .8rem;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);border-radius:var(--radius);font-size:.85rem;
+}
+
+/* ── Stats Row ───────────────────────────────────────────────── */
+.stats-row{display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:.8rem 1.2rem;flex:1;min-width:120px;text-align:center;
+}
+.stat-card .val{font-size:1.6rem;font-weight:700;color:var(--gold)}
+.stat-card .lbl{font-size:.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-top:.15rem}
+
+/* ── Donut Charts ────────────────────────────────────────────── */
+.charts-row{display:flex;gap:1.5rem;margin-bottom:1.5rem;flex-wrap:wrap;justify-content:center}
+.chart-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.2rem;text-align:center;min-width:220px;flex:1;max-width:380px;
+}
+.chart-box h3{font-size:.95rem;color:var(--gold);margin-bottom:.8rem}
+.donut-wrap{position:relative;width:160px;height:160px;margin:0 auto .8rem}
+.donut{width:100%;height:100%;border-radius:50%;position:relative}
+.donut-hole{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:90px;height:90px;background:var(--surface);border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.donut-hole .total{font-size:1.4rem;font-weight:700;color:#fff}
+.donut-hole .total-lbl{font-size:.65rem;color:var(--text-dim);text-transform:uppercase}
+.chart-legend{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--text-dim)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── District Grid ───────────────────────────────────────────── */
+.district-grid{
+  display:grid;gap:.5rem;
+  grid-template-columns:repeat(auto-fill,minmax(135px,1fr));
+}
+.district-cell{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:.6rem .7rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+}
+.district-cell:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--gold-dark)}
+.district-cell.party-R{border-left:4px solid var(--rep)}
+.district-cell.party-D{border-left:4px solid var(--dem)}
+.district-cell.party-I{border-left:4px solid var(--ind)}
+.district-cell .dist-num{font-size:.7rem;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.district-cell .dist-name{font-size:.82rem;font-weight:600;color:#fff;margin:.15rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.district-cell .dist-party{font-size:.7rem;font-weight:600;padding:.1rem .4rem;border-radius:3px;display:inline-block}
+.district-cell .dist-party.R{background:var(--rep-bg);color:var(--rep-light)}
+.district-cell .dist-party.D{background:var(--dem-bg);color:var(--dem-light)}
+.district-cell .dist-party.I{background:var(--ind-bg);color:var(--ind-light)}
+.district-cell .dist-county{font-size:.68rem;color:var(--text-dim);margin-top:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.district-cell.highlight{box-shadow:0 0 0 2px var(--gold);border-color:var(--gold)}
+
+/* ── Side-by-Side View ───────────────────────────────────────── */
+.side-by-side{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:900px){.side-by-side{grid-template-columns:1fr}}
+.chamber-col h3{font-size:1rem;color:var(--gold);margin-bottom:.6rem;display:flex;align-items:center;gap:.4rem}
+.chamber-col h3 .badge{
+  font-size:.7rem;background:var(--navy-light);color:var(--text-dim);
+  padding:.15rem .5rem;border-radius:10px;font-weight:400;
+}
+
+/* ── Detail Panel / Modal ────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;
+  display:none;align-items:center;justify-content:center;padding:1rem;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  width:100%;max-width:560px;max-height:85vh;overflow-y:auto;
+  box-shadow:0 8px 40px rgba(0,0,0,.5);
+}
+.modal-header{
+  padding:1rem 1.2rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;background:var(--surface);z-index:1;
+}
+.modal-header h2{font-size:1.1rem;color:#fff}
+.modal-close{
+  background:none;border:none;color:var(--text-dim);font-size:1.4rem;
+  padding:.2rem .5rem;border-radius:4px;transition:all .2s;
+}
+.modal-close:hover{color:#fff;background:var(--surface2)}
+.modal-body{padding:1.2rem}
+.detail-row{display:flex;gap:.6rem;margin-bottom:.6rem;font-size:.88rem}
+.detail-row .dlabel{color:var(--text-dim);min-width:100px;flex-shrink:0;font-weight:500}
+.detail-row .dvalue{color:#fff}
+.detail-row .dvalue a{color:var(--gold)}
+.bio-text{font-size:.82rem;color:var(--text-dim);line-height:1.6;margin-top:.8rem;
+  border-top:1px solid var(--border);padding-top:.8rem;max-height:200px;overflow-y:auto}
+.party-badge{display:inline-block;padding:.2rem .7rem;border-radius:4px;font-weight:600;font-size:.82rem}
+.party-badge.R{background:var(--rep-bg);color:var(--rep-light)}
+.party-badge.D{background:var(--dem-bg);color:var(--dem-light)}
+.party-badge.I{background:var(--ind-bg);color:var(--ind-light)}
+
+/* ── County Lookup ───────────────────────────────────────────── */
+.county-results{margin-top:.8rem}
+.county-group{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  margin-bottom:.8rem;overflow:hidden;
+}
+.county-group-header{
+  padding:.6rem 1rem;background:var(--navy-light);font-weight:600;
+  color:var(--gold);font-size:.9rem;display:flex;align-items:center;justify-content:space-between;
+}
+.county-group-header .member-count{font-size:.75rem;color:var(--text-dim);font-weight:400}
+.county-member{
+  display:flex;align-items:center;gap:.8rem;padding:.5rem 1rem;
+  border-bottom:1px solid var(--border);font-size:.85rem;cursor:pointer;transition:background .15s;
+}
+.county-member:last-child{border-bottom:none}
+.county-member:hover{background:var(--surface2)}
+.county-member .cm-chamber{font-size:.7rem;color:var(--text-dim);min-width:50px}
+.county-member .cm-name{flex:1;color:#fff;font-weight:500}
+.county-member .cm-email{color:var(--gold);font-size:.78rem}
+
+/* ── Delegation View ─────────────────────────────────────────── */
+.delegation-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
+.delegation-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+}
+.delegation-card-header{
+  padding:.6rem 1rem;background:var(--navy-light);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.delegation-card-header h4{color:var(--gold);font-size:.9rem}
+.delegation-card-header .email-btn{
+  font-size:.7rem;background:var(--gold-dark);color:var(--navy-dark);
+  border:none;padding:.2rem .5rem;border-radius:4px;font-weight:600;
+}
+.delegation-card-header .email-btn:hover{background:var(--gold)}
+.delegation-member{padding:.45rem 1rem;border-bottom:1px solid var(--border);font-size:.82rem;
+  display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:background .15s}
+.delegation-member:last-child{border-bottom:none}
+.delegation-member:hover{background:var(--surface2)}
+.delegation-member .dm-party{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.delegation-member .dm-party.R{background:var(--rep)}
+.delegation-member .dm-party.D{background:var(--dem)}
+.delegation-member .dm-party.I{background:var(--ind)}
+
+/* ── Cross-Reference Table ───────────────────────────────────── */
+.xref-table-wrap{overflow-x:auto;margin-top:.5rem}
+.xref-table{
+  width:100%;border-collapse:collapse;font-size:.8rem;
+}
+.xref-table th,.xref-table td{
+  padding:.45rem .7rem;text-align:left;border:1px solid var(--border);
+}
+.xref-table th{
+  background:var(--navy-light);color:var(--gold);font-weight:600;
+  position:sticky;top:0;
+}
+.xref-table tr:nth-child(even) td{background:var(--surface)}
+.xref-table tr:hover td{background:var(--surface2)}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media(max-width:768px){
+  .app-header{padding:.7rem 1rem;gap:.6rem;flex-wrap:wrap}
+  .app-header h1{font-size:1.1rem}
+  .app-header h1 span{display:block;margin-left:0;margin-top:.15rem}
+  .main-container{padding:.8rem}
+  .district-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+  .delegation-grid{grid-template-columns:1fr}
+  .charts-row{flex-direction:column;align-items:center}
+}
+@media(max-width:480px){
+  .tab-btn{padding:.4rem .6rem;font-size:.78rem}
+  .search-bar{flex-direction:column}
+  .search-bar input,.search-bar select{width:100%}
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+
+/* ── No-results ──────────────────────────────────────────────── */
+.no-results{text-align:center;padding:2rem;color:var(--text-dim);font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading SC Legislative Data...</div>
+</div>
+
+<!-- Header -->
+<header class="app-header">
+  <a href="../index.html" class="back-link">&#8592; Back</a>
+  <h1>DMAP <span>Your district, your representatives, your voice.</span></h1>
+</header>
+
+<!-- Error Banner -->
+<div class="error-banner" id="errorBanner"></div>
+
+<!-- Main Content -->
+<div class="main-container">
+
+  <!-- Tabs -->
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="house">House Districts</button>
+    <button class="tab-btn" data-tab="senate">Senate Districts</button>
+    <button class="tab-btn" data-tab="sidebyside">Side-by-Side</button>
+    <button class="tab-btn" data-tab="county">County Lookup</button>
+    <button class="tab-btn" data-tab="delegations">Delegations</button>
+    <button class="tab-btn" data-tab="xref">Cross-Reference</button>
+  </div>
+
+  <!-- ═══════ OVERVIEW TAB ═══════ -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="stats-row" id="statsRow"></div>
+    <div class="charts-row" id="chartsRow"></div>
+    <div class="search-bar">
+      <input type="text" id="globalSearch" placeholder="Search by member name, district number, or county...">
+      <select id="globalFilter">
+        <option value="all">All Parties</option>
+        <option value="R">Republican</option>
+        <option value="D">Democrat</option>
+        <option value="I">Independent</option>
+      </select>
+    </div>
+    <div id="overviewGrid" class="district-grid"></div>
+  </div>
+
+  <!-- ═══════ HOUSE TAB ═══════ -->
+  <div class="tab-panel" id="tab-house">
+    <h2 class="section-title">SC House of Representatives</h2>
+    <div class="search-bar">
+      <input type="text" id="houseSearch" placeholder="Search House members...">
+    </div>
+    <div id="houseGrid" class="district-grid"></div>
+  </div>
+
+  <!-- ═══════ SENATE TAB ═══════ -->
+  <div class="tab-panel" id="tab-senate">
+    <h2 class="section-title">SC Senate</h2>
+    <div class="search-bar">
+      <input type="text" id="senateSearch" placeholder="Search Senate members...">
+    </div>
+    <div id="senateGrid" class="district-grid"></div>
+  </div>
+
+  <!-- ═══════ SIDE-BY-SIDE TAB ═══════ -->
+  <div class="tab-panel" id="tab-sidebyside">
+    <h2 class="section-title">House vs Senate - Side by Side</h2>
+    <div class="search-bar">
+      <input type="text" id="sideSearch" placeholder="Search across both chambers...">
+    </div>
+    <div class="side-by-side">
+      <div class="chamber-col">
+        <h3>House <span class="badge" id="houseBadge">124 seats</span></h3>
+        <div id="sideHouseGrid" class="district-grid"></div>
+      </div>
+      <div class="chamber-col">
+        <h3>Senate <span class="badge" id="senateBadge">46 seats</span></h3>
+        <div id="sideSenateGrid" class="district-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ COUNTY LOOKUP TAB ═══════ -->
+  <div class="tab-panel" id="tab-county">
+    <h2 class="section-title">County Lookup</h2>
+    <div class="search-bar">
+      <input type="text" id="countySearch" placeholder="Type a county name (e.g. Richland, Charleston, Greenville)...">
+    </div>
+    <div class="county-results" id="countyResults"></div>
+  </div>
+
+  <!-- ═══════ DELEGATIONS TAB ═══════ -->
+  <div class="tab-panel" id="tab-delegations">
+    <h2 class="section-title">County Delegations</h2>
+    <div class="search-bar">
+      <input type="text" id="delegationSearch" placeholder="Search delegations by county...">
+    </div>
+    <div class="delegation-grid" id="delegationGrid"></div>
+  </div>
+
+  <!-- ═══════ CROSS-REFERENCE TAB ═══════ -->
+  <div class="tab-panel" id="tab-xref">
+    <h2 class="section-title">District-County Cross-Reference</h2>
+    <div class="search-bar">
+      <input type="text" id="xrefSearch" placeholder="Filter cross-reference table...">
+    </div>
+    <div class="xref-table-wrap">
+      <table class="xref-table" id="xrefTable">
+        <thead>
+          <tr>
+            <th>Chamber</th>
+            <th>District</th>
+            <th>Member</th>
+            <th>Party</th>
+            <th>County / Counties</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody id="xrefBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Member Detail</h2>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   DMAP - District & Delegation Mapper
+   SC State Legislature Interactive Explorer
+   ══════════════════════════════════════════════════════════════════ */
+
+const API = 'https://rest.scstatehouse.gov';
+
+// ── State ────────────────────────────────────────────────────────
+let houseMembers = [];
+let senateMembers = [];
+let allMembers = [];
+let houseDistrictCounties = [];
+let senateDistrictCounties = [];
+let delegations = [];
+let delegationEmails = [];
+let counties = [];
+
+// ── Fallback Demo Data ──────────────────────────────────────────
+const FALLBACK_HOUSE = Array.from({length:124},(_,i)=>{
+  const parties = ['R','R','R','R','D','D','I'];
+  const countyNames = ['Richland','Charleston','Greenville','Spartanburg','Lexington','York','Horry','Berkeley','Dorchester','Beaufort','Anderson','Aiken','Sumter','Florence','Orangeburg'];
+  const firstNames = ['James','Mary','John','Patricia','Robert','Jennifer','Michael','Linda','David','Elizabeth'];
+  const lastNames = ['Smith','Johnson','Williams','Brown','Jones','Davis','Miller','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris'];
+  const p = parties[Math.floor(Math.random()*parties.length)];
+  const fn = firstNames[Math.floor(Math.random()*firstNames.length)];
+  const ln = lastNames[Math.floor(Math.random()*lastNames.length)];
+  const county = countyNames[Math.floor(Math.random()*countyNames.length)];
+  return {
+    PERM_SPONSOR_CODE:`H${i+1}`,PARTY:p,DISTRICT_NUMBER:i+1,CHAMBER:'H',
+    FIRST:fn,LAST:ln,E_MAIL:`${fn.toLowerCase()}.${ln.toLowerCase()}@schouse.gov`,
+    OCCUPATION:'Legislator',HOME_COUNTY:county,
+    BIOGRAPHY:`Representative ${fn} ${ln} serves SC House District ${i+1}.`
+  };
+});
+const FALLBACK_SENATE = Array.from({length:46},(_,i)=>{
+  const parties = ['R','R','R','D','D'];
+  const countyNames = ['Richland','Charleston','Greenville','Spartanburg','Lexington','York','Horry','Berkeley','Dorchester','Beaufort'];
+  const firstNames = ['William','Barbara','Richard','Susan','Joseph','Jessica','Thomas','Sarah','Charles','Karen'];
+  const lastNames = ['Martin','Thompson','Garcia','Martinez','Robinson','Clark','Rodriguez','Lewis','Lee','Walker'];
+  const p = parties[Math.floor(Math.random()*parties.length)];
+  const fn = firstNames[Math.floor(Math.random()*firstNames.length)];
+  const ln = lastNames[Math.floor(Math.random()*lastNames.length)];
+  const county = countyNames[Math.floor(Math.random()*countyNames.length)];
+  return {
+    PERM_SPONSOR_CODE:`S${i+1}`,PARTY:p,DISTRICT_NUMBER:i+1,CHAMBER:'S',
+    FIRST:fn,LAST:ln,E_MAIL:`${fn.toLowerCase()}.${ln.toLowerCase()}@scsenate.gov`,
+    OCCUPATION:'Senator',HOME_COUNTY:county,
+    BIOGRAPHY:`Senator ${fn} ${ln} serves SC Senate District ${i+1}.`
+  };
+});
+
+// ── Fetch Helpers ────────────────────────────────────────────────
+async function apiFetch(endpoint) {
+  const resp = await fetch(API + endpoint);
+  if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+  return resp.json();
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBanner');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 8000);
+}
+
+// ── Data Loading ─────────────────────────────────────────────────
+async function loadAllData() {
+  const results = await Promise.allSettled([
+    apiFetch('/house/bios'),
+    apiFetch('/senate/bios'),
+    apiFetch('/house/districtcounties'),
+    apiFetch('/senate/districtcounties'),
+    apiFetch('/house/delegations'),
+    apiFetch('/house/delegation_email'),
+    apiFetch('/website/counties'),
+  ]);
+
+  // House bios
+  if (results[0].status === 'fulfilled' && Array.isArray(results[0].value) && results[0].value.length > 0) {
+    houseMembers = results[0].value;
+  } else {
+    houseMembers = FALLBACK_HOUSE;
+    showError('Using demo data for House members (API unavailable).');
+  }
+
+  // Senate bios
+  if (results[1].status === 'fulfilled' && Array.isArray(results[1].value) && results[1].value.length > 0) {
+    senateMembers = results[1].value;
+  } else {
+    senateMembers = FALLBACK_SENATE;
+    showError('Using demo data for Senate members (API unavailable).');
+  }
+
+  // Normalize member data
+  houseMembers = houseMembers.map(m => normalizeM(m, 'H'));
+  senateMembers = senateMembers.map(m => normalizeM(m, 'S'));
+  allMembers = [...houseMembers, ...senateMembers];
+
+  // District counties
+  if (results[2].status === 'fulfilled') houseDistrictCounties = results[2].value || [];
+  if (results[3].status === 'fulfilled') senateDistrictCounties = results[3].value || [];
+
+  // Delegations
+  if (results[4].status === 'fulfilled') delegations = results[4].value || [];
+  if (results[5].status === 'fulfilled') delegationEmails = results[5].value || [];
+
+  // Counties
+  if (results[6].status === 'fulfilled') counties = results[6].value || [];
+}
+
+function normalizeM(m, defaultChamber) {
+  return {
+    code: m.PERM_SPONSOR_CODE || m.perm_sponsor_code || '',
+    party: (m.PARTY || m.party || 'R').trim(),
+    district: parseInt(m.DISTRICT_NUMBER || m.district_number || 0),
+    chamber: (m.CHAMBER || m.chamber || defaultChamber).trim(),
+    first: (m.FIRST || m.first || '').trim(),
+    last: (m.LAST || m.last || '').trim(),
+    email: (m.E_MAIL || m.e_mail || '').trim(),
+    occupation: (m.OCCUPATION || m.occupation || '').trim(),
+    county: (m.HOME_COUNTY || m.home_county || '').trim(),
+    bio: (m.BIOGRAPHY || m.biography || ''),
+    _raw: m
+  };
+}
+
+function memberName(m) { return `${m.first} ${m.last}`; }
+function chamberLabel(c) { return c === 'H' ? 'House' : 'Senate'; }
+
+// ── District Card HTML ───────────────────────────────────────────
+function districtCardHTML(m) {
+  return `<div class="district-cell party-${m.party}" data-code="${m.code}" onclick="showDetail('${m.code}')">
+    <div class="dist-num">${chamberLabel(m.chamber)} Dist. ${m.district}</div>
+    <div class="dist-name" title="${memberName(m)}">${memberName(m)}</div>
+    <span class="dist-party ${m.party}">${m.party === 'R' ? 'Republican' : m.party === 'D' ? 'Democrat' : 'Independent'}</span>
+    <div class="dist-county" title="${m.county}">${m.county}</div>
+  </div>`;
+}
+
+// ── Filter ───────────────────────────────────────────────────────
+function filterMembers(members, query, partyFilter) {
+  let list = members;
+  if (partyFilter && partyFilter !== 'all') {
+    list = list.filter(m => m.party === partyFilter);
+  }
+  if (query) {
+    const q = query.toLowerCase();
+    list = list.filter(m =>
+      memberName(m).toLowerCase().includes(q) ||
+      String(m.district).includes(q) ||
+      m.county.toLowerCase().includes(q) ||
+      m.code.toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+// ── Render Functions ─────────────────────────────────────────────
+
+function renderStats() {
+  const hR = houseMembers.filter(m=>m.party==='R').length;
+  const hD = houseMembers.filter(m=>m.party==='D').length;
+  const hI = houseMembers.length - hR - hD;
+  const sR = senateMembers.filter(m=>m.party==='R').length;
+  const sD = senateMembers.filter(m=>m.party==='D').length;
+  const sI = senateMembers.length - sR - sD;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card"><div class="val">${houseMembers.length}</div><div class="lbl">House Members</div></div>
+    <div class="stat-card"><div class="val">${senateMembers.length}</div><div class="lbl">Senate Members</div></div>
+    <div class="stat-card"><div class="val">${hR + sR}</div><div class="lbl">Republicans</div></div>
+    <div class="stat-card"><div class="val">${hD + sD}</div><div class="lbl">Democrats</div></div>
+    <div class="stat-card"><div class="val">${hI + sI || 0}</div><div class="lbl">Independents</div></div>
+    <div class="stat-card"><div class="val">${new Set(allMembers.map(m=>m.county).filter(Boolean)).size}</div><div class="lbl">Counties</div></div>
+  `;
+}
+
+function makeDonut(r, d, ind, total, label) {
+  const pR = total ? (r/total)*100 : 0;
+  const pD = total ? (d/total)*100 : 0;
+  const pI = total ? (ind/total)*100 : 0;
+  // CSS conic-gradient donut
+  const bg = `conic-gradient(var(--rep) 0% ${pR}%, var(--dem) ${pR}% ${pR+pD}%, var(--ind) ${pR+pD}% ${pR+pD+pI}%, var(--border) ${pR+pD+pI}% 100%)`;
+  return `<div class="chart-box">
+    <h3>${label}</h3>
+    <div class="donut-wrap">
+      <div class="donut" style="background:${bg}">
+        <div class="donut-hole">
+          <span class="total">${total}</span>
+          <span class="total-lbl">Seats</span>
+        </div>
+      </div>
+    </div>
+    <div class="chart-legend">
+      <div class="legend-item"><span class="legend-dot" style="background:var(--rep)"></span>R: ${r} (${total?Math.round(pR):0}%)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--dem)"></span>D: ${d} (${total?Math.round(pD):0}%)</div>
+      ${ind > 0 ? `<div class="legend-item"><span class="legend-dot" style="background:var(--ind)"></span>I: ${ind} (${total?Math.round(pI):0}%)</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderCharts() {
+  const hR = houseMembers.filter(m=>m.party==='R').length;
+  const hD = houseMembers.filter(m=>m.party==='D').length;
+  const hI = houseMembers.length - hR - hD;
+  const sR = senateMembers.filter(m=>m.party==='R').length;
+  const sD = senateMembers.filter(m=>m.party==='D').length;
+  const sI = senateMembers.length - sR - sD;
+
+  document.getElementById('chartsRow').innerHTML =
+    makeDonut(hR, hD, hI, houseMembers.length, 'House Composition') +
+    makeDonut(sR, sD, sI, senateMembers.length, 'Senate Composition') +
+    makeDonut(hR+sR, hD+sD, hI+sI, allMembers.length, 'General Assembly');
+}
+
+function renderOverview() {
+  const q = document.getElementById('globalSearch').value;
+  const pf = document.getElementById('globalFilter').value;
+  const list = filterMembers(allMembers, q, pf).sort((a,b) => {
+    if (a.chamber !== b.chamber) return a.chamber === 'S' ? -1 : 1;
+    return a.district - b.district;
+  });
+  document.getElementById('overviewGrid').innerHTML = list.length
+    ? list.map(districtCardHTML).join('')
+    : '<div class="no-results">No members match your search.</div>';
+}
+
+function renderHouse() {
+  const q = document.getElementById('houseSearch').value;
+  const list = filterMembers(houseMembers, q).sort((a,b) => a.district - b.district);
+  document.getElementById('houseGrid').innerHTML = list.length
+    ? list.map(districtCardHTML).join('')
+    : '<div class="no-results">No House members match your search.</div>';
+}
+
+function renderSenate() {
+  const q = document.getElementById('senateSearch').value;
+  const list = filterMembers(senateMembers, q).sort((a,b) => a.district - b.district);
+  document.getElementById('senateGrid').innerHTML = list.length
+    ? list.map(districtCardHTML).join('')
+    : '<div class="no-results">No Senate members match your search.</div>';
+}
+
+function renderSideBySide() {
+  const q = document.getElementById('sideSearch').value;
+  const h = filterMembers(houseMembers, q).sort((a,b) => a.district - b.district);
+  const s = filterMembers(senateMembers, q).sort((a,b) => a.district - b.district);
+  document.getElementById('houseBadge').textContent = `${h.length} seats`;
+  document.getElementById('senateBadge').textContent = `${s.length} seats`;
+  document.getElementById('sideHouseGrid').innerHTML = h.length
+    ? h.map(districtCardHTML).join('')
+    : '<div class="no-results">No results.</div>';
+  document.getElementById('sideSenateGrid').innerHTML = s.length
+    ? s.map(districtCardHTML).join('')
+    : '<div class="no-results">No results.</div>';
+}
+
+function renderCountyLookup() {
+  const q = (document.getElementById('countySearch').value || '').toLowerCase();
+  if (!q) {
+    document.getElementById('countyResults').innerHTML = '<div class="no-results">Type a county name above to find its representatives.</div>';
+    return;
+  }
+  // Group members by county
+  const countyMap = {};
+  allMembers.forEach(m => {
+    if (!m.county) return;
+    if (!m.county.toLowerCase().includes(q)) return;
+    if (!countyMap[m.county]) countyMap[m.county] = [];
+    countyMap[m.county].push(m);
+  });
+  const keys = Object.keys(countyMap).sort();
+  if (!keys.length) {
+    document.getElementById('countyResults').innerHTML = '<div class="no-results">No counties match your search.</div>';
+    return;
+  }
+  document.getElementById('countyResults').innerHTML = keys.map(county => {
+    const members = countyMap[county].sort((a,b) => {
+      if (a.chamber !== b.chamber) return a.chamber === 'S' ? -1 : 1;
+      return a.district - b.district;
+    });
+    return `<div class="county-group">
+      <div class="county-group-header">${county} County <span class="member-count">${members.length} member${members.length!==1?'s':''}</span></div>
+      ${members.map(m => `<div class="county-member" onclick="showDetail('${m.code}')">
+        <span class="cm-chamber">${chamberLabel(m.chamber)} ${m.district}</span>
+        <span class="dist-party ${m.party}" style="margin-right:.3rem">${m.party}</span>
+        <span class="cm-name">${memberName(m)}</span>
+        <span class="cm-email">${m.email || ''}</span>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderDelegations() {
+  const q = (document.getElementById('delegationSearch').value || '').toLowerCase();
+  // Build delegation grouping from allMembers by county
+  const countyMap = {};
+  allMembers.forEach(m => {
+    if (!m.county) return;
+    if (!countyMap[m.county]) countyMap[m.county] = [];
+    countyMap[m.county].push(m);
+  });
+
+  // Also pull delegation emails into a lookup
+  const emailLookup = {};
+  if (Array.isArray(delegationEmails)) {
+    delegationEmails.forEach(de => {
+      const c = (de.COUNTY || de.county || '').trim();
+      if (c) emailLookup[c.toUpperCase()] = de.E_MAIL || de.e_mail || '';
+    });
+  }
+
+  let keys = Object.keys(countyMap).sort();
+  if (q) keys = keys.filter(k => k.toLowerCase().includes(q));
+
+  if (!keys.length) {
+    document.getElementById('delegationGrid').innerHTML = '<div class="no-results">No delegations match your search.</div>';
+    return;
+  }
+
+  document.getElementById('delegationGrid').innerHTML = keys.map(county => {
+    const members = countyMap[county].sort((a,b) => {
+      if (a.chamber !== b.chamber) return a.chamber === 'S' ? -1 : 1;
+      return a.district - b.district;
+    });
+    const delEmail = emailLookup[county.toUpperCase()] || '';
+    return `<div class="delegation-card">
+      <div class="delegation-card-header">
+        <h4>${county} County</h4>
+        ${delEmail ? `<button class="email-btn" onclick="copyEmail('${delEmail}',this)" title="${delEmail}">Copy Email</button>` : ''}
+      </div>
+      ${members.map(m => `<div class="delegation-member" onclick="showDetail('${m.code}')">
+        <span class="dm-party ${m.party}"></span>
+        <span style="color:var(--text-dim);font-size:.72rem;min-width:48px">${chamberLabel(m.chamber).slice(0,1)}${m.district}</span>
+        <span style="flex:1;color:#fff">${memberName(m)}</span>
+        <span class="dist-party ${m.party}" style="font-size:.68rem">${m.party}</span>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderXref() {
+  const q = (document.getElementById('xrefSearch').value || '').toLowerCase();
+  let list = allMembers.sort((a,b) => {
+    if (a.chamber !== b.chamber) return a.chamber === 'S' ? -1 : 1;
+    return a.district - b.district;
+  });
+  if (q) {
+    list = list.filter(m =>
+      memberName(m).toLowerCase().includes(q) ||
+      String(m.district).includes(q) ||
+      m.county.toLowerCase().includes(q) ||
+      chamberLabel(m.chamber).toLowerCase().includes(q)
+    );
+  }
+
+  // Look up district-county mappings
+  const hdc = {};
+  if (Array.isArray(houseDistrictCounties)) {
+    houseDistrictCounties.forEach(r => {
+      const d = r.DISTRICT_NUMBER || r.district_number;
+      const c = r.COUNTY || r.county || '';
+      if (d) { if (!hdc[d]) hdc[d] = []; if (c && !hdc[d].includes(c)) hdc[d].push(c); }
+    });
+  }
+  const sdc = {};
+  if (Array.isArray(senateDistrictCounties)) {
+    senateDistrictCounties.forEach(r => {
+      const d = r.DISTRICT_NUMBER || r.district_number;
+      const c = r.COUNTY || r.county || '';
+      if (d) { if (!sdc[d]) sdc[d] = []; if (c && !sdc[d].includes(c)) sdc[d].push(c); }
+    });
+  }
+
+  document.getElementById('xrefBody').innerHTML = list.map(m => {
+    const dcMap = m.chamber === 'H' ? hdc : sdc;
+    const counties = dcMap[m.district] ? dcMap[m.district].join(', ') : m.county;
+    return `<tr onclick="showDetail('${m.code}')" style="cursor:pointer">
+      <td>${chamberLabel(m.chamber)}</td>
+      <td>${m.district}</td>
+      <td>${memberName(m)}</td>
+      <td><span class="dist-party ${m.party}">${m.party}</span></td>
+      <td>${counties}</td>
+      <td>${m.email ? `<a href="mailto:${m.email}">${m.email}</a>` : ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Detail Modal ─────────────────────────────────────────────────
+function showDetail(code) {
+  const m = allMembers.find(x => x.code === code);
+  if (!m) return;
+  document.getElementById('modalTitle').textContent = `${chamberLabel(m.chamber)} District ${m.district}`;
+  document.getElementById('modalBody').innerHTML = `
+    <div style="margin-bottom:.8rem">
+      <span style="font-size:1.3rem;font-weight:700;color:#fff">${memberName(m)}</span>
+      <span class="party-badge ${m.party}" style="margin-left:.6rem">${m.party === 'R' ? 'Republican' : m.party === 'D' ? 'Democrat' : 'Independent'}</span>
+    </div>
+    <div class="detail-row"><span class="dlabel">Chamber</span><span class="dvalue">${chamberLabel(m.chamber)}</span></div>
+    <div class="detail-row"><span class="dlabel">District</span><span class="dvalue">${m.district}</span></div>
+    <div class="detail-row"><span class="dlabel">County</span><span class="dvalue">${m.county}</span></div>
+    <div class="detail-row"><span class="dlabel">Occupation</span><span class="dvalue">${m.occupation || 'N/A'}</span></div>
+    <div class="detail-row"><span class="dlabel">Email</span><span class="dvalue">${m.email ? `<a href="mailto:${m.email}">${m.email}</a>` : 'N/A'}</span></div>
+    <div class="detail-row"><span class="dlabel">Sponsor Code</span><span class="dvalue">${m.code}</span></div>
+    ${m.bio ? `<div class="bio-text">${m.bio}</div>` : ''}
+  `;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+}
+
+function copyEmail(email, btn) {
+  navigator.clipboard.writeText(email).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  }).catch(() => {
+    prompt('Copy this email:', email);
+  });
+}
+
+// ── Tab System ───────────────────────────────────────────────────
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tabId));
+  // Re-render the active tab content
+  const renderers = {
+    overview: renderOverview,
+    house: renderHouse,
+    senate: renderSenate,
+    sidebyside: renderSideBySide,
+    county: renderCountyLookup,
+    delegations: renderDelegations,
+    xref: renderXref,
+  };
+  if (renderers[tabId]) renderers[tabId]();
+}
+
+// ── Event Binding ────────────────────────────────────────────────
+function bindEvents() {
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // Searches (debounced)
+  const debounce = (fn, ms=250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+  document.getElementById('globalSearch').addEventListener('input', debounce(renderOverview));
+  document.getElementById('globalFilter').addEventListener('change', renderOverview);
+  document.getElementById('houseSearch').addEventListener('input', debounce(renderHouse));
+  document.getElementById('senateSearch').addEventListener('input', debounce(renderSenate));
+  document.getElementById('sideSearch').addEventListener('input', debounce(renderSideBySide));
+  document.getElementById('countySearch').addEventListener('input', debounce(renderCountyLookup));
+  document.getElementById('delegationSearch').addEventListener('input', debounce(renderDelegations));
+  document.getElementById('xrefSearch').addEventListener('input', debounce(renderXref));
+
+  // Modal close
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('detailModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+}
+
+// ── Init ─────────────────────────────────────────────────────────
+async function init() {
+  try {
+    await loadAllData();
+    renderStats();
+    renderCharts();
+    renderOverview();
+    bindEvents();
+  } catch (err) {
+    console.error('Init error:', err);
+    showError('Failed to initialize. Using demo data. ' + err.message);
+    // Try to render with whatever we have
+    houseMembers = houseMembers.length ? houseMembers : FALLBACK_HOUSE.map(m => normalizeM(m, 'H'));
+    senateMembers = senateMembers.length ? senateMembers : FALLBACK_SENATE.map(m => normalizeM(m, 'S'));
+    allMembers = [...houseMembers, ...senateMembers];
+    renderStats();
+    renderCharts();
+    renderOverview();
+    bindEvents();
+  } finally {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('hidden');
+    setTimeout(() => overlay.style.display = 'none', 600);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
