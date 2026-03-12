@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SC Statehouse REST API Documentation</title>
+    <style>
+        :root {
+            --primary: #1b3a4b;
+            --primary-light: #274c63;
+            --accent: #4a90d9;
+            --bg: #fafafa;
+            --card-bg: #fff;
+            --border: #e0e0e0;
+            --text: #333;
+            --text-muted: #666;
+            --get-bg: #e8f5e9;
+            --get-border: #4caf50;
+            --get-text: #2e7d32;
+            --tag-bg: #e3f2fd;
+            --tag-text: #1565c0;
+            --code-bg: #263238;
+            --code-text: #eeffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--primary);
+            color: #fff;
+            padding: 24px 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        header p {
+            opacity: 0.85;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .base-url {
+            background: rgba(255,255,255,0.15);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-family: "Fira Code", "Cascadia Code", monospace;
+            font-size: 0.85rem;
+        }
+
+        .layout {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            height: calc(100vh - 80px);
+            position: sticky;
+            top: 80px;
+            overflow-y: auto;
+            padding: 16px 0;
+        }
+
+        .sidebar h3 {
+            padding: 8px 20px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 6px 20px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-left: 3px solid transparent;
+            transition: all 0.15s;
+        }
+
+        .sidebar a:hover, .sidebar a.active {
+            background: var(--get-bg);
+            border-left-color: var(--get-border);
+            color: var(--get-text);
+        }
+
+        .sidebar .filter-input {
+            margin: 0 16px 12px;
+            padding: 8px 12px;
+            width: calc(100% - 32px);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .sidebar .filter-input:focus {
+            border-color: var(--accent);
+        }
+
+        .content {
+            flex: 1;
+            padding: 24px 32px;
+            min-width: 0;
+        }
+
+        .section-header {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 32px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .section-header:first-child { margin-top: 0; }
+
+        .section-desc {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        .endpoint {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: box-shadow 0.15s;
+        }
+
+        .endpoint:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            gap: 12px;
+            user-select: none;
+        }
+
+        .method-badge {
+            background: var(--get-bg);
+            color: var(--get-text);
+            border: 1px solid var(--get-border);
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: monospace;
+            min-width: 44px;
+            text-align: center;
+        }
+
+        .endpoint-path {
+            font-family: "Fira Code", "Cascadia Code", monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .endpoint-path .param {
+            color: var(--accent);
+        }
+
+        .endpoint-summary {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .endpoint-chevron {
+            color: var(--text-muted);
+            transition: transform 0.2s;
+            font-size: 0.8rem;
+        }
+
+        .endpoint.open .endpoint-chevron {
+            transform: rotate(90deg);
+        }
+
+        .endpoint-body {
+            display: none;
+            border-top: 1px solid var(--border);
+            padding: 16px;
+        }
+
+        .endpoint.open .endpoint-body {
+            display: block;
+        }
+
+        .endpoint-body h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 16px 0 8px;
+        }
+
+        .endpoint-body h4:first-child { margin-top: 0; }
+
+        .endpoint-body p {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+
+        .param-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .param-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .param-name {
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .param-type {
+            color: var(--accent);
+            font-size: 0.8rem;
+        }
+
+        .param-required {
+            color: #d32f2f;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .response-example {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 16px;
+            border-radius: 6px;
+            font-family: "Fira Code", "Cascadia Code", monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .try-it {
+            margin-top: 12px;
+        }
+
+        .try-it button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.15s;
+        }
+
+        .try-it button:hover {
+            background: #3a7bc8;
+        }
+
+        .try-it button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .try-it-result {
+            margin-top: 12px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: var(--tag-bg);
+            color: var(--tag-text);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .response-fields {
+            font-size: 0.85rem;
+        }
+
+        .response-fields li {
+            margin: 4px 0;
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .response-fields code {
+            background: var(--bg);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+
+        .expand-all-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .expand-all-bar button {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            transition: all 0.15s;
+        }
+
+        .expand-all-bar button:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        @media (max-width: 900px) {
+            .layout { flex-direction: column; }
+            .sidebar {
+                width: 100%;
+                min-width: 0;
+                height: auto;
+                position: static;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                max-height: 300px;
+            }
+            .content { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-row">
+            <div>
+                <h1>SC Statehouse REST API</h1>
+                <p>South Carolina Legislature public data API &mdash; read-only JSON endpoints</p>
+            </div>
+            <div class="base-url">https://rest.scstatehouse.gov</div>
+        </div>
+    </header>
+
+    <div class="layout">
+        <nav class="sidebar" id="sidebar">
+            <input type="text" class="filter-input" id="filter" placeholder="Filter endpoints...">
+        </nav>
+        <main class="content" id="content"></main>
+    </div>
+
+    <script>
+    const BASE = "https://rest.scstatehouse.gov";
+
+    // Endpoint catalog
+    const API = [
+        // ─── General ───
+        {
+            section: "General",
+            description: "Top-level application data, sessions, and homepage content.",
+            endpoints: [
+                {
+                    path: "/home",
+                    summary: "Homepage data including Senate & House session status, video feeds, and overlay messages",
+                    response: {
+                        fields: [
+                            { name: "appmessage", type: "string|null", desc: "Global app message" },
+                            { name: "senate", type: "array", desc: "Senate session info with video feeds, overlay messages" },
+                            { name: "house", type: "array", desc: "House session info with video feeds, overlay messages" },
+                        ]
+                    }
+                },
+                {
+                    path: "/homev3",
+                    summary: "Homepage data (v3 format)",
+                    response: { fields: [{ name: "(same structure as /home)", type: "", desc: "Version 3 of home data" }] }
+                },
+                {
+                    path: "/sessions",
+                    summary: "All legislative sessions (100th through current)",
+                    response: {
+                        fields: [
+                            { name: "SESS_NUMBER", type: "string", desc: "Session number (e.g. '126')" },
+                            { name: "SESS_START_DATE", type: "string", desc: "Start year" },
+                            { name: "SESS_END_DATE", type: "string", desc: "End year" },
+                        ]
+                    },
+                    example: '[{"SESS_NUMBER":"126","SESS_START_DATE":"2025","SESS_END_DATE":"2026"}, ...]'
+                },
+                {
+                    path: "/currentsession",
+                    summary: "Current active legislative session",
+                    response: {
+                        fields: [
+                            { name: "SESS_NUMBER", type: "string", desc: "Current session number" },
+                            { name: "SESS_START_DATE", type: "string", desc: "Start year" },
+                            { name: "SESS_END_DATE", type: "string", desc: "End year" },
+                        ]
+                    },
+                    example: '[{"SESS_NUMBER":"126","SESS_START_DATE":"2025","SESS_END_DATE":"2026"}]'
+                },
+                {
+                    path: "/feeddata",
+                    summary: "Feed/notification data configuration",
+                },
+                {
+                    path: "/feedsettings",
+                    summary: "Feed display settings",
+                },
+                {
+                    path: "/publications",
+                    summary: "Published legislative publications",
+                },
+                {
+                    path: "/stopwords",
+                    summary: "Search stop words list used for filtering",
+                },
+                {
+                    path: "/noresults",
+                    summary: "No-results message content",
+                },
+            ]
+        },
+
+        // ─── Bills ───
+        {
+            section: "Bills",
+            description: "Legislative bills, actions, fiscal impact statements, and sponsor data. Bills are organized by session number.",
+            endpoints: [
+                {
+                    path: "/bills/{session}/{billId}",
+                    summary: "Get a specific bill by session and bill ID",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (100-126)" },
+                        { name: "billId", type: "integer", required: true, desc: "Bill number" },
+                    ],
+                    response: {
+                        fields: [
+                            { name: "KEY", type: "string", desc: "Unique bill key" },
+                            { name: "SESS_NUMBER", type: "string", desc: "Session number" },
+                            { name: "CHAMBER", type: "string", desc: "'S' (Senate) or 'H' (House)" },
+                            { name: "BILL_NUMBER", type: "string", desc: "Bill number" },
+                            { name: "PERM_SPONSOR_CODE", type: "string", desc: "Primary sponsor code" },
+                            { name: "RAT_NUMBER", type: "string|null", desc: "Ratification number" },
+                            { name: "ACT_NUMBER", type: "string|null", desc: "Act number" },
+                            { name: "SUMMARY", type: "string", desc: "Short summary" },
+                            { name: "TITLE", type: "string", desc: "Full bill title" },
+                            { name: "HOUSE_INTRO_DATE", type: "string|null", desc: "House introduction date" },
+                            { name: "SENATE_INTRO_DATE", type: "string|null", desc: "Senate introduction date" },
+                            { name: "SESSION", type: "object", desc: "Session metadata" },
+                            { name: "SPONSORS", type: "array", desc: "Array of sponsor objects" },
+                            { name: "SPONSORTEXT", type: "string", desc: "Sponsor display name(s)" },
+                            { name: "ACTIONS", type: "array", desc: "Array of legislative actions" },
+                            { name: "VOTES", type: "array|null", desc: "Vote records" },
+                            { name: "STATUS", type: "array", desc: "Status tracking array with step progression" },
+                            { name: "IN_COMMITTEE", type: "object|null", desc: "Current committee assignment" },
+                            { name: "FULLTEXT_URL", type: "string", desc: "URL to full bill text" },
+                            { name: "FISCALIMPACT_URL", type: "string|null", desc: "URL to fiscal impact statement" },
+                            { name: "VERSION_LINKS", type: "array", desc: "Links to bill versions" },
+                        ]
+                    },
+                    examplePath: "/bills/126/1"
+                },
+                {
+                    path: "/bills/{session}/{sponsorCode}-bills",
+                    summary: "Get all bills for a sponsor in a session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number" },
+                        { name: "sponsorCode", type: "integer", required: true, desc: "Permanent sponsor code" },
+                    ],
+                    response: {
+                        fields: [{ name: "(array)", type: "array", desc: "Array of bill objects (same structure as single bill)" }]
+                    }
+                },
+                {
+                    path: "/bills/current",
+                    summary: "Bills for the current session",
+                    note: "Contains JSON files for current session bills"
+                },
+                {
+                    path: "/bills/actions",
+                    summary: "Bill action data files",
+                },
+                {
+                    path: "/bills/fiscalimpact",
+                    summary: "Fiscal impact statement data",
+                },
+                {
+                    path: "/bills/alt/{session}",
+                    summary: "Alternate bill data format by session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (123-126)" },
+                    ],
+                },
+            ]
+        },
+
+        // ─── Budgets ───
+        {
+            section: "Budgets",
+            description: "State budget information.",
+            endpoints: [
+                {
+                    path: "/budgets",
+                    summary: "Budget data overview",
+                },
+                {
+                    path: "/budgetbills",
+                    summary: "Bills related to the budget",
+                },
+                {
+                    path: "/currentbudget",
+                    summary: "Current fiscal year budget data",
+                },
+                {
+                    path: "/session-billcount",
+                    summary: "Bill counts per session",
+                },
+            ]
+        },
+
+        // ─── House ───
+        {
+            section: "House",
+            description: "South Carolina House of Representatives data including members, committees, meetings, rules, and legislative documents.",
+            endpoints: [
+                {
+                    path: "/house/bios",
+                    summary: "All current House member biographies",
+                    response: {
+                        fields: [
+                            { name: "PERM_SPONSOR_CODE", type: "string", desc: "Unique member identifier" },
+                            { name: "PARTY", type: "string", desc: "'D', 'R', or 'I'" },
+                            { name: "DISTRICT_NUMBER", type: "string", desc: "District number" },
+                            { name: "CHAMBER", type: "string", desc: "'H' for House" },
+                            { name: "FIRST", type: "string", desc: "First name" },
+                            { name: "LAST", type: "string", desc: "Last name" },
+                            { name: "TITLE", type: "string", desc: "'Representative'" },
+                            { name: "E_MAIL", type: "string", desc: "Email address" },
+                            { name: "OCCUPATION", type: "string", desc: "Occupation" },
+                            { name: "HOME_COUNTY", type: "string", desc: "Home county" },
+                            { name: "BIOGRAPHY", type: "string", desc: "Full biography HTML" },
+                        ]
+                    }
+                },
+                {
+                    path: "/house/bios/{sponsorCode}",
+                    summary: "Individual House member biography",
+                    params: [
+                        { name: "sponsorCode", type: "string", required: true, desc: "Permanent sponsor code" },
+                    ],
+                },
+                {
+                    path: "/house/bios/bydistrict",
+                    summary: "House members indexed by district number",
+                },
+                {
+                    path: "/house/committees",
+                    summary: "All House committees with members",
+                    response: {
+                        fields: [
+                            { name: "PERM_SPONSOR_CODE", type: "string", desc: "Committee identifier" },
+                            { name: "COMMITTEE_NAME", type: "string", desc: "Full committee name" },
+                            { name: "ABBREVIATION", type: "string", desc: "Abbreviated name" },
+                            { name: "MAX_NUMBER", type: "string", desc: "Maximum members" },
+                            { name: "ROOM_NUMBER", type: "string", desc: "Meeting room" },
+                            { name: "TELEPHONE_NUMBER", type: "string", desc: "Phone number" },
+                            { name: "BUILDING", type: "string", desc: "Building name" },
+                            { name: "ADDRESS", type: "string", desc: "Full address" },
+                            { name: "members", type: "array", desc: "Array of committee member objects" },
+                        ]
+                    }
+                },
+                {
+                    path: "/house/{session}-committees",
+                    summary: "House committees for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (101-126)" },
+                    ],
+                },
+                {
+                    path: "/house/all-committees",
+                    summary: "All House committees across all sessions",
+                },
+                {
+                    path: "/house/committeemembers",
+                    summary: "Current House committee membership list",
+                },
+                {
+                    path: "/house/rules",
+                    summary: "House Rules of Procedure",
+                    response: {
+                        fields: [
+                            { name: "Rules", type: "array", desc: "Array of rule objects" },
+                            { name: "Rules[].Id", type: "string", desc: "Rule number" },
+                            { name: "Rules[].Title", type: "string", desc: "Rule title" },
+                            { name: "Rules[].Content", type: "array", desc: "Rich text content segments" },
+                        ]
+                    }
+                },
+                {
+                    path: "/house/meetings",
+                    summary: "Current House meeting schedule",
+                },
+                {
+                    path: "/house/meetings-today",
+                    summary: "Today's House meetings",
+                },
+                {
+                    path: "/house/meetings-upcoming",
+                    summary: "Upcoming House meetings",
+                },
+                {
+                    path: "/house/meetings-live",
+                    summary: "Currently live House meetings",
+                },
+                {
+                    path: "/house/meetings-all",
+                    summary: "All House meetings (current session)",
+                },
+                {
+                    path: "/house/meetings-archive",
+                    summary: "Archived House meetings",
+                },
+                {
+                    path: "/house/meetings-past",
+                    summary: "Past House meetings",
+                },
+                {
+                    path: "/house/meetings-chamber",
+                    summary: "House chamber meetings",
+                },
+                {
+                    path: "/house/meetings-other",
+                    summary: "Other House meetings",
+                },
+                {
+                    path: "/house/intros",
+                    summary: "House bill introductions (current session)",
+                },
+                {
+                    path: "/house/journals",
+                    summary: "House journal index",
+                },
+                {
+                    path: "/house/calendars",
+                    summary: "House calendars index",
+                },
+                {
+                    path: "/house/calendars/{year}",
+                    summary: "House calendar for a specific year",
+                    params: [
+                        { name: "year", type: "integer", required: true, desc: "Year (2003-2026)" },
+                    ],
+                },
+                {
+                    path: "/house/intros/{year}",
+                    summary: "House introductions for a specific year",
+                    params: [
+                        { name: "year", type: "integer", required: true, desc: "Year (2001-2026)" },
+                    ],
+                },
+                {
+                    path: "/house/journals/{year}",
+                    summary: "House journals for a specific year",
+                    params: [
+                        { name: "year", type: "integer", required: true, desc: "Year (1986-2026)" },
+                    ],
+                },
+                {
+                    path: "/house/session-{session}",
+                    summary: "House data for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (101-126)" },
+                    ],
+                },
+                {
+                    path: "/house/officers",
+                    summary: "House officers",
+                },
+                {
+                    path: "/house/delegations",
+                    summary: "House county delegations",
+                },
+                {
+                    path: "/house/districtcounties",
+                    summary: "Counties by House district",
+                },
+                {
+                    path: "/house/nonmembers",
+                    summary: "House non-member staff",
+                },
+                {
+                    path: "/house/telephonelist",
+                    summary: "House telephone directory",
+                },
+                {
+                    path: "/house/delegation_email",
+                    summary: "House delegation email contacts",
+                },
+            ]
+        },
+
+        // ─── Senate ───
+        {
+            section: "Senate",
+            description: "South Carolina Senate data including members, committees, meetings, rules, and legislative documents.",
+            endpoints: [
+                {
+                    path: "/senate/bios",
+                    summary: "All current Senate member biographies",
+                    response: {
+                        fields: [
+                            { name: "(same structure as House bios)", type: "", desc: "CHAMBER is 'S' for Senate" },
+                        ]
+                    }
+                },
+                {
+                    path: "/senate/bios/{sponsorCode}",
+                    summary: "Individual Senate member biography",
+                    params: [
+                        { name: "sponsorCode", type: "string", required: true, desc: "Permanent sponsor code" },
+                    ],
+                },
+                {
+                    path: "/senate/bios/bydistrict",
+                    summary: "Senate members indexed by district number",
+                },
+                {
+                    path: "/senate/committees",
+                    summary: "All Senate committees with members",
+                },
+                {
+                    path: "/senate/{session}-committees",
+                    summary: "Senate committees for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (101-126)" },
+                    ],
+                },
+                {
+                    path: "/senate/all-committees",
+                    summary: "All Senate committees across all sessions",
+                },
+                {
+                    path: "/senate/rules",
+                    summary: "Senate Rules of Procedure",
+                },
+                {
+                    path: "/senate/meetings",
+                    summary: "Current Senate meeting schedule",
+                },
+                {
+                    path: "/senate/meetings-today",
+                    summary: "Today's Senate meetings",
+                },
+                {
+                    path: "/senate/meetings-upcoming",
+                    summary: "Upcoming Senate meetings",
+                },
+                {
+                    path: "/senate/meetings-live",
+                    summary: "Currently live Senate meetings",
+                },
+                {
+                    path: "/senate/meetings-all",
+                    summary: "All Senate meetings (current session)",
+                },
+                {
+                    path: "/senate/meetings-archive",
+                    summary: "Archived Senate meetings",
+                },
+                {
+                    path: "/senate/meetings-past",
+                    summary: "Past Senate meetings",
+                },
+                {
+                    path: "/senate/meetings-chamber",
+                    summary: "Senate chamber meetings",
+                },
+                {
+                    path: "/senate/meetings-other",
+                    summary: "Other Senate meetings",
+                },
+                {
+                    path: "/senate/intros",
+                    summary: "Senate bill introductions (current session)",
+                },
+                {
+                    path: "/senate/journals",
+                    summary: "Senate journal index",
+                },
+                {
+                    path: "/senate/calendars",
+                    summary: "Senate calendars index",
+                },
+                {
+                    path: "/senate/calendars/{year}",
+                    summary: "Senate calendar for a specific year",
+                    params: [
+                        { name: "year", type: "integer", required: true, desc: "Year" },
+                    ],
+                },
+                {
+                    path: "/senate/intros/{year}",
+                    summary: "Senate introductions for a specific year",
+                    params: [
+                        { name: "year", type: "integer", required: true, desc: "Year" },
+                    ],
+                },
+                {
+                    path: "/senate/journals/{year}",
+                    summary: "Senate journals for a specific year",
+                    params: [
+                        { name: "year", type: "integer", required: true, desc: "Year" },
+                    ],
+                },
+                {
+                    path: "/senate/session-{session}",
+                    summary: "Senate data for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (101-126)" },
+                    ],
+                },
+                {
+                    path: "/senate/officers",
+                    summary: "Senate officers",
+                },
+                {
+                    path: "/senate/districtcounties",
+                    summary: "Counties by Senate district",
+                },
+                {
+                    path: "/senate/nonmembers",
+                    summary: "Senate non-member staff",
+                },
+                {
+                    path: "/senate/telephonelist",
+                    summary: "Senate telephone directory",
+                },
+            ]
+        },
+
+        // ─── Senate (top-level) ───
+        {
+            section: "Senate (top-level)",
+            description: "Additional Senate-related endpoints at the top level.",
+            endpoints: [
+                {
+                    path: "/senatecommittees",
+                    summary: "Senate committees list",
+                },
+                {
+                    path: "/senatecommitteemembers",
+                    summary: "Senate committee membership",
+                },
+            ]
+        },
+
+        // ─── Members ───
+        {
+            section: "Members",
+            description: "Individual member data accessible by permanent sponsor code.",
+            endpoints: [
+                {
+                    path: "/members/{sponsorCode}",
+                    summary: "Member detail by sponsor code (both chambers)",
+                    params: [
+                        { name: "sponsorCode", type: "string", required: true, desc: "Permanent sponsor code (e.g. 1002272607)" },
+                    ],
+                    response: {
+                        fields: [
+                            { name: "PERM_SPONSOR_CODE", type: "string", desc: "Unique identifier" },
+                            { name: "PARTY", type: "string", desc: "Party affiliation" },
+                            { name: "DISTRICT_NUMBER", type: "string", desc: "District number" },
+                            { name: "CHAMBER", type: "string", desc: "'H' or 'S'" },
+                            { name: "FIRST / LAST", type: "string", desc: "Name fields" },
+                            { name: "BIOGRAPHY", type: "string", desc: "HTML biography" },
+                        ]
+                    }
+                },
+            ]
+        },
+
+        // ─── Meetings ───
+        {
+            section: "Meetings",
+            description: "Legislative committee and chamber meetings.",
+            endpoints: [
+                {
+                    path: "/meetings/{meetingId}",
+                    summary: "Meeting details by meeting ID",
+                    params: [
+                        { name: "meetingId", type: "integer", required: true, desc: "Meeting key ID" },
+                    ],
+                },
+                {
+                    path: "/meetings/transcripts",
+                    summary: "Meeting transcript files",
+                },
+            ]
+        },
+
+        // ─── Votes ───
+        {
+            section: "Votes",
+            description: "Roll call vote data by session and chamber.",
+            endpoints: [
+                {
+                    path: "/votesessions",
+                    summary: "Sessions with available vote data",
+                },
+                {
+                    path: "/vote/{session}/house",
+                    summary: "House votes for a session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (119-126)" },
+                    ],
+                    response: {
+                        fields: [
+                            { name: "KEY", type: "string", desc: "Vote key" },
+                            { name: "CHAMBER", type: "string", desc: "'H' or 'S'" },
+                            { name: "VOTE_NUMBER", type: "string", desc: "Vote sequence number" },
+                            { name: "BILL_NUMBER", type: "string", desc: "Related bill number" },
+                            { name: "MOTION", type: "string", desc: "Motion text (e.g. 'Passage of Bill')" },
+                            { name: "VOTETIME", type: "string", desc: "Vote timestamp" },
+                            { name: "APPROVED", type: "string", desc: "'1' if approved" },
+                            { name: "CHOICES", type: "array", desc: "Vote results with Yeas/Nays/sponsor detail" },
+                        ]
+                    }
+                },
+                {
+                    path: "/vote/{session}/senate",
+                    summary: "Senate votes for a session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (119-126)" },
+                    ],
+                },
+                {
+                    path: "/vote/{session}/all",
+                    summary: "All votes (both chambers) for a session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number" },
+                    ],
+                },
+                {
+                    path: "/vote/{session}/bill",
+                    summary: "Vote data organized by bill for a session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number" },
+                    ],
+                },
+            ]
+        },
+
+        // ─── Video ───
+        {
+            section: "Video",
+            description: "Video streaming data for legislative proceedings.",
+            endpoints: [
+                {
+                    path: "/video/current",
+                    summary: "Currently streaming/active video feeds",
+                },
+                {
+                    path: "/video/live",
+                    summary: "Live video feeds",
+                },
+                {
+                    path: "/video/archive",
+                    summary: "Archived video recordings",
+                },
+                {
+                    path: "/video/home",
+                    summary: "Video section homepage data",
+                },
+                {
+                    path: "/video/upcoming",
+                    summary: "Upcoming scheduled video feeds",
+                },
+                {
+                    path: "/video/year{year}",
+                    summary: "Video archive for a specific year",
+                    params: [
+                        { name: "year", type: "integer", required: true, desc: "Year (2011+)" },
+                    ],
+                },
+                {
+                    path: "/video/pastyear",
+                    summary: "Past year video archive",
+                },
+                {
+                    path: "/video/live-website",
+                    summary: "Live video data for website display",
+                },
+            ]
+        },
+
+        // ─── Code of Laws ───
+        {
+            section: "Code of Laws",
+            description: "South Carolina Code of Laws organized by title and chapter.",
+            endpoints: [
+                {
+                    path: "/codeoflaws",
+                    summary: "Full Code of Laws table of contents (all titles and chapters)",
+                    response: {
+                        fields: [
+                            { name: "name", type: "string", desc: "Title name" },
+                            { name: "path", type: "string", desc: "URL path for this title" },
+                            { name: "parent", type: "string", desc: "Parent path" },
+                            { name: "children", type: "array", desc: "Chapters under this title" },
+                            { name: "children[].data", type: "object", desc: "Chapter data with CHAPTER_TEXT (HTML)" },
+                        ]
+                    }
+                },
+                {
+                    path: "/codeoflaws/title{number}",
+                    summary: "Specific title from the Code of Laws",
+                    params: [
+                        { name: "number", type: "integer", required: true, desc: "Title number (1-63)" },
+                    ],
+                },
+            ]
+        },
+
+        // ─── Code of Regulations ───
+        {
+            section: "Code of Regulations",
+            description: "South Carolina Code of Regulations.",
+            endpoints: [
+                {
+                    path: "/codeofregs",
+                    summary: "Code of Regulations table of contents",
+                },
+                {
+                    path: "/codeofregs/chapter{number}",
+                    summary: "Specific regulation chapter",
+                    params: [
+                        { name: "number", type: "integer", required: true, desc: "Chapter number (e.g. 7, 20, 43, 61, 71, 103, 123, 137)" },
+                    ],
+                },
+            ]
+        },
+
+        // ─── Constitution ───
+        {
+            section: "Constitution",
+            description: "South Carolina State Constitution articles and amendments.",
+            endpoints: [
+                {
+                    path: "/constitution",
+                    summary: "Full Constitution table of contents",
+                },
+                {
+                    path: "/constitution/article_i",
+                    summary: "Article I - Declaration of Rights",
+                },
+                {
+                    path: "/constitution/article_ii",
+                    summary: "Article II - Right of Suffrage",
+                },
+                {
+                    path: "/constitution/article_iii",
+                    summary: "Article III - Legislative Department",
+                },
+                {
+                    path: "/constitution/article_iv",
+                    summary: "Article IV - Executive Department",
+                },
+                {
+                    path: "/constitution/article_v",
+                    summary: "Article V - Judicial Department",
+                },
+                {
+                    path: "/constitution/article_vi",
+                    summary: "Article VI - Officers and Employees",
+                },
+                {
+                    path: "/constitution/article_vii",
+                    summary: "Article VII - Counties, County Government",
+                },
+                {
+                    path: "/constitution/article_viii",
+                    summary: "Article VIII - Municipal Corporations",
+                },
+                {
+                    path: "/constitution/article_ix",
+                    summary: "Article IX - Taxation",
+                },
+                {
+                    path: "/constitution/article_x",
+                    summary: "Article X - Finance and Taxation",
+                },
+                {
+                    path: "/constitution/article_xi",
+                    summary: "Article XI - Public Education",
+                },
+                {
+                    path: "/constitution/article_xii",
+                    summary: "Article XII - Corporations",
+                },
+                {
+                    path: "/constitution/article_xiii",
+                    summary: "Article XIII - Militia",
+                },
+                {
+                    path: "/constitution/article_xiv",
+                    summary: "Article XIV - Miscellaneous Matters",
+                },
+                {
+                    path: "/constitution/article_xv",
+                    summary: "Article XV - Impeachment",
+                },
+                {
+                    path: "/constitution/article_xvi",
+                    summary: "Article XVI - Amendments",
+                },
+                {
+                    path: "/constitution/article_xvii",
+                    summary: "Article XVII - Miscellaneous",
+                },
+                {
+                    path: "/constitution/amendments",
+                    summary: "Constitutional amendments",
+                },
+            ]
+        },
+
+        // ─── Subjects ───
+        {
+            section: "Subjects",
+            description: "Bill subject/topic classification data by session.",
+            endpoints: [
+                {
+                    path: "/subjects/current",
+                    summary: "Subjects for the current session",
+                },
+                {
+                    path: "/subjects/{session}",
+                    summary: "Subjects for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (102-126)" },
+                    ],
+                },
+            ]
+        },
+
+        // ─── Dashboard ───
+        {
+            section: "Dashboard",
+            description: "Legislative dashboard data for current bills and amendments.",
+            endpoints: [
+                {
+                    path: "/dashboard/currentbill/house",
+                    summary: "Current House bills dashboard",
+                },
+                {
+                    path: "/dashboard/currentbill/senate",
+                    summary: "Current Senate bills dashboard",
+                },
+                {
+                    path: "/dashboard/currentbudget",
+                    summary: "Current budget dashboard data",
+                },
+                {
+                    path: "/dashboard/currentamendment",
+                    summary: "Current amendments overview",
+                },
+                {
+                    path: "/dashboard/currentamendment/house",
+                    summary: "Current House amendments",
+                },
+                {
+                    path: "/dashboard/currentamendment/senate",
+                    summary: "Current Senate amendments",
+                },
+                {
+                    path: "/dashboard/currentamendment/common",
+                    summary: "Common/joint amendments",
+                },
+                {
+                    path: "/dashboard/currentamendment/{session}",
+                    summary: "Amendments for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number (122-126) or 'current'" },
+                    ],
+                },
+                {
+                    path: "/dashboard/currentamendment/{session}/house",
+                    summary: "House amendments for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number" },
+                    ],
+                },
+                {
+                    path: "/dashboard/currentamendment/{session}/senate",
+                    summary: "Senate amendments for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number" },
+                    ],
+                },
+                {
+                    path: "/dashboard/currentamendment/{session}/common",
+                    summary: "Common amendments for a specific session",
+                    params: [
+                        { name: "session", type: "integer", required: true, desc: "Session number" },
+                    ],
+                },
+            ]
+        },
+
+        // ─── Website ───
+        {
+            section: "Website",
+            description: "Data consumed by the scstatehouse.gov website.",
+            endpoints: [
+                {
+                    path: "/website/chamberstats",
+                    summary: "Chamber statistics",
+                },
+                {
+                    path: "/website/counties",
+                    summary: "County data for the website",
+                },
+                {
+                    path: "/website/currentdigest",
+                    summary: "Current legislative digest",
+                },
+                {
+                    path: "/website/currenthousedemocrats",
+                    summary: "Current House Democrats list",
+                },
+                {
+                    path: "/website/currenthouserepublicans",
+                    summary: "Current House Republicans list",
+                },
+                {
+                    path: "/website/currenthouseindependents",
+                    summary: "Current House Independents list",
+                },
+                {
+                    path: "/website/currenthousenonpartisan",
+                    summary: "Current House non-partisan members",
+                },
+                {
+                    path: "/website/currenthousemeetings",
+                    summary: "Current House meetings for website",
+                },
+                {
+                    path: "/website/currenthousepetitions",
+                    summary: "Current House petitions",
+                },
+                {
+                    path: "/website/currentsenatedemocrats",
+                    summary: "Current Senate Democrats list",
+                },
+                {
+                    path: "/website/currentsenaterepublicans",
+                    summary: "Current Senate Republicans list",
+                },
+                {
+                    path: "/website/currentsenateindependents",
+                    summary: "Current Senate Independents list",
+                },
+                {
+                    path: "/website/currentsenatemeetings",
+                    summary: "Current Senate meetings for website",
+                },
+                {
+                    path: "/website/currentsenatepetitions",
+                    summary: "Current Senate petitions",
+                },
+            ]
+        },
+
+        // ─── Journals ───
+        {
+            section: "Journals",
+            description: "House and Senate journal search data.",
+            endpoints: [
+                {
+                    path: "/housejournaldata",
+                    summary: "House journal search/index data",
+                },
+                {
+                    path: "/senatejournaldata",
+                    summary: "Senate journal search/index data",
+                },
+            ]
+        },
+
+        // ─── Metrics ───
+        {
+            section: "Metrics",
+            description: "API usage metrics.",
+            endpoints: [
+                {
+                    path: "/metrics",
+                    summary: "API usage and performance metrics",
+                },
+            ]
+        },
+    ];
+
+    // ─── Render ───
+    function renderSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const filter = sidebar.querySelector(".filter-input");
+        let html = "";
+        API.forEach(group => {
+            html += `<h3>${group.section}</h3>`;
+            group.endpoints.forEach(ep => {
+                html += `<a href="#${slugify(ep.path)}" data-path="${ep.path}">${ep.path}</a>`;
+            });
+        });
+        filter.insertAdjacentHTML("afterend", html);
+
+        filter.addEventListener("input", () => {
+            const q = filter.value.toLowerCase();
+            sidebar.querySelectorAll("a").forEach(a => {
+                const match = a.dataset.path.toLowerCase().includes(q) ||
+                    a.textContent.toLowerCase().includes(q);
+                a.style.display = match ? "" : "none";
+            });
+            sidebar.querySelectorAll("h3").forEach(h3 => {
+                let next = h3.nextElementSibling;
+                let anyVisible = false;
+                while (next && next.tagName === "A") {
+                    if (next.style.display !== "none") anyVisible = true;
+                    next = next.nextElementSibling;
+                }
+                h3.style.display = anyVisible ? "" : "none";
+            });
+        });
+    }
+
+    function renderContent() {
+        const content = document.getElementById("content");
+        let html = `<div class="expand-all-bar">
+            <button onclick="toggleAll(true)">Expand All</button>
+            <button onclick="toggleAll(false)">Collapse All</button>
+        </div>`;
+
+        API.forEach(group => {
+            html += `<h2 class="section-header" id="section-${slugify(group.section)}">${group.section}</h2>`;
+            if (group.description) html += `<p class="section-desc">${group.description}</p>`;
+
+            group.endpoints.forEach(ep => {
+                const id = slugify(ep.path);
+                html += `<div class="endpoint" id="${id}">
+                    <div class="endpoint-header" onclick="toggleEndpoint(this)">
+                        <span class="method-badge">GET</span>
+                        <span class="endpoint-path">${highlightParams(ep.path)}</span>
+                        <span class="endpoint-summary">${ep.summary || ""}</span>
+                        <span class="endpoint-chevron">&#9654;</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <h4>Description</h4>
+                        <p>${ep.summary || ""}${ep.note ? " &mdash; " + ep.note : ""}</p>`;
+
+                if (ep.params && ep.params.length) {
+                    html += `<h4>Path Parameters</h4>
+                        <table class="param-table">
+                            <tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr>`;
+                    ep.params.forEach(p => {
+                        html += `<tr>
+                            <td class="param-name">${p.name}</td>
+                            <td class="param-type">${p.type}</td>
+                            <td>${p.required ? '<span class="param-required">required</span>' : "optional"}</td>
+                            <td>${p.desc}</td>
+                        </tr>`;
+                    });
+                    html += `</table>`;
+                }
+
+                if (ep.response && ep.response.fields) {
+                    html += `<h4>Response Fields</h4><ul class="response-fields">`;
+                    ep.response.fields.forEach(f => {
+                        html += `<li><code>${f.name}</code> <span class="param-type">${f.type}</span> &mdash; ${f.desc}</li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                if (ep.example) {
+                    html += `<h4>Example Response</h4><div class="response-example">${escapeHtml(ep.example)}</div>`;
+                }
+
+                // Try-it section
+                const tryPath = ep.examplePath || (ep.params ? null : ep.path);
+                if (tryPath) {
+                    html += `<div class="try-it">
+                        <h4>Try It</h4>
+                        <button onclick="tryEndpoint(this, '${tryPath}')">Send Request</button>
+                        <div class="try-it-result" id="result-${id}"></div>
+                    </div>`;
+                } else if (ep.params) {
+                    html += `<div class="try-it">
+                        <h4>Try It</h4>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">`;
+                    ep.params.forEach(p => {
+                        html += `<label style="font-size:0.85rem;"><span class="param-name">${p.name}:</span>
+                            <input type="text" class="try-param" data-param="${p.name}" placeholder="${p.desc}"
+                                style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.85rem;width:120px;margin-left:4px;">
+                        </label>`;
+                    });
+                    html += `</div>
+                        <button onclick="tryEndpointWithParams(this, '${ep.path}')">Send Request</button>
+                        <div class="try-it-result" id="result-${id}"></div>
+                    </div>`;
+                }
+
+                html += `</div></div>`;
+            });
+        });
+        content.innerHTML = html;
+    }
+
+    function slugify(str) {
+        return str.replace(/[^a-zA-Z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    }
+
+    function highlightParams(path) {
+        return path.replace(/\{([^}]+)\}/g, '<span class="param">{$1}</span>');
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function toggleEndpoint(header) {
+        header.parentElement.classList.toggle("open");
+    }
+
+    function toggleAll(open) {
+        document.querySelectorAll(".endpoint").forEach(el => {
+            el.classList.toggle("open", open);
+        });
+    }
+
+    async function tryEndpoint(btn, path) {
+        const resultDiv = btn.parentElement.querySelector(".try-it-result");
+        btn.disabled = true;
+        btn.textContent = "Loading...";
+        resultDiv.innerHTML = "";
+        try {
+            const resp = await fetch(BASE + path);
+            const text = await resp.text();
+            let formatted;
+            try {
+                formatted = JSON.stringify(JSON.parse(text), null, 2);
+            } catch {
+                formatted = text;
+            }
+            // Truncate very large responses for display
+            if (formatted.length > 10000) {
+                formatted = formatted.substring(0, 10000) + "\n\n... (truncated, " + formatted.length.toLocaleString() + " chars total)";
+            }
+            resultDiv.innerHTML = `<div class="response-example">${escapeHtml(formatted)}</div>`;
+        } catch (e) {
+            resultDiv.innerHTML = `<p style="color:#d32f2f">Error: ${escapeHtml(e.message)}</p>`;
+        }
+        btn.disabled = false;
+        btn.textContent = "Send Request";
+    }
+
+    async function tryEndpointWithParams(btn, pathTemplate) {
+        const container = btn.parentElement;
+        const inputs = container.querySelectorAll(".try-param");
+        let path = pathTemplate;
+        for (const input of inputs) {
+            const val = input.value.trim();
+            if (!val) {
+                input.style.borderColor = "#d32f2f";
+                return;
+            }
+            input.style.borderColor = "";
+            path = path.replace(`{${input.dataset.param}}`, val);
+        }
+        await tryEndpoint(btn, path);
+    }
+
+    // ─── Init ───
+    renderSidebar();
+    renderContent();
+
+    // Handle hash navigation
+    if (window.location.hash) {
+        const el = document.querySelector(window.location.hash);
+        if (el) {
+            el.classList.add("open");
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SC General Assembly - Ideas Engine</title>
+    <style>
+        :root {
+            --navy: #1b2a4a;
+            --navy-light: #2c3e6b;
+            --gold: #c9a94e;
+            --gold-light: #e8d48b;
+            --white: #ffffff;
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --border: #e2e4e8;
+            --text: #2d3748;
+            --text-muted: #718096;
+            --shadow: 0 2px 8px rgba(27,42,74,0.08);
+            --shadow-hover: 0 8px 24px rgba(27,42,74,0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            color: var(--white);
+            padding: 40px 32px 32px;
+            text-align: center;
+            border-bottom: 4px solid var(--gold);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        header .subtitle {
+            color: var(--gold-light);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        header .tagline {
+            margin-top: 12px;
+            font-size: 0.95rem;
+            opacity: 0.8;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            padding: 16px 32px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--navy);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .filter-bar {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 20px 32px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--navy);
+            color: var(--white);
+            border-color: var(--navy);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
+            padding: 0 32px 48px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .card-accent {
+            height: 4px;
+            background: linear-gradient(90deg, var(--navy) 0%, var(--gold) 100%);
+        }
+
+        .card-body {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .card-title-group {
+            flex: 1;
+        }
+
+        .card-acronym {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.3;
+        }
+
+        .card-tagline {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 12px;
+        }
+
+        .card-desc {
+            font-size: 0.9rem;
+            color: var(--text);
+            margin-bottom: 16px;
+            flex: 1;
+        }
+
+        .card-data-sources {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .card-data-sources strong {
+            color: var(--navy);
+        }
+
+        .badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-lawmakers { background: #e8f0fe; color: #1a56db; }
+        .badge-leadership { background: #fef3c7; color: #92400e; }
+        .badge-staff { background: #e0f2fe; color: #0369a1; }
+        .badge-lobbyists { background: #fce7f3; color: #9d174d; }
+        .badge-agencies { background: #f0fdf4; color: #166534; }
+        .badge-constituents { background: #f5f3ff; color: #5b21b6; }
+
+        .card-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 20px;
+            background: var(--navy);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .card-link:hover {
+            background: var(--navy-light);
+        }
+
+        .card-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        footer {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+        }
+
+        footer a { color: var(--navy); }
+
+        @media (max-width: 480px) {
+            .grid { grid-template-columns: 1fr; padding: 0 16px 32px; }
+            header { padding: 24px 16px; }
+            header h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>SC General Assembly Ideas Engine</h1>
+    <div class="subtitle">Legislative Data Innovation Lab</div>
+    <div class="tagline">Prototype tools and dashboards powered by the SC Statehouse REST API &mdash; transforming legislative data into actionable insights for lawmakers, staff, and citizens.</div>
+</header>
+
+<div class="stats-bar">
+    <div class="stat">
+        <div class="stat-number">10</div>
+        <div class="stat-label">Concepts</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number">120+</div>
+        <div class="stat-label">API Endpoints</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number">6</div>
+        <div class="stat-label">Audiences</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number">16</div>
+        <div class="stat-label">Data Categories</div>
+    </div>
+</div>
+
+<div class="filter-bar">
+    <button class="filter-btn active" onclick="filterCards('all')">All</button>
+    <button class="filter-btn" onclick="filterCards('lawmakers')">Lawmakers</button>
+    <button class="filter-btn" onclick="filterCards('leadership')">Leadership</button>
+    <button class="filter-btn" onclick="filterCards('staff')">Staff</button>
+    <button class="filter-btn" onclick="filterCards('lobbyists')">Lobbyists</button>
+    <button class="filter-btn" onclick="filterCards('agencies')">Agencies</button>
+    <button class="filter-btn" onclick="filterCards('constituents')">Constituents</button>
+</div>
+
+<div class="grid" id="card-grid">
+
+    <!-- 1. LBTS -->
+    <div class="card" data-audiences="lawmakers,leadership,staff,lobbyists,agencies,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4ca;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">LBTS</div>
+                    <div class="card-title">Legislative Bill Tracker &amp; Status Dashboard</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Every bill's journey, at a glance."</div>
+            <div class="card-desc">Real-time visual pipeline showing every bill's progression through introduction, committee, floor vote, and ratification. Kanban-style board with filters by chamber, session, sponsor, and subject area. Timeline view shows velocity and bottlenecks.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /bills, /sessions, /subjects, /house/committees, /senate/committees, /vote</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-agencies">Agencies</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./01-lbts/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">01</div>
+        </div>
+    </div>
+
+    <!-- 2. MVRX -->
+    <div class="card" data-audiences="lawmakers,leadership,staff,lobbyists,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f5f3;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">MVRX</div>
+                    <div class="card-title">Member Voting Record Explorer</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Transparency in every vote."</div>
+            <div class="card-desc">Interactive member profiles combining biography data with complete voting history. Visualize voting patterns with heatmaps, party alignment scores, cross-chamber comparisons, and bill-by-bill breakdowns across sessions.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /house/bios, /senate/bios, /vote/{session}, /members, /bills</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./02-mvrx/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">02</div>
+        </div>
+    </div>
+
+    <!-- 3. CMAP -->
+    <div class="card" data-audiences="lawmakers,leadership,staff,lobbyists">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4c5;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">CMAP</div>
+                    <div class="card-title">Committee Meeting &amp; Agenda Planner</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Never miss a meeting that matters."</div>
+            <div class="card-desc">Unified calendar merging House and Senate meetings, committee hearings, and chamber sessions with live/upcoming/archive views. Conflict detection, personal agenda builder, and iCal export for staff and lobbyists tracking multiple committees.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /house/meetings*, /senate/meetings*, /house/committees, /senate/committees, /video/upcoming</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./03-cmap/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">03</div>
+        </div>
+    </div>
+
+    <!-- 4. SCLX -->
+    <div class="card" data-audiences="lawmakers,staff,agencies,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x2696;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">SCLX</div>
+                    <div class="card-title">SC Legal Code Cross-Reference Engine</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Connect the dots between laws, regulations, and the constitution."</div>
+            <div class="card-desc">Unified search across the Code of Laws, Code of Regulations, and Constitution. Cross-reference explorer showing relationships between statutory titles, regulatory chapters, and constitutional articles. Full-text search with highlighted results.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /codeoflaws, /codeofregs, /constitution, /bills (for pending changes)</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-agencies">Agencies</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./04-sclx/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">04</div>
+        </div>
+    </div>
+
+    <!-- 5. BFIS -->
+    <div class="card" data-audiences="lawmakers,leadership,staff,agencies">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4b0;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">BFIS</div>
+                    <div class="card-title">Budget &amp; Fiscal Impact Synthesizer</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Follow the money through the legislative process."</div>
+            <div class="card-desc">Dashboard connecting budget data, fiscal impact statements, and budget-related bills into a single financial view. Treemap visualizations of budget allocations, bill cost analysis, and session-over-session spending trend comparisons.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /budgets, /budgetbills, /currentbudget, /bills/fiscalimpact, /dashboard/currentbudget, /session-billcount</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-agencies">Agencies</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./05-bfis/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">05</div>
+        </div>
+    </div>
+
+    <!-- 6. DMAP -->
+    <div class="card" data-audiences="lawmakers,leadership,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f5fa;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">DMAP</div>
+                    <div class="card-title">District &amp; Delegation Mapper</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Your district, your representatives, your voice."</div>
+            <div class="card-desc">Interactive map of SC districts with member overlays showing party affiliation, county delegations, contact info, and district-level legislative activity. County-to-district lookup, delegation email tools, and member comparison views.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /house/bios/bydistrict, /senate/bios/bydistrict, /house/districtcounties, /senate/districtcounties, /house/delegations, /website/counties</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./06-dmap/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">06</div>
+        </div>
+    </div>
+
+    <!-- 7. SPNX -->
+    <div class="card" data-audiences="lawmakers,leadership,staff,lobbyists,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f91d;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">SPNX</div>
+                    <div class="card-title">Sponsor Network &amp; Collaboration Graph</div>
+                </div>
+            </div>
+            <div class="card-tagline">"See who works together to shape legislation."</div>
+            <div class="card-desc">Force-directed network graph showing co-sponsorship relationships between legislators. Reveals bipartisan collaboration clusters, prolific sponsors, cross-chamber partnerships, and subject-area specializations across sessions.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /bills/{session}, /house/bios, /senate/bios, /members, /subjects</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./07-spnx/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">07</div>
+        </div>
+    </div>
+
+    <!-- 8. AMDT -->
+    <div class="card" data-audiences="lawmakers,leadership,staff,lobbyists,agencies">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4dd;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">AMDT</div>
+                    <div class="card-title">Amendment Tracker &amp; Impact Analyzer</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Track every change to every bill."</div>
+            <div class="card-desc">Real-time amendment monitoring across both chambers with diff-style comparisons. Aggregates amendment data by session, chamber, and bill with trend analysis showing amendment activity patterns and success rates.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /dashboard/currentamendment/*, /bills, /vote, /house/committees, /senate/committees</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-agencies">Agencies</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./08-amdt/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">08</div>
+        </div>
+    </div>
+
+    <!-- 9. LSIV -->
+    <div class="card" data-audiences="lawmakers,staff,lobbyists,agencies,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4fa;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">LSIV</div>
+                    <div class="card-title">Legislative Session Intelligence View</div>
+                </div>
+            </div>
+            <div class="card-tagline">"The session at 30,000 feet."</div>
+            <div class="card-desc">Executive dashboard combining session-level metrics: bill counts, vote tallies, meeting activity, video availability, subject distribution, and party composition. Multi-session comparison with trend sparklines and key performance indicators.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /sessions, /session-billcount, /website/chamberstats, /vote, /subjects, /video, /dashboard, /metrics</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-agencies">Agencies</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./09-lsiv/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">09</div>
+        </div>
+    </div>
+
+    <!-- 10. PRFN -->
+    <div class="card" data-audiences="constituents,lobbyists,agencies">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f50d;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">PRFN</div>
+                    <div class="card-title">Public Research &amp; Find Navigator</div>
+                </div>
+            </div>
+            <div class="card-tagline">"One search. Every legislative resource."</div>
+            <div class="card-desc">Citizen-friendly unified search portal spanning bills, members, committees, meetings, laws, regulations, constitution, and journals. Plain-language result cards with quick-glance summaries, related items, and deep-link navigation to source data.</div>
+            <div class="card-data-sources"><strong>Data:</strong> All endpoints &mdash; unified search across /bills, /members, /codeoflaws, /codeofregs, /constitution, /meetings, /subjects, /house/*, /senate/*</div>
+            <div class="badges">
+                <span class="badge badge-constituents">Constituents</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-agencies">Agencies</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./10-prfn/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">10</div>
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    <p>SC General Assembly &mdash; Legislative IT Division &mdash; Ideas Engine</p>
+    <p style="margin-top: 4px;">Data powered by <a href="./rest-documentation/index.html">SC Statehouse REST API</a></p>
+</footer>
+
+<script>
+function filterCards(audience) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.card').forEach(card => {
+        if (audience === 'all') {
+            card.style.display = '';
+        } else {
+            const audiences = card.dataset.audiences.split(',');
+            card.style.display = audiences.includes(audience) ? '' : 'none';
+        }
+    });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2051 @@
+{
+	"info": {
+		"_postman_id": "sc-statehouse-rest-api",
+		"name": "SC Statehouse REST API",
+		"description": "South Carolina Statehouse REST API - Legislative data including bills, members, committees, votes, meetings, and more.\n\nBase URL: https://rest.scstatehouse.gov",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://rest.scstatehouse.gov",
+			"type": "string"
+		},
+		{
+			"key": "session",
+			"value": "126",
+			"type": "string"
+		},
+		{
+			"key": "sponsorCode",
+			"value": "1002272607",
+			"type": "string"
+		},
+		{
+			"key": "year",
+			"value": "2025",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "General",
+			"description": "Top-level application data, sessions, and homepage content.",
+			"item": [
+				{
+					"name": "Homepage Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/home",
+							"host": ["{{baseUrl}}"],
+							"path": ["home"]
+						},
+						"description": "Homepage data including Senate & House session status, video feeds, and overlay messages"
+					}
+				},
+				{
+					"name": "Homepage Data (v3)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/homev3",
+							"host": ["{{baseUrl}}"],
+							"path": ["homev3"]
+						},
+						"description": "Homepage data (v3 format)"
+					}
+				},
+				{
+					"name": "All Sessions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sessions",
+							"host": ["{{baseUrl}}"],
+							"path": ["sessions"]
+						},
+						"description": "All legislative sessions (100th through current)"
+					}
+				},
+				{
+					"name": "Current Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/currentsession",
+							"host": ["{{baseUrl}}"],
+							"path": ["currentsession"]
+						},
+						"description": "Current active legislative session"
+					}
+				},
+				{
+					"name": "Feed Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/feeddata",
+							"host": ["{{baseUrl}}"],
+							"path": ["feeddata"]
+						},
+						"description": "Feed/notification data configuration"
+					}
+				},
+				{
+					"name": "Feed Settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/feedsettings",
+							"host": ["{{baseUrl}}"],
+							"path": ["feedsettings"]
+						},
+						"description": "Feed display settings"
+					}
+				},
+				{
+					"name": "Publications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/publications",
+							"host": ["{{baseUrl}}"],
+							"path": ["publications"]
+						},
+						"description": "Published legislative publications"
+					}
+				},
+				{
+					"name": "Stop Words",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/stopwords",
+							"host": ["{{baseUrl}}"],
+							"path": ["stopwords"]
+						},
+						"description": "Search stop words list used for filtering"
+					}
+				},
+				{
+					"name": "No Results Message",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/noresults",
+							"host": ["{{baseUrl}}"],
+							"path": ["noresults"]
+						},
+						"description": "No-results message content"
+					}
+				}
+			]
+		},
+		{
+			"name": "Bills",
+			"description": "Legislative bills, actions, fiscal impact statements, and sponsor data. Bills are organized by session number.",
+			"item": [
+				{
+					"name": "Get Bill by Session and ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bills/{{session}}/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["bills", "{{session}}", "1"]
+						},
+						"description": "Get a specific bill by session and bill ID. Path params: session (100-126), billId (bill number)."
+					}
+				},
+				{
+					"name": "Get Bills by Sponsor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bills/{{session}}/{{sponsorCode}}-bills",
+							"host": ["{{baseUrl}}"],
+							"path": ["bills", "{{session}}", "{{sponsorCode}}-bills"]
+						},
+						"description": "Get all bills for a sponsor in a session"
+					}
+				},
+				{
+					"name": "Current Session Bills",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bills/current",
+							"host": ["{{baseUrl}}"],
+							"path": ["bills", "current"]
+						},
+						"description": "Bills for the current session"
+					}
+				},
+				{
+					"name": "Bill Actions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bills/actions",
+							"host": ["{{baseUrl}}"],
+							"path": ["bills", "actions"]
+						},
+						"description": "Bill action data files"
+					}
+				},
+				{
+					"name": "Fiscal Impact Statements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bills/fiscalimpact",
+							"host": ["{{baseUrl}}"],
+							"path": ["bills", "fiscalimpact"]
+						},
+						"description": "Fiscal impact statement data"
+					}
+				},
+				{
+					"name": "Alternate Bill Data by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bills/alt/{{session}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["bills", "alt", "{{session}}"]
+						},
+						"description": "Alternate bill data format by session (123-126)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Budgets",
+			"description": "State budget information.",
+			"item": [
+				{
+					"name": "Budgets Overview",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/budgets",
+							"host": ["{{baseUrl}}"],
+							"path": ["budgets"]
+						},
+						"description": "Budget data overview"
+					}
+				},
+				{
+					"name": "Budget Bills",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/budgetbills",
+							"host": ["{{baseUrl}}"],
+							"path": ["budgetbills"]
+						},
+						"description": "Bills related to the budget"
+					}
+				},
+				{
+					"name": "Current Budget",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/currentbudget",
+							"host": ["{{baseUrl}}"],
+							"path": ["currentbudget"]
+						},
+						"description": "Current fiscal year budget data"
+					}
+				},
+				{
+					"name": "Session Bill Count",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/session-billcount",
+							"host": ["{{baseUrl}}"],
+							"path": ["session-billcount"]
+						},
+						"description": "Bill counts per session"
+					}
+				}
+			]
+		},
+		{
+			"name": "House",
+			"description": "South Carolina House of Representatives data including members, committees, meetings, rules, and legislative documents.",
+			"item": [
+				{
+					"name": "All House Bios",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/bios",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "bios"]
+						},
+						"description": "All current House member biographies"
+					}
+				},
+				{
+					"name": "House Member Bio",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/bios/{{sponsorCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "bios", "{{sponsorCode}}"]
+						},
+						"description": "Individual House member biography by sponsor code"
+					}
+				},
+				{
+					"name": "House Bios by District",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/bios/bydistrict",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "bios", "bydistrict"]
+						},
+						"description": "House members indexed by district number"
+					}
+				},
+				{
+					"name": "House Committees",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/committees",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "committees"]
+						},
+						"description": "All House committees with members"
+					}
+				},
+				{
+					"name": "House Committees by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/{{session}}-committees",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "{{session}}-committees"]
+						},
+						"description": "House committees for a specific session (101-126)"
+					}
+				},
+				{
+					"name": "All House Committees (All Sessions)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/all-committees",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "all-committees"]
+						},
+						"description": "All House committees across all sessions"
+					}
+				},
+				{
+					"name": "House Committee Members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/committeemembers",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "committeemembers"]
+						},
+						"description": "Current House committee membership list"
+					}
+				},
+				{
+					"name": "House Rules",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/rules",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "rules"]
+						},
+						"description": "House Rules of Procedure"
+					}
+				},
+				{
+					"name": "House Meetings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings"]
+						},
+						"description": "Current House meeting schedule"
+					}
+				},
+				{
+					"name": "House Meetings Today",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings-today",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings-today"]
+						},
+						"description": "Today's House meetings"
+					}
+				},
+				{
+					"name": "House Meetings Upcoming",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings-upcoming",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings-upcoming"]
+						},
+						"description": "Upcoming House meetings"
+					}
+				},
+				{
+					"name": "House Meetings Live",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings-live",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings-live"]
+						},
+						"description": "Currently live House meetings"
+					}
+				},
+				{
+					"name": "House Meetings All",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings-all",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings-all"]
+						},
+						"description": "All House meetings (current session)"
+					}
+				},
+				{
+					"name": "House Meetings Archive",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings-archive",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings-archive"]
+						},
+						"description": "Archived House meetings"
+					}
+				},
+				{
+					"name": "House Meetings Past",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings-past",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings-past"]
+						},
+						"description": "Past House meetings"
+					}
+				},
+				{
+					"name": "House Meetings Chamber",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings-chamber",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings-chamber"]
+						},
+						"description": "House chamber meetings"
+					}
+				},
+				{
+					"name": "House Meetings Other",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/meetings-other",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "meetings-other"]
+						},
+						"description": "Other House meetings"
+					}
+				},
+				{
+					"name": "House Introductions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/intros",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "intros"]
+						},
+						"description": "House bill introductions (current session)"
+					}
+				},
+				{
+					"name": "House Journals",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/journals",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "journals"]
+						},
+						"description": "House journal index"
+					}
+				},
+				{
+					"name": "House Calendars",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/calendars",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "calendars"]
+						},
+						"description": "House calendars index"
+					}
+				},
+				{
+					"name": "House Calendar by Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/calendars/{{year}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "calendars", "{{year}}"]
+						},
+						"description": "House calendar for a specific year (2003-2026)"
+					}
+				},
+				{
+					"name": "House Introductions by Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/intros/{{year}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "intros", "{{year}}"]
+						},
+						"description": "House introductions for a specific year (2001-2026)"
+					}
+				},
+				{
+					"name": "House Journals by Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/journals/{{year}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "journals", "{{year}}"]
+						},
+						"description": "House journals for a specific year (1986-2026)"
+					}
+				},
+				{
+					"name": "House Data by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/session-{{session}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "session-{{session}}"]
+						},
+						"description": "House data for a specific session (101-126)"
+					}
+				},
+				{
+					"name": "House Officers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/officers",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "officers"]
+						},
+						"description": "House officers"
+					}
+				},
+				{
+					"name": "House Delegations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/delegations",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "delegations"]
+						},
+						"description": "House county delegations"
+					}
+				},
+				{
+					"name": "House District Counties",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/districtcounties",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "districtcounties"]
+						},
+						"description": "Counties by House district"
+					}
+				},
+				{
+					"name": "House Non-Members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/nonmembers",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "nonmembers"]
+						},
+						"description": "House non-member staff"
+					}
+				},
+				{
+					"name": "House Telephone List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/telephonelist",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "telephonelist"]
+						},
+						"description": "House telephone directory"
+					}
+				},
+				{
+					"name": "House Delegation Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/house/delegation_email",
+							"host": ["{{baseUrl}}"],
+							"path": ["house", "delegation_email"]
+						},
+						"description": "House delegation email contacts"
+					}
+				}
+			]
+		},
+		{
+			"name": "Senate",
+			"description": "South Carolina Senate data including members, committees, meetings, rules, and legislative documents.",
+			"item": [
+				{
+					"name": "All Senate Bios",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/bios",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "bios"]
+						},
+						"description": "All current Senate member biographies"
+					}
+				},
+				{
+					"name": "Senate Member Bio",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/bios/{{sponsorCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "bios", "{{sponsorCode}}"]
+						},
+						"description": "Individual Senate member biography by sponsor code"
+					}
+				},
+				{
+					"name": "Senate Bios by District",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/bios/bydistrict",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "bios", "bydistrict"]
+						},
+						"description": "Senate members indexed by district number"
+					}
+				},
+				{
+					"name": "Senate Committees",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/committees",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "committees"]
+						},
+						"description": "All Senate committees with members"
+					}
+				},
+				{
+					"name": "Senate Committees by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/{{session}}-committees",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "{{session}}-committees"]
+						},
+						"description": "Senate committees for a specific session (101-126)"
+					}
+				},
+				{
+					"name": "All Senate Committees (All Sessions)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/all-committees",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "all-committees"]
+						},
+						"description": "All Senate committees across all sessions"
+					}
+				},
+				{
+					"name": "Senate Rules",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/rules",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "rules"]
+						},
+						"description": "Senate Rules of Procedure"
+					}
+				},
+				{
+					"name": "Senate Meetings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings"]
+						},
+						"description": "Current Senate meeting schedule"
+					}
+				},
+				{
+					"name": "Senate Meetings Today",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings-today",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings-today"]
+						},
+						"description": "Today's Senate meetings"
+					}
+				},
+				{
+					"name": "Senate Meetings Upcoming",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings-upcoming",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings-upcoming"]
+						},
+						"description": "Upcoming Senate meetings"
+					}
+				},
+				{
+					"name": "Senate Meetings Live",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings-live",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings-live"]
+						},
+						"description": "Currently live Senate meetings"
+					}
+				},
+				{
+					"name": "Senate Meetings All",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings-all",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings-all"]
+						},
+						"description": "All Senate meetings (current session)"
+					}
+				},
+				{
+					"name": "Senate Meetings Archive",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings-archive",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings-archive"]
+						},
+						"description": "Archived Senate meetings"
+					}
+				},
+				{
+					"name": "Senate Meetings Past",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings-past",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings-past"]
+						},
+						"description": "Past Senate meetings"
+					}
+				},
+				{
+					"name": "Senate Meetings Chamber",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings-chamber",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings-chamber"]
+						},
+						"description": "Senate chamber meetings"
+					}
+				},
+				{
+					"name": "Senate Meetings Other",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/meetings-other",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "meetings-other"]
+						},
+						"description": "Other Senate meetings"
+					}
+				},
+				{
+					"name": "Senate Introductions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/intros",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "intros"]
+						},
+						"description": "Senate bill introductions (current session)"
+					}
+				},
+				{
+					"name": "Senate Journals",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/journals",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "journals"]
+						},
+						"description": "Senate journal index"
+					}
+				},
+				{
+					"name": "Senate Calendars",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/calendars",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "calendars"]
+						},
+						"description": "Senate calendars index"
+					}
+				},
+				{
+					"name": "Senate Calendar by Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/calendars/{{year}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "calendars", "{{year}}"]
+						},
+						"description": "Senate calendar for a specific year"
+					}
+				},
+				{
+					"name": "Senate Introductions by Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/intros/{{year}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "intros", "{{year}}"]
+						},
+						"description": "Senate introductions for a specific year"
+					}
+				},
+				{
+					"name": "Senate Journals by Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/journals/{{year}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "journals", "{{year}}"]
+						},
+						"description": "Senate journals for a specific year"
+					}
+				},
+				{
+					"name": "Senate Data by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/session-{{session}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "session-{{session}}"]
+						},
+						"description": "Senate data for a specific session (101-126)"
+					}
+				},
+				{
+					"name": "Senate Officers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/officers",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "officers"]
+						},
+						"description": "Senate officers"
+					}
+				},
+				{
+					"name": "Senate District Counties",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/districtcounties",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "districtcounties"]
+						},
+						"description": "Counties by Senate district"
+					}
+				},
+				{
+					"name": "Senate Non-Members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/nonmembers",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "nonmembers"]
+						},
+						"description": "Senate non-member staff"
+					}
+				},
+				{
+					"name": "Senate Telephone List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senate/telephonelist",
+							"host": ["{{baseUrl}}"],
+							"path": ["senate", "telephonelist"]
+						},
+						"description": "Senate telephone directory"
+					}
+				}
+			]
+		},
+		{
+			"name": "Senate (top-level)",
+			"description": "Additional Senate-related endpoints at the top level.",
+			"item": [
+				{
+					"name": "Senate Committees List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senatecommittees",
+							"host": ["{{baseUrl}}"],
+							"path": ["senatecommittees"]
+						},
+						"description": "Senate committees list"
+					}
+				},
+				{
+					"name": "Senate Committee Members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senatecommitteemembers",
+							"host": ["{{baseUrl}}"],
+							"path": ["senatecommitteemembers"]
+						},
+						"description": "Senate committee membership"
+					}
+				}
+			]
+		},
+		{
+			"name": "Members",
+			"description": "Individual member data accessible by permanent sponsor code.",
+			"item": [
+				{
+					"name": "Member by Sponsor Code",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/members/{{sponsorCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["members", "{{sponsorCode}}"]
+						},
+						"description": "Member detail by sponsor code (both chambers). Example: 1002272607"
+					}
+				}
+			]
+		},
+		{
+			"name": "Meetings",
+			"description": "Legislative committee and chamber meetings.",
+			"item": [
+				{
+					"name": "Meeting by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/meetings/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["meetings", "1"]
+						},
+						"description": "Meeting details by meeting ID (replace '1' with actual meeting key ID)"
+					}
+				},
+				{
+					"name": "Meeting Transcripts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/meetings/transcripts",
+							"host": ["{{baseUrl}}"],
+							"path": ["meetings", "transcripts"]
+						},
+						"description": "Meeting transcript files"
+					}
+				}
+			]
+		},
+		{
+			"name": "Votes",
+			"description": "Roll call vote data by session and chamber.",
+			"item": [
+				{
+					"name": "Vote Sessions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/votesessions",
+							"host": ["{{baseUrl}}"],
+							"path": ["votesessions"]
+						},
+						"description": "Sessions with available vote data"
+					}
+				},
+				{
+					"name": "House Votes by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/vote/{{session}}/house",
+							"host": ["{{baseUrl}}"],
+							"path": ["vote", "{{session}}", "house"]
+						},
+						"description": "House votes for a session (119-126)"
+					}
+				},
+				{
+					"name": "Senate Votes by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/vote/{{session}}/senate",
+							"host": ["{{baseUrl}}"],
+							"path": ["vote", "{{session}}", "senate"]
+						},
+						"description": "Senate votes for a session (119-126)"
+					}
+				},
+				{
+					"name": "All Votes by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/vote/{{session}}/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["vote", "{{session}}", "all"]
+						},
+						"description": "All votes (both chambers) for a session"
+					}
+				},
+				{
+					"name": "Votes by Bill for Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/vote/{{session}}/bill",
+							"host": ["{{baseUrl}}"],
+							"path": ["vote", "{{session}}", "bill"]
+						},
+						"description": "Vote data organized by bill for a session"
+					}
+				}
+			]
+		},
+		{
+			"name": "Video",
+			"description": "Video streaming data for legislative proceedings.",
+			"item": [
+				{
+					"name": "Current Video Feeds",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/video/current",
+							"host": ["{{baseUrl}}"],
+							"path": ["video", "current"]
+						},
+						"description": "Currently streaming/active video feeds"
+					}
+				},
+				{
+					"name": "Live Video Feeds",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/video/live",
+							"host": ["{{baseUrl}}"],
+							"path": ["video", "live"]
+						},
+						"description": "Live video feeds"
+					}
+				},
+				{
+					"name": "Video Archive",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/video/archive",
+							"host": ["{{baseUrl}}"],
+							"path": ["video", "archive"]
+						},
+						"description": "Archived video recordings"
+					}
+				},
+				{
+					"name": "Video Home",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/video/home",
+							"host": ["{{baseUrl}}"],
+							"path": ["video", "home"]
+						},
+						"description": "Video section homepage data"
+					}
+				},
+				{
+					"name": "Upcoming Video",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/video/upcoming",
+							"host": ["{{baseUrl}}"],
+							"path": ["video", "upcoming"]
+						},
+						"description": "Upcoming scheduled video feeds"
+					}
+				},
+				{
+					"name": "Video Archive by Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/video/year{{year}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["video", "year{{year}}"]
+						},
+						"description": "Video archive for a specific year (2011+)"
+					}
+				},
+				{
+					"name": "Past Year Video",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/video/pastyear",
+							"host": ["{{baseUrl}}"],
+							"path": ["video", "pastyear"]
+						},
+						"description": "Past year video archive"
+					}
+				},
+				{
+					"name": "Live Video Website",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/video/live-website",
+							"host": ["{{baseUrl}}"],
+							"path": ["video", "live-website"]
+						},
+						"description": "Live video data for website display"
+					}
+				}
+			]
+		},
+		{
+			"name": "Code of Laws",
+			"description": "South Carolina Code of Laws organized by title and chapter.",
+			"item": [
+				{
+					"name": "Code of Laws TOC",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codeoflaws",
+							"host": ["{{baseUrl}}"],
+							"path": ["codeoflaws"]
+						},
+						"description": "Full Code of Laws table of contents (all titles and chapters)"
+					}
+				},
+				{
+					"name": "Code of Laws by Title",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codeoflaws/title1",
+							"host": ["{{baseUrl}}"],
+							"path": ["codeoflaws", "title1"]
+						},
+						"description": "Specific title from the Code of Laws (1-63). Change 'title1' to desired title number."
+					}
+				}
+			]
+		},
+		{
+			"name": "Code of Regulations",
+			"description": "South Carolina Code of Regulations.",
+			"item": [
+				{
+					"name": "Code of Regulations TOC",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codeofregs",
+							"host": ["{{baseUrl}}"],
+							"path": ["codeofregs"]
+						},
+						"description": "Code of Regulations table of contents"
+					}
+				},
+				{
+					"name": "Regulation Chapter",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codeofregs/chapter7",
+							"host": ["{{baseUrl}}"],
+							"path": ["codeofregs", "chapter7"]
+						},
+						"description": "Specific regulation chapter (e.g. 7, 20, 43, 61, 71, 103, 123, 137)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Constitution",
+			"description": "South Carolina State Constitution articles and amendments.",
+			"item": [
+				{
+					"name": "Constitution TOC",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution"]
+						},
+						"description": "Full Constitution table of contents"
+					}
+				},
+				{
+					"name": "Article I - Declaration of Rights",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_i",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_i"]
+						},
+						"description": "Article I - Declaration of Rights"
+					}
+				},
+				{
+					"name": "Article II - Right of Suffrage",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_ii",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_ii"]
+						},
+						"description": "Article II - Right of Suffrage"
+					}
+				},
+				{
+					"name": "Article III - Legislative Department",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_iii",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_iii"]
+						},
+						"description": "Article III - Legislative Department"
+					}
+				},
+				{
+					"name": "Article IV - Executive Department",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_iv",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_iv"]
+						},
+						"description": "Article IV - Executive Department"
+					}
+				},
+				{
+					"name": "Article V - Judicial Department",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_v",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_v"]
+						},
+						"description": "Article V - Judicial Department"
+					}
+				},
+				{
+					"name": "Article VI - Officers and Employees",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_vi",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_vi"]
+						},
+						"description": "Article VI - Officers and Employees"
+					}
+				},
+				{
+					"name": "Article VII - Counties, County Government",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_vii",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_vii"]
+						},
+						"description": "Article VII - Counties, County Government"
+					}
+				},
+				{
+					"name": "Article VIII - Municipal Corporations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_viii",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_viii"]
+						},
+						"description": "Article VIII - Municipal Corporations"
+					}
+				},
+				{
+					"name": "Article IX - Taxation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_ix",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_ix"]
+						},
+						"description": "Article IX - Taxation"
+					}
+				},
+				{
+					"name": "Article X - Finance and Taxation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_x",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_x"]
+						},
+						"description": "Article X - Finance and Taxation"
+					}
+				},
+				{
+					"name": "Article XI - Public Education",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_xi",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_xi"]
+						},
+						"description": "Article XI - Public Education"
+					}
+				},
+				{
+					"name": "Article XII - Corporations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_xii",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_xii"]
+						},
+						"description": "Article XII - Corporations"
+					}
+				},
+				{
+					"name": "Article XIII - Militia",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_xiii",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_xiii"]
+						},
+						"description": "Article XIII - Militia"
+					}
+				},
+				{
+					"name": "Article XIV - Miscellaneous Matters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_xiv",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_xiv"]
+						},
+						"description": "Article XIV - Miscellaneous Matters"
+					}
+				},
+				{
+					"name": "Article XV - Impeachment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_xv",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_xv"]
+						},
+						"description": "Article XV - Impeachment"
+					}
+				},
+				{
+					"name": "Article XVI - Amendments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_xvi",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_xvi"]
+						},
+						"description": "Article XVI - Amendments"
+					}
+				},
+				{
+					"name": "Article XVII - Miscellaneous",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/article_xvii",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "article_xvii"]
+						},
+						"description": "Article XVII - Miscellaneous"
+					}
+				},
+				{
+					"name": "Constitutional Amendments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/constitution/amendments",
+							"host": ["{{baseUrl}}"],
+							"path": ["constitution", "amendments"]
+						},
+						"description": "Constitutional amendments"
+					}
+				}
+			]
+		},
+		{
+			"name": "Subjects",
+			"description": "Bill subject/topic classification data by session.",
+			"item": [
+				{
+					"name": "Current Session Subjects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/subjects/current",
+							"host": ["{{baseUrl}}"],
+							"path": ["subjects", "current"]
+						},
+						"description": "Subjects for the current session"
+					}
+				},
+				{
+					"name": "Subjects by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/subjects/{{session}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["subjects", "{{session}}"]
+						},
+						"description": "Subjects for a specific session (102-126)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Dashboard",
+			"description": "Legislative dashboard data for current bills and amendments.",
+			"item": [
+				{
+					"name": "Current House Bills Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentbill/house",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentbill", "house"]
+						},
+						"description": "Current House bills dashboard"
+					}
+				},
+				{
+					"name": "Current Senate Bills Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentbill/senate",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentbill", "senate"]
+						},
+						"description": "Current Senate bills dashboard"
+					}
+				},
+				{
+					"name": "Current Budget Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentbudget",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentbudget"]
+						},
+						"description": "Current budget dashboard data"
+					}
+				},
+				{
+					"name": "Current Amendments Overview",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentamendment",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentamendment"]
+						},
+						"description": "Current amendments overview"
+					}
+				},
+				{
+					"name": "Current House Amendments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentamendment/house",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentamendment", "house"]
+						},
+						"description": "Current House amendments"
+					}
+				},
+				{
+					"name": "Current Senate Amendments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentamendment/senate",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentamendment", "senate"]
+						},
+						"description": "Current Senate amendments"
+					}
+				},
+				{
+					"name": "Current Common Amendments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentamendment/common",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentamendment", "common"]
+						},
+						"description": "Common/joint amendments"
+					}
+				},
+				{
+					"name": "Amendments by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentamendment/{{session}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentamendment", "{{session}}"]
+						},
+						"description": "Amendments for a specific session (122-126)"
+					}
+				},
+				{
+					"name": "House Amendments by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentamendment/{{session}}/house",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentamendment", "{{session}}", "house"]
+						},
+						"description": "House amendments for a specific session"
+					}
+				},
+				{
+					"name": "Senate Amendments by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentamendment/{{session}}/senate",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentamendment", "{{session}}", "senate"]
+						},
+						"description": "Senate amendments for a specific session"
+					}
+				},
+				{
+					"name": "Common Amendments by Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/currentamendment/{{session}}/common",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "currentamendment", "{{session}}", "common"]
+						},
+						"description": "Common amendments for a specific session"
+					}
+				}
+			]
+		},
+		{
+			"name": "Website",
+			"description": "Data consumed by the scstatehouse.gov website.",
+			"item": [
+				{
+					"name": "Chamber Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/chamberstats",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "chamberstats"]
+						},
+						"description": "Chamber statistics"
+					}
+				},
+				{
+					"name": "Counties",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/counties",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "counties"]
+						},
+						"description": "County data for the website"
+					}
+				},
+				{
+					"name": "Current Digest",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currentdigest",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currentdigest"]
+						},
+						"description": "Current legislative digest"
+					}
+				},
+				{
+					"name": "Current House Democrats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currenthousedemocrats",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currenthousedemocrats"]
+						},
+						"description": "Current House Democrats list"
+					}
+				},
+				{
+					"name": "Current House Republicans",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currenthouserepublicans",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currenthouserepublicans"]
+						},
+						"description": "Current House Republicans list"
+					}
+				},
+				{
+					"name": "Current House Independents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currenthouseindependents",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currenthouseindependents"]
+						},
+						"description": "Current House Independents list"
+					}
+				},
+				{
+					"name": "Current House Non-Partisan",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currenthousenonpartisan",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currenthousenonpartisan"]
+						},
+						"description": "Current House non-partisan members"
+					}
+				},
+				{
+					"name": "Current House Meetings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currenthousemeetings",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currenthousemeetings"]
+						},
+						"description": "Current House meetings for website"
+					}
+				},
+				{
+					"name": "Current House Petitions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currenthousepetitions",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currenthousepetitions"]
+						},
+						"description": "Current House petitions"
+					}
+				},
+				{
+					"name": "Current Senate Democrats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currentsenatedemocrats",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currentsenatedemocrats"]
+						},
+						"description": "Current Senate Democrats list"
+					}
+				},
+				{
+					"name": "Current Senate Republicans",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currentsenaterepublicans",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currentsenaterepublicans"]
+						},
+						"description": "Current Senate Republicans list"
+					}
+				},
+				{
+					"name": "Current Senate Independents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currentsenateindependents",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currentsenateindependents"]
+						},
+						"description": "Current Senate Independents list"
+					}
+				},
+				{
+					"name": "Current Senate Meetings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currentsenatemeetings",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currentsenatemeetings"]
+						},
+						"description": "Current Senate meetings for website"
+					}
+				},
+				{
+					"name": "Current Senate Petitions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/website/currentsenatepetitions",
+							"host": ["{{baseUrl}}"],
+							"path": ["website", "currentsenatepetitions"]
+						},
+						"description": "Current Senate petitions"
+					}
+				}
+			]
+		},
+		{
+			"name": "Journals",
+			"description": "House and Senate journal search data.",
+			"item": [
+				{
+					"name": "House Journal Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/housejournaldata",
+							"host": ["{{baseUrl}}"],
+							"path": ["housejournaldata"]
+						},
+						"description": "House journal search/index data"
+					}
+				},
+				{
+					"name": "Senate Journal Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/senatejournaldata",
+							"host": ["{{baseUrl}}"],
+							"path": ["senatejournaldata"]
+						},
+						"description": "Senate journal search/index data"
+					}
+				}
+			]
+		},
+		{
+			"name": "Metrics",
+			"description": "API usage metrics.",
+			"item": [
+				{
+					"name": "API Metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/metrics",
+							"host": ["{{baseUrl}}"],
+							"path": ["metrics"]
+						},
+						"description": "API usage and performance metrics"
+					}
+				}
+			]
+		}
+	]
+}
