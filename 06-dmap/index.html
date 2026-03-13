@@ -419,6 +419,7 @@ input,select{font-family:inherit}
 /* ══════════════════════════════════════════════════════════════════
    DMAP - District & Delegation Mapper
    SC State Legislature Interactive Explorer
+   Live data from https://rest.scstatehouse.gov
    ══════════════════════════════════════════════════════════════════ */
 
 const API = 'https://rest.scstatehouse.gov';
@@ -427,130 +428,120 @@ const API = 'https://rest.scstatehouse.gov';
 let houseMembers = [];
 let senateMembers = [];
 let allMembers = [];
+let chamberStats = null;
 let houseDistrictCounties = [];
 let senateDistrictCounties = [];
-let delegations = [];
 let delegationEmails = [];
-let counties = [];
-
-// ── Fallback Demo Data ──────────────────────────────────────────
-const FALLBACK_HOUSE = Array.from({length:124},(_,i)=>{
-  const parties = ['R','R','R','R','D','D','I'];
-  const countyNames = ['Richland','Charleston','Greenville','Spartanburg','Lexington','York','Horry','Berkeley','Dorchester','Beaufort','Anderson','Aiken','Sumter','Florence','Orangeburg'];
-  const firstNames = ['James','Mary','John','Patricia','Robert','Jennifer','Michael','Linda','David','Elizabeth'];
-  const lastNames = ['Smith','Johnson','Williams','Brown','Jones','Davis','Miller','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris'];
-  const p = parties[Math.floor(Math.random()*parties.length)];
-  const fn = firstNames[Math.floor(Math.random()*firstNames.length)];
-  const ln = lastNames[Math.floor(Math.random()*lastNames.length)];
-  const county = countyNames[Math.floor(Math.random()*countyNames.length)];
-  return {
-    PERM_SPONSOR_CODE:`H${i+1}`,PARTY:p,DISTRICT_NUMBER:i+1,CHAMBER:'H',
-    FIRST:fn,LAST:ln,E_MAIL:`${fn.toLowerCase()}.${ln.toLowerCase()}@schouse.gov`,
-    OCCUPATION:'Legislator',HOME_COUNTY:county,
-    BIOGRAPHY:`Representative ${fn} ${ln} serves SC House District ${i+1}.`
-  };
-});
-const FALLBACK_SENATE = Array.from({length:46},(_,i)=>{
-  const parties = ['R','R','R','D','D'];
-  const countyNames = ['Richland','Charleston','Greenville','Spartanburg','Lexington','York','Horry','Berkeley','Dorchester','Beaufort'];
-  const firstNames = ['William','Barbara','Richard','Susan','Joseph','Jessica','Thomas','Sarah','Charles','Karen'];
-  const lastNames = ['Martin','Thompson','Garcia','Martinez','Robinson','Clark','Rodriguez','Lewis','Lee','Walker'];
-  const p = parties[Math.floor(Math.random()*parties.length)];
-  const fn = firstNames[Math.floor(Math.random()*firstNames.length)];
-  const ln = lastNames[Math.floor(Math.random()*lastNames.length)];
-  const county = countyNames[Math.floor(Math.random()*countyNames.length)];
-  return {
-    PERM_SPONSOR_CODE:`S${i+1}`,PARTY:p,DISTRICT_NUMBER:i+1,CHAMBER:'S',
-    FIRST:fn,LAST:ln,E_MAIL:`${fn.toLowerCase()}.${ln.toLowerCase()}@scsenate.gov`,
-    OCCUPATION:'Senator',HOME_COUNTY:county,
-    BIOGRAPHY:`Senator ${fn} ${ln} serves SC Senate District ${i+1}.`
-  };
-});
 
 // ── Fetch Helpers ────────────────────────────────────────────────
 async function apiFetch(endpoint) {
   const resp = await fetch(API + endpoint);
   if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
-  return resp.json();
+  const json = await resp.json();
+  // ALL responses are wrapped: {error, message, data} — unwrap
+  if (json && typeof json === 'object' && 'data' in json) {
+    return json.data;
+  }
+  return json;
 }
 
 function showError(msg) {
   const el = document.getElementById('errorBanner');
   el.textContent = msg;
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 8000);
+  setTimeout(() => el.classList.remove('show'), 10000);
 }
 
 // ── Data Loading ─────────────────────────────────────────────────
 async function loadAllData() {
   const results = await Promise.allSettled([
-    apiFetch('/house/bios'),
-    apiFetch('/senate/bios'),
-    apiFetch('/house/districtcounties'),
-    apiFetch('/senate/districtcounties'),
-    apiFetch('/house/delegations'),
-    apiFetch('/house/delegation_email'),
-    apiFetch('/website/counties'),
+    apiFetch('/house/bios'),           // 0
+    apiFetch('/senate/bios'),          // 1
+    apiFetch('/website/chamberstats'), // 2
+    apiFetch('/house/districtcounties'),  // 3
+    apiFetch('/senate/districtcounties'), // 4
+    apiFetch('/house/delegation_email'),  // 5
   ]);
 
-  // House bios
+  // House bios (required)
   if (results[0].status === 'fulfilled' && Array.isArray(results[0].value) && results[0].value.length > 0) {
     houseMembers = results[0].value;
   } else {
-    houseMembers = FALLBACK_HOUSE;
-    showError('Using demo data for House members (API unavailable).');
+    throw new Error('Failed to load House bios from API.');
   }
 
-  // Senate bios
+  // Senate bios (required)
   if (results[1].status === 'fulfilled' && Array.isArray(results[1].value) && results[1].value.length > 0) {
     senateMembers = results[1].value;
   } else {
-    senateMembers = FALLBACK_SENATE;
-    showError('Using demo data for Senate members (API unavailable).');
+    throw new Error('Failed to load Senate bios from API.');
+  }
+
+  // Chamber stats (optional, used for donut charts)
+  if (results[2].status === 'fulfilled' && results[2].value) {
+    chamberStats = results[2].value;
+  }
+
+  // District-county mappings (optional)
+  if (results[3].status === 'fulfilled' && Array.isArray(results[3].value)) {
+    houseDistrictCounties = results[3].value;
+  }
+  if (results[4].status === 'fulfilled' && Array.isArray(results[4].value)) {
+    senateDistrictCounties = results[4].value;
+  }
+
+  // Delegation emails (optional)
+  if (results[5].status === 'fulfilled' && Array.isArray(results[5].value)) {
+    delegationEmails = results[5].value;
   }
 
   // Normalize member data
   houseMembers = houseMembers.map(m => normalizeM(m, 'H'));
   senateMembers = senateMembers.map(m => normalizeM(m, 'S'));
   allMembers = [...houseMembers, ...senateMembers];
-
-  // District counties
-  if (results[2].status === 'fulfilled') houseDistrictCounties = results[2].value || [];
-  if (results[3].status === 'fulfilled') senateDistrictCounties = results[3].value || [];
-
-  // Delegations
-  if (results[4].status === 'fulfilled') delegations = results[4].value || [];
-  if (results[5].status === 'fulfilled') delegationEmails = results[5].value || [];
-
-  // Counties
-  if (results[6].status === 'fulfilled') counties = results[6].value || [];
 }
 
 function normalizeM(m, defaultChamber) {
   return {
-    code: m.PERM_SPONSOR_CODE || m.perm_sponsor_code || '',
-    party: (m.PARTY || m.party || 'R').trim(),
-    district: parseInt(m.DISTRICT_NUMBER || m.district_number || 0),
-    chamber: (m.CHAMBER || m.chamber || defaultChamber).trim(),
-    first: (m.FIRST || m.first || '').trim(),
-    last: (m.LAST || m.last || '').trim(),
-    email: (m.E_MAIL || m.e_mail || '').trim(),
-    occupation: (m.OCCUPATION || m.occupation || '').trim(),
-    county: (m.HOME_COUNTY || m.home_county || '').trim(),
-    bio: (m.BIOGRAPHY || m.biography || ''),
+    code: (m.PERM_SPONSOR_CODE || '').toString(),
+    party: (m.PARTY || '').trim(),
+    district: parseInt(m.DISTRICT_NUMBER || 0),
+    chamber: (m.CHAMBER || defaultChamber || '').trim(),
+    title: (m.TITLE || '').trim(),
+    first: (m.FIRST || '').trim(),
+    last: (m.LAST || '').trim(),
+    middle: (m.MIDDLE || '').trim(),
+    suffix: (m.SUFFIX || '').trim(),
+    nickname: (m.NICKNAME || '').trim(),
+    email: (m.E_MAIL || '').trim(),
+    occupation: (m.OCCUPATION || '').trim(),
+    county: (m.HOME_COUNTY || '').trim(),
+    bio: (m.BIOGRAPHY || ''),
+    homeAddress: (m.HOME_ADDRESS_1 || '').trim(),
+    colaAddress: (m.COLA_ADDRESS_1 || '').trim(),
+    electedOfficial: m.ELECTED_OFFICIAL || false,
+    member: m.MEMBER || false,
+    reElected: m.RE_ELECTED || false,
     _raw: m
   };
 }
 
-function memberName(m) { return `${m.first} ${m.last}`; }
+function memberName(m) {
+  let name = m.first;
+  if (m.nickname) name = `${m.first} "${m.nickname}"`;
+  name += ' ' + m.last;
+  if (m.suffix) name += ' ' + m.suffix;
+  return name;
+}
 function chamberLabel(c) { return c === 'H' ? 'House' : 'Senate'; }
+function partyLabel(p) { return p === 'R' ? 'Republican' : p === 'D' ? 'Democrat' : p === 'I' ? 'Independent' : p; }
 
 // ── District Card HTML ───────────────────────────────────────────
 function districtCardHTML(m) {
   return `<div class="district-cell party-${m.party}" data-code="${m.code}" onclick="showDetail('${m.code}')">
     <div class="dist-num">${chamberLabel(m.chamber)} Dist. ${m.district}</div>
     <div class="dist-name" title="${memberName(m)}">${memberName(m)}</div>
-    <span class="dist-party ${m.party}">${m.party === 'R' ? 'Republican' : m.party === 'D' ? 'Democrat' : 'Independent'}</span>
+    <span class="dist-party ${m.party}">${partyLabel(m.party)}</span>
     <div class="dist-county" title="${m.county}">${m.county}</div>
   </div>`;
 }
@@ -576,19 +567,33 @@ function filterMembers(members, query, partyFilter) {
 // ── Render Functions ─────────────────────────────────────────────
 
 function renderStats() {
-  const hR = houseMembers.filter(m=>m.party==='R').length;
-  const hD = houseMembers.filter(m=>m.party==='D').length;
-  const hI = houseMembers.length - hR - hD;
-  const sR = senateMembers.filter(m=>m.party==='R').length;
-  const sD = senateMembers.filter(m=>m.party==='D').length;
-  const sI = senateMembers.length - sR - sD;
+  let hR, hD, hI, sR, sD, sI;
+
+  if (chamberStats) {
+    hR = parseInt(chamberStats.currenthouserepublicans) || 0;
+    hD = parseInt(chamberStats.currenthousedemocrats) || 0;
+    hI = parseInt(chamberStats.currenthouseindependents) || 0;
+    sR = parseInt(chamberStats.currentsenaterepublicans) || 0;
+    sD = parseInt(chamberStats.currentsenatedemocrats) || 0;
+    sI = parseInt(chamberStats.currentsenateindependents) || 0;
+  } else {
+    hR = houseMembers.filter(m=>m.party==='R').length;
+    hD = houseMembers.filter(m=>m.party==='D').length;
+    hI = houseMembers.filter(m=>m.party!=='R'&&m.party!=='D').length;
+    sR = senateMembers.filter(m=>m.party==='R').length;
+    sD = senateMembers.filter(m=>m.party==='D').length;
+    sI = senateMembers.filter(m=>m.party!=='R'&&m.party!=='D').length;
+  }
+
+  const totalH = hR + hD + hI;
+  const totalS = sR + sD + sI;
 
   document.getElementById('statsRow').innerHTML = `
-    <div class="stat-card"><div class="val">${houseMembers.length}</div><div class="lbl">House Members</div></div>
-    <div class="stat-card"><div class="val">${senateMembers.length}</div><div class="lbl">Senate Members</div></div>
+    <div class="stat-card"><div class="val">${totalH}</div><div class="lbl">House Members</div></div>
+    <div class="stat-card"><div class="val">${totalS}</div><div class="lbl">Senate Members</div></div>
     <div class="stat-card"><div class="val">${hR + sR}</div><div class="lbl">Republicans</div></div>
     <div class="stat-card"><div class="val">${hD + sD}</div><div class="lbl">Democrats</div></div>
-    <div class="stat-card"><div class="val">${hI + sI || 0}</div><div class="lbl">Independents</div></div>
+    <div class="stat-card"><div class="val">${hI + sI}</div><div class="lbl">Independents</div></div>
     <div class="stat-card"><div class="val">${new Set(allMembers.map(m=>m.county).filter(Boolean)).size}</div><div class="lbl">Counties</div></div>
   `;
 }
@@ -597,7 +602,6 @@ function makeDonut(r, d, ind, total, label) {
   const pR = total ? (r/total)*100 : 0;
   const pD = total ? (d/total)*100 : 0;
   const pI = total ? (ind/total)*100 : 0;
-  // CSS conic-gradient donut
   const bg = `conic-gradient(var(--rep) 0% ${pR}%, var(--dem) ${pR}% ${pR+pD}%, var(--ind) ${pR+pD}% ${pR+pD+pI}%, var(--border) ${pR+pD+pI}% 100%)`;
   return `<div class="chart-box">
     <h3>${label}</h3>
@@ -618,17 +622,32 @@ function makeDonut(r, d, ind, total, label) {
 }
 
 function renderCharts() {
-  const hR = houseMembers.filter(m=>m.party==='R').length;
-  const hD = houseMembers.filter(m=>m.party==='D').length;
-  const hI = houseMembers.length - hR - hD;
-  const sR = senateMembers.filter(m=>m.party==='R').length;
-  const sD = senateMembers.filter(m=>m.party==='D').length;
-  const sI = senateMembers.length - sR - sD;
+  let hR, hD, hI, sR, sD, sI;
+
+  if (chamberStats) {
+    hR = parseInt(chamberStats.currenthouserepublicans) || 0;
+    hD = parseInt(chamberStats.currenthousedemocrats) || 0;
+    hI = parseInt(chamberStats.currenthouseindependents) || 0;
+    sR = parseInt(chamberStats.currentsenaterepublicans) || 0;
+    sD = parseInt(chamberStats.currentsenatedemocrats) || 0;
+    sI = parseInt(chamberStats.currentsenateindependents) || 0;
+  } else {
+    hR = houseMembers.filter(m=>m.party==='R').length;
+    hD = houseMembers.filter(m=>m.party==='D').length;
+    hI = houseMembers.filter(m=>m.party!=='R'&&m.party!=='D').length;
+    sR = senateMembers.filter(m=>m.party==='R').length;
+    sD = senateMembers.filter(m=>m.party==='D').length;
+    sI = senateMembers.filter(m=>m.party!=='R'&&m.party!=='D').length;
+  }
+
+  const totalH = hR + hD + hI;
+  const totalS = sR + sD + sI;
+  const totalAll = totalH + totalS;
 
   document.getElementById('chartsRow').innerHTML =
-    makeDonut(hR, hD, hI, houseMembers.length, 'House Composition') +
-    makeDonut(sR, sD, sI, senateMembers.length, 'Senate Composition') +
-    makeDonut(hR+sR, hD+sD, hI+sI, allMembers.length, 'General Assembly');
+    makeDonut(hR, hD, hI, totalH, 'House Composition') +
+    makeDonut(sR, sD, sI, totalS, 'Senate Composition') +
+    makeDonut(hR+sR, hD+sD, hI+sI, totalAll, 'General Assembly');
 }
 
 function renderOverview() {
@@ -679,7 +698,6 @@ function renderCountyLookup() {
     document.getElementById('countyResults').innerHTML = '<div class="no-results">Type a county name above to find its representatives.</div>';
     return;
   }
-  // Group members by county
   const countyMap = {};
   allMembers.forEach(m => {
     if (!m.county) return;
@@ -711,7 +729,7 @@ function renderCountyLookup() {
 
 function renderDelegations() {
   const q = (document.getElementById('delegationSearch').value || '').toLowerCase();
-  // Build delegation grouping from allMembers by county
+  // Group by HOME_COUNTY from bios
   const countyMap = {};
   allMembers.forEach(m => {
     if (!m.county) return;
@@ -719,7 +737,7 @@ function renderDelegations() {
     countyMap[m.county].push(m);
   });
 
-  // Also pull delegation emails into a lookup
+  // Delegation email lookup
   const emailLookup = {};
   if (Array.isArray(delegationEmails)) {
     delegationEmails.forEach(de => {
@@ -759,7 +777,7 @@ function renderDelegations() {
 
 function renderXref() {
   const q = (document.getElementById('xrefSearch').value || '').toLowerCase();
-  let list = allMembers.sort((a,b) => {
+  let list = [...allMembers].sort((a,b) => {
     if (a.chamber !== b.chamber) return a.chamber === 'S' ? -1 : 1;
     return a.district - b.district;
   });
@@ -772,9 +790,9 @@ function renderXref() {
     );
   }
 
-  // Look up district-county mappings
+  // Build district-county mappings from API data, fall back to HOME_COUNTY
   const hdc = {};
-  if (Array.isArray(houseDistrictCounties)) {
+  if (Array.isArray(houseDistrictCounties) && houseDistrictCounties.length) {
     houseDistrictCounties.forEach(r => {
       const d = r.DISTRICT_NUMBER || r.district_number;
       const c = r.COUNTY || r.county || '';
@@ -782,7 +800,7 @@ function renderXref() {
     });
   }
   const sdc = {};
-  if (Array.isArray(senateDistrictCounties)) {
+  if (Array.isArray(senateDistrictCounties) && senateDistrictCounties.length) {
     senateDistrictCounties.forEach(r => {
       const d = r.DISTRICT_NUMBER || r.district_number;
       const c = r.COUNTY || r.county || '';
@@ -792,7 +810,7 @@ function renderXref() {
 
   document.getElementById('xrefBody').innerHTML = list.map(m => {
     const dcMap = m.chamber === 'H' ? hdc : sdc;
-    const counties = dcMap[m.district] ? dcMap[m.district].join(', ') : m.county;
+    const counties = dcMap[m.district] && dcMap[m.district].length ? dcMap[m.district].join(', ') : m.county;
     return `<tr onclick="showDetail('${m.code}')" style="cursor:pointer">
       <td>${chamberLabel(m.chamber)}</td>
       <td>${m.district}</td>
@@ -808,18 +826,30 @@ function renderXref() {
 function showDetail(code) {
   const m = allMembers.find(x => x.code === code);
   if (!m) return;
-  document.getElementById('modalTitle').textContent = `${chamberLabel(m.chamber)} District ${m.district}`;
+  document.getElementById('modalTitle').textContent = `${m.title || chamberLabel(m.chamber)} - District ${m.district}`;
+
+  let addressHTML = '';
+  if (m.homeAddress) {
+    addressHTML += `<div class="detail-row"><span class="dlabel">Home Address</span><span class="dvalue">${m.homeAddress}</span></div>`;
+  }
+  if (m.colaAddress) {
+    addressHTML += `<div class="detail-row"><span class="dlabel">Cola Address</span><span class="dvalue">${m.colaAddress}</span></div>`;
+  }
+
   document.getElementById('modalBody').innerHTML = `
     <div style="margin-bottom:.8rem">
       <span style="font-size:1.3rem;font-weight:700;color:#fff">${memberName(m)}</span>
-      <span class="party-badge ${m.party}" style="margin-left:.6rem">${m.party === 'R' ? 'Republican' : m.party === 'D' ? 'Democrat' : 'Independent'}</span>
+      <span class="party-badge ${m.party}" style="margin-left:.6rem">${partyLabel(m.party)}</span>
     </div>
+    <div class="detail-row"><span class="dlabel">Title</span><span class="dvalue">${m.title || 'N/A'}</span></div>
     <div class="detail-row"><span class="dlabel">Chamber</span><span class="dvalue">${chamberLabel(m.chamber)}</span></div>
     <div class="detail-row"><span class="dlabel">District</span><span class="dvalue">${m.district}</span></div>
     <div class="detail-row"><span class="dlabel">County</span><span class="dvalue">${m.county}</span></div>
     <div class="detail-row"><span class="dlabel">Occupation</span><span class="dvalue">${m.occupation || 'N/A'}</span></div>
     <div class="detail-row"><span class="dlabel">Email</span><span class="dvalue">${m.email ? `<a href="mailto:${m.email}">${m.email}</a>` : 'N/A'}</span></div>
+    ${addressHTML}
     <div class="detail-row"><span class="dlabel">Sponsor Code</span><span class="dvalue">${m.code}</span></div>
+    <div class="detail-row"><span class="dlabel">Status</span><span class="dvalue">${m.member ? 'Active Member' : 'Inactive'}${m.reElected ? ' (Re-elected)' : ''}</span></div>
     ${m.bio ? `<div class="bio-text">${m.bio}</div>` : ''}
   `;
   document.getElementById('detailModal').classList.add('open');
@@ -843,7 +873,6 @@ function copyEmail(email, btn) {
 function switchTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tabId));
-  // Re-render the active tab content
   const renderers = {
     overview: renderOverview,
     house: renderHouse,
@@ -858,12 +887,10 @@ function switchTab(tabId) {
 
 // ── Event Binding ────────────────────────────────────────────────
 function bindEvents() {
-  // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  // Searches (debounced)
   const debounce = (fn, ms=250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
   document.getElementById('globalSearch').addEventListener('input', debounce(renderOverview));
   document.getElementById('globalFilter').addEventListener('change', renderOverview);
@@ -874,7 +901,6 @@ function bindEvents() {
   document.getElementById('delegationSearch').addEventListener('input', debounce(renderDelegations));
   document.getElementById('xrefSearch').addEventListener('input', debounce(renderXref));
 
-  // Modal close
   document.getElementById('modalClose').addEventListener('click', closeModal);
   document.getElementById('detailModal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal();
@@ -892,15 +918,7 @@ async function init() {
     bindEvents();
   } catch (err) {
     console.error('Init error:', err);
-    showError('Failed to initialize. Using demo data. ' + err.message);
-    // Try to render with whatever we have
-    houseMembers = houseMembers.length ? houseMembers : FALLBACK_HOUSE.map(m => normalizeM(m, 'H'));
-    senateMembers = senateMembers.length ? senateMembers : FALLBACK_SENATE.map(m => normalizeM(m, 'S'));
-    allMembers = [...houseMembers, ...senateMembers];
-    renderStats();
-    renderCharts();
-    renderOverview();
-    bindEvents();
+    showError('Failed to load live data: ' + err.message);
   } finally {
     const overlay = document.getElementById('loadingOverlay');
     overlay.classList.add('hidden');
