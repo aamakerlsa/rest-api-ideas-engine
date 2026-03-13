@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACTX - Action Timeline &amp; Cross-Chamber Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Droid+Serif:wght@400;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/lsa-styles.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--lsa-gray-100);
+            color: var(--lsa-gray-700);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: #111c33;
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar a {
+            color: var(--lsa-gold);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .top-bar a:hover { color: #e8d48b; }
+        .top-bar .session-info {
+            color: #a0aec0;
+            font-size: 0.8rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--lsa-primary) 0%, var(--lsa-queen-blue) 100%);
+            color: var(--lsa-white);
+            padding: 32px 24px 28px;
+            text-align: center;
+            border-bottom: 4px solid var(--lsa-gold);
+        }
+        .logo-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        .logo-row img { height: 48px; width: auto; }
+        header h1 {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        header h1 .tag {
+            font-family: var(--font-heading-alt);
+            font-size: 0.75rem;
+            background: var(--lsa-gold);
+            color: var(--lsa-primary);
+            padding: 2px 10px;
+            border-radius: var(--radius-full);
+            vertical-align: middle;
+            margin-left: 8px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .tagline {
+            font-family: var(--font-primary);
+            font-size: 0.95rem;
+            opacity: 0.85;
+            margin-top: 4px;
+            font-weight: 300;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Quick Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--lsa-primary);
+        }
+        .stat-card .stat-label {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 2px;
+        }
+
+        /* Controls */
+        .controls-bar {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .control-group label {
+            font-size: var(--text-xs);
+            font-weight: var(--font-semibold);
+            color: var(--lsa-gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .control-group select,
+        .control-group input {
+            padding: 8px 12px;
+            border: 1px solid var(--lsa-gray-300);
+            border-radius: var(--radius-default);
+            font-family: var(--font-primary);
+            font-size: var(--text-sm);
+            background: var(--lsa-white);
+            color: var(--lsa-gray-700);
+            min-width: 200px;
+        }
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: var(--lsa-primary);
+            box-shadow: 0 0 0 3px rgba(var(--lsa-primary-rgb), 0.1);
+        }
+
+        /* Badges */
+        .chamber-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: var(--radius-full);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .chamber-badge.house {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .chamber-badge.senate {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Action type badges */
+        .action-type-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            border-radius: var(--radius-default);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .action-type-badge.introduction { background: #dbeafe; color: #1e40af; }
+        .action-type-badge.committee { background: #ffedd5; color: #9a3412; }
+        .action-type-badge.floor { background: #dcfce7; color: #166534; }
+        .action-type-badge.vote { background: #f3e8ff; color: #6b21a8; }
+        .action-type-badge.enrolled { background: #fef9c3; color: #854d0e; }
+        .action-type-badge.governor { background: #fce7f3; color: #9d174d; }
+        .action-type-badge.other { background: var(--lsa-gray-200); color: var(--lsa-gray-600); }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Side Panel */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .panel-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+        .panel-card-header {
+            padding: 14px 20px;
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-card-body {
+            padding: 16px 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Status Pipeline */
+        .status-pipeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .status-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            position: relative;
+        }
+        .status-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 32px;
+            bottom: -8px;
+            width: 2px;
+            background: var(--lsa-gray-200);
+        }
+        .status-step.checked:not(:last-child)::after {
+            background: var(--lsa-bottle-green);
+        }
+        .status-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--lsa-gray-300);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            background: var(--lsa-white);
+            z-index: 1;
+        }
+        .status-step.checked .status-dot {
+            background: var(--lsa-bottle-green);
+            border-color: var(--lsa-bottle-green);
+            color: var(--lsa-white);
+        }
+        .status-text {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-600);
+        }
+        .status-step.checked .status-text {
+            color: var(--lsa-gray-700);
+            font-weight: 600;
+        }
+        .status-date {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-400);
+        }
+
+        /* Bill Info Card */
+        .bill-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: var(--text-sm);
+            border-bottom: 1px solid var(--lsa-gray-100);
+        }
+        .bill-info-row:last-child { border-bottom: none; }
+        .bill-info-label {
+            color: var(--lsa-gray-500);
+            font-weight: 600;
+        }
+
+        /* Timeline */
+        .timeline-panel {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+        .timeline-header {
+            padding: 16px 24px;
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            font-family: var(--font-heading-alt);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .timeline-body {
+            padding: 24px;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        /* Timeline entries */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--lsa-gray-200);
+            border-radius: 2px;
+        }
+        .timeline-entry {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 14px 18px;
+            background: var(--lsa-gray-100);
+            border-radius: var(--radius-lg);
+            transition: box-shadow 0.2s;
+        }
+        .timeline-entry:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .timeline-entry::before {
+            content: '';
+            position: absolute;
+            left: -33px;
+            top: 18px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 3px solid var(--lsa-gray-300);
+            background: var(--lsa-white);
+            z-index: 1;
+        }
+        /* Chamber-colored dots */
+        .timeline-entry.chamber-S::before {
+            border-color: #991b1b;
+            background: #fee2e2;
+        }
+        .timeline-entry.chamber-H::before {
+            border-color: #1e40af;
+            background: #dbeafe;
+        }
+        /* Handoff entry */
+        .timeline-entry.handoff {
+            background: linear-gradient(135deg, #fef9c3 0%, #fef3c7 100%);
+            border-left: 4px solid var(--lsa-gold);
+        }
+        .timeline-entry.handoff::before {
+            border-color: var(--lsa-gold);
+            background: #fef9c3;
+            width: 18px;
+            height: 18px;
+            left: -35px;
+            top: 16px;
+        }
+        .timeline-date {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .timeline-action-text {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-700);
+            line-height: 1.5;
+        }
+        .timeline-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .days-indicator {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-400);
+            font-style: italic;
+        }
+
+        /* Stalled bills */
+        .stalled-bill {
+            padding: 10px 14px;
+            border-radius: var(--radius-default);
+            background: #fef2f2;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .stalled-bill:hover {
+            background: #fee2e2;
+        }
+        .stalled-bill .bill-num {
+            font-weight: 700;
+            color: #991b1b;
+            font-size: var(--text-sm);
+        }
+        .stalled-bill .stall-info {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+        }
+
+        /* Multi-bill comparison */
+        .comparison-container {
+            display: grid;
+            gap: 24px;
+        }
+        .comparison-container.cols-2 { grid-template-columns: 1fr 1fr; }
+        .comparison-container.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+        @media (max-width: 900px) {
+            .comparison-container.cols-2,
+            .comparison-container.cols-3 { grid-template-columns: 1fr; }
+        }
+
+        /* Chamber handoff analysis */
+        .handoff-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+        }
+        .handoff-stat:last-child { border-bottom: none; }
+        .handoff-stat .label { font-size: var(--text-sm); color: var(--lsa-gray-600); }
+        .handoff-stat .value {
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: var(--lsa-primary);
+        }
+
+        /* Comparison checkboxes */
+        .compare-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .compare-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--lsa-gray-100);
+            color: var(--lsa-gray-600);
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .compare-chip.selected {
+            background: rgba(var(--lsa-primary-rgb), 0.1);
+            color: var(--lsa-primary);
+            border-color: var(--lsa-primary);
+        }
+        .compare-chip:hover { background: var(--lsa-gray-200); }
+
+        /* Tabs */
+        .tab-bar {
+            display: flex;
+            gap: 0;
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            font-family: var(--font-primary);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            border: none;
+            background: transparent;
+            color: var(--lsa-gray-500);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn:hover { color: var(--lsa-primary); background: var(--lsa-gray-100); }
+        .tab-btn.active {
+            color: var(--lsa-primary);
+            border-bottom-color: var(--lsa-primary);
+            background: var(--lsa-white);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Loading */
+        .loading-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            gap: 16px;
+        }
+        .loading-text {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--lsa-gray-400);
+        }
+        .empty-state .icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        /* Search results highlight */
+        .search-result {
+            padding: 12px 16px;
+            border-radius: var(--radius-default);
+            background: var(--lsa-gray-100);
+            margin-bottom: 8px;
+        }
+        .search-result .bill-ref {
+            font-weight: 700;
+            color: var(--lsa-primary);
+            font-size: var(--text-sm);
+        }
+        .search-result .action-text {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-600);
+            margin-top: 2px;
+        }
+        .search-result mark {
+            background: #fef08a;
+            color: inherit;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--lsa-gray-100); }
+        ::-webkit-scrollbar-thumb { background: var(--lsa-gray-300); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--lsa-gray-400); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            header h1 { font-size: 1.3rem; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .controls-bar { flex-direction: column; }
+            .control-group select,
+            .control-group input { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+    <a href="../index.html">&#8592; Ideas Engine</a>
+    <span class="session-info" id="sessionInfo">Loading session...</span>
+</div>
+
+<!-- Header -->
+<header>
+    <div class="logo-row">
+        <img src="../assets/images/LSA_seal.png" alt="LSA Seal">
+        <h1>ACTX <span class="tag">19</span></h1>
+    </div>
+    <div class="tagline">Action Timeline &amp; Cross-Chamber Tracker &mdash; Follow every bill across both chambers in real time.</div>
+</header>
+
+<!-- Quick Stats -->
+<div class="container">
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="statTotalActions">--</div>
+            <div class="stat-label">Total Actions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statAvgActions">--</div>
+            <div class="stat-label">Avg per Bill</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statBillsLoaded">--</div>
+            <div class="stat-label">Bills Loaded</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statStalledBills">--</div>
+            <div class="stat-label">Stalled Bills</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statOldestPending">--</div>
+            <div class="stat-label">Oldest Pending</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statAvgCrossover">--</div>
+            <div class="stat-label">Avg Crossover Days</div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-bar">
+        <div class="control-group">
+            <label>Select Bill</label>
+            <select id="billSelector">
+                <option value="">Loading bills...</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Search Actions</label>
+            <input type="text" id="actionSearch" placeholder="Search keyword across all bills...">
+        </div>
+        <div class="control-group">
+            <label>Filter Chamber</label>
+            <select id="chamberFilter">
+                <option value="all">All Chambers</option>
+                <option value="S">Senate Only</option>
+                <option value="H">House Only</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btnLoadBills" style="align-self:flex-end;">Reload Data</button>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="timeline">Timeline</button>
+        <button class="tab-btn" data-tab="compare">Compare Bills</button>
+        <button class="tab-btn" data-tab="search">Search Results</button>
+        <button class="tab-btn" data-tab="stalled">Stalled Bills</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-grid" style="margin-top: 0;">
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <!-- Bill Info -->
+            <div class="panel-card">
+                <div class="panel-card-header">Bill Details</div>
+                <div class="panel-card-body" id="billInfoPanel">
+                    <div class="empty-state">
+                        <div class="icon">&#128220;</div>
+                        Select a bill to view details
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Pipeline -->
+            <div class="panel-card">
+                <div class="panel-card-header">Status Pipeline</div>
+                <div class="panel-card-body" id="statusPipeline">
+                    <div class="empty-state">
+                        <div class="icon">&#9776;</div>
+                        Select a bill to view status
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chamber Handoff Analysis -->
+            <div class="panel-card">
+                <div class="panel-card-header">Chamber Handoff Analysis</div>
+                <div class="panel-card-body" id="handoffAnalysis">
+                    <div class="empty-state">
+                        <div class="icon">&#8644;</div>
+                        Loading analysis...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Panel -->
+        <div>
+            <!-- Timeline Tab -->
+            <div class="tab-content active" id="tab-timeline">
+                <div class="timeline-panel">
+                    <div class="timeline-header">
+                        <span id="timelineTitle">Action Timeline</span>
+                        <span id="timelineCount" style="font-size:0.8rem;opacity:0.8;"></span>
+                    </div>
+                    <div class="timeline-body" id="timelineBody">
+                        <div class="loading-overlay" id="timelineLoading">
+                            <div class="spinner spinner-lg"></div>
+                            <div class="loading-text">Loading bills from API...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compare Tab -->
+            <div class="tab-content" id="tab-compare">
+                <div class="timeline-panel">
+                    <div class="timeline-header">
+                        <span>Multi-Bill Comparison</span>
+                        <span style="font-size:0.75rem;opacity:0.7;">Select up to 3 bills</span>
+                    </div>
+                    <div style="padding:16px 24px;background:var(--lsa-gray-100);">
+                        <div class="compare-list" id="compareChips"></div>
+                    </div>
+                    <div class="timeline-body" id="compareBody">
+                        <div class="empty-state">
+                            <div class="icon">&#128202;</div>
+                            Select 2-3 bills above to compare timelines
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Tab -->
+            <div class="tab-content" id="tab-search">
+                <div class="timeline-panel">
+                    <div class="timeline-header">
+                        <span>Action Search Results</span>
+                        <span id="searchCount" style="font-size:0.8rem;opacity:0.8;"></span>
+                    </div>
+                    <div class="timeline-body" id="searchBody">
+                        <div class="empty-state">
+                            <div class="icon">&#128269;</div>
+                            Type a keyword in the search box above
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stalled Tab -->
+            <div class="tab-content" id="tab-stalled">
+                <div class="timeline-panel">
+                    <div class="timeline-header">
+                        <span>Stalled Bills (30+ Days No Action)</span>
+                        <span id="stalledCount" style="font-size:0.8rem;opacity:0.8;"></span>
+                    </div>
+                    <div class="timeline-body" id="stalledBody">
+                        <div class="loading-overlay">
+                            <div class="spinner spinner-lg"></div>
+                            <div class="loading-text">Analyzing...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const BASE = 'https://rest.scstatehouse.gov';
+const STATE = {
+    bills: [],
+    selectedBill: null,
+    compareBills: [],
+    loading: false
+};
+
+// ---- Helpers ----
+function classifyAction(text) {
+    const t = text.toLowerCase();
+    if (t.includes('introduced') || t.includes('prefiled')) return 'introduction';
+    if (t.includes('committee') || t.includes('referred') || t.includes('reported')) return 'committee';
+    if (t.includes('read') || t.includes('ordered') || t.includes('amendment') || t.includes('debate')) return 'floor';
+    if (t.includes('vote') || t.includes('ayes') || t.includes('nays') || t.includes('passed') || t.includes('adopted') || t.includes('concur')) return 'vote';
+    if (t.includes('enrolled') || t.includes('ratified') || t.includes('signed') || t.includes('act no')) return 'enrolled';
+    if (t.includes('governor') || t.includes('vetoed')) return 'governor';
+    return 'other';
+}
+
+function classifyLabel(type) {
+    const labels = {
+        introduction: 'Introduction',
+        committee: 'Committee',
+        floor: 'Floor',
+        vote: 'Vote',
+        enrolled: 'Enrolled',
+        governor: 'Governor',
+        other: 'Other'
+    };
+    return labels[type] || 'Other';
+}
+
+function chamberBadge(ch) {
+    if (ch === 'S') return '<span class="chamber-badge senate">Senate</span>';
+    if (ch === 'H') return '<span class="chamber-badge house">House</span>';
+    return '';
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d)) return dateStr;
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return dateStr; }
+}
+
+function daysBetween(d1, d2) {
+    const a = new Date(d1), b = new Date(d2);
+    if (isNaN(a) || isNaN(b)) return 0;
+    return Math.round(Math.abs(b - a) / (1000 * 60 * 60 * 24));
+}
+
+function cleanActionText(text) {
+    return (text || '').replace(/^\s+/, '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function billLabel(bill) {
+    const prefix = bill.CHAMBER === 'S' ? 'S' : 'H';
+    return `${prefix}.${bill.BILL_NUMBER || bill.NUMBER || ''}`;
+}
+
+// ---- API ----
+async function fetchJSON(url) {
+    const resp = await fetch(url);
+    const json = await resp.json();
+    return json.data;
+}
+
+async function loadSession() {
+    try {
+        const data = await fetchJSON(`${BASE}/currentsession`);
+        if (data) {
+            document.getElementById('sessionInfo').textContent = `Session ${data.SESSION_ID || data.YEAR || ''}`;
+        }
+    } catch {
+        document.getElementById('sessionInfo').textContent = 'Session 126';
+    }
+}
+
+async function loadBills() {
+    STATE.loading = true;
+    STATE.bills = [];
+    document.getElementById('timelineLoading').style.display = 'flex';
+
+    const ranges = [];
+    // Senate: 1-40, House: 3001-3040
+    for (let i = 1; i <= 40; i++) ranges.push(i);
+    for (let i = 3001; i <= 3040; i++) ranges.push(i);
+
+    const results = await Promise.allSettled(
+        ranges.map(n => fetchJSON(`${BASE}/bills/126/${n}`))
+    );
+
+    for (const r of results) {
+        if (r.status === 'fulfilled' && r.value && r.value.BILL_NUMBER !== undefined) {
+            STATE.bills.push(r.value);
+        }
+    }
+
+    STATE.loading = false;
+    populateBillSelector();
+    updateStats();
+    renderStalledBills();
+    renderHandoffAnalysis();
+    renderCompareChips();
+
+    document.getElementById('timelineLoading').style.display = 'none';
+
+    if (STATE.bills.length > 0) {
+        document.getElementById('billSelector').value = STATE.bills[0].BILL_NUMBER;
+        selectBill(STATE.bills[0].BILL_NUMBER);
+    } else {
+        document.getElementById('timelineBody').innerHTML =
+            '<div class="empty-state"><div class="icon">&#9888;</div>No bills loaded. Check API connectivity.</div>';
+    }
+}
+
+function populateBillSelector() {
+    const sel = document.getElementById('billSelector');
+    sel.innerHTML = '';
+
+    const senate = STATE.bills.filter(b => b.CHAMBER === 'S').sort((a, b) => (a.BILL_NUMBER || 0) - (b.BILL_NUMBER || 0));
+    const house = STATE.bills.filter(b => b.CHAMBER === 'H').sort((a, b) => (a.BILL_NUMBER || 0) - (b.BILL_NUMBER || 0));
+
+    if (senate.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = 'Senate Bills';
+        senate.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.BILL_NUMBER;
+            opt.textContent = `S.${b.BILL_NUMBER} - ${(b.TITLE || b.SHORT_TITLE || '').substring(0, 60)}`;
+            grp.appendChild(opt);
+        });
+        sel.appendChild(grp);
+    }
+    if (house.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = 'House Bills';
+        house.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.BILL_NUMBER;
+            opt.textContent = `H.${b.BILL_NUMBER} - ${(b.TITLE || b.SHORT_TITLE || '').substring(0, 60)}`;
+            grp.appendChild(opt);
+        });
+        sel.appendChild(grp);
+    }
+}
+
+function selectBill(billNum) {
+    const bill = STATE.bills.find(b => String(b.BILL_NUMBER) === String(billNum));
+    if (!bill) return;
+    STATE.selectedBill = bill;
+    renderBillInfo(bill);
+    renderStatusPipeline(bill);
+    renderTimeline(bill);
+}
+
+// ---- Stats ----
+function updateStats() {
+    let totalActions = 0;
+    let oldest = null;
+    const now = new Date();
+
+    STATE.bills.forEach(b => {
+        const actions = b.ACTIONS || [];
+        totalActions += actions.length;
+
+        // Find oldest pending
+        if (actions.length > 0) {
+            const lastAction = actions[actions.length - 1];
+            const lastDate = new Date(lastAction.ACTION_DATE);
+            if (!isNaN(lastDate)) {
+                // Check if bill is still pending (no enrolled/ratified/signed)
+                const text = (lastAction.ACTION || '').toLowerCase();
+                const isFinal = text.includes('ratified') || text.includes('signed') || text.includes('vetoed') || text.includes('act no');
+                if (!isFinal) {
+                    if (!oldest || lastDate < oldest.date) {
+                        oldest = { bill: b, date: lastDate };
+                    }
+                }
+            }
+        }
+    });
+
+    const stalledCount = getStalledBills().length;
+    const avg = STATE.bills.length ? (totalActions / STATE.bills.length).toFixed(1) : 0;
+
+    document.getElementById('statTotalActions').textContent = totalActions;
+    document.getElementById('statAvgActions').textContent = avg;
+    document.getElementById('statBillsLoaded').textContent = STATE.bills.length;
+    document.getElementById('statStalledBills').textContent = stalledCount;
+
+    if (oldest) {
+        const days = daysBetween(oldest.date, now);
+        document.getElementById('statOldestPending').textContent = `${days}d`;
+    } else {
+        document.getElementById('statOldestPending').textContent = 'N/A';
+    }
+
+    // Avg crossover days
+    const crossovers = getCrossoverDays();
+    if (crossovers.length > 0) {
+        const avgCross = Math.round(crossovers.reduce((s, v) => s + v, 0) / crossovers.length);
+        document.getElementById('statAvgCrossover').textContent = `${avgCross}d`;
+    } else {
+        document.getElementById('statAvgCrossover').textContent = 'N/A';
+    }
+}
+
+function getStalledBills() {
+    const now = new Date();
+    const stalled = [];
+    STATE.bills.forEach(b => {
+        const actions = b.ACTIONS || [];
+        if (actions.length === 0) return;
+        const lastAction = actions[actions.length - 1];
+        const lastDate = new Date(lastAction.ACTION_DATE);
+        if (isNaN(lastDate)) return;
+        const daysSince = daysBetween(lastDate, now);
+        if (daysSince >= 30) {
+            stalled.push({ bill: b, daysSince, lastAction, lastDate });
+        }
+    });
+    return stalled.sort((a, b) => b.daysSince - a.daysSince);
+}
+
+function getCrossoverDays() {
+    const days = [];
+    STATE.bills.forEach(b => {
+        const actions = b.ACTIONS || [];
+        if (actions.length < 2) return;
+        const originChamber = b.CHAMBER;
+        let firstCross = null;
+        let lastOrigin = null;
+        for (const a of actions) {
+            if (a.ACTION_CHAMBER === originChamber) {
+                lastOrigin = a.ACTION_DATE;
+            } else if (a.ACTION_CHAMBER && a.ACTION_CHAMBER !== originChamber && !firstCross && lastOrigin) {
+                firstCross = a.ACTION_DATE;
+                break;
+            }
+        }
+        if (firstCross && lastOrigin) {
+            const d = daysBetween(lastOrigin, firstCross);
+            if (d > 0) days.push(d);
+        }
+    });
+    return days;
+}
+
+// ---- Render Bill Info ----
+function renderBillInfo(bill) {
+    const panel = document.getElementById('billInfoPanel');
+    const title = bill.TITLE || bill.SHORT_TITLE || 'No title';
+    const actions = bill.ACTIONS || [];
+    const firstDate = actions.length > 0 ? formatDate(actions[0].ACTION_DATE) : 'N/A';
+    const lastDate = actions.length > 0 ? formatDate(actions[actions.length - 1].ACTION_DATE) : 'N/A';
+
+    panel.innerHTML = `
+        <div class="bill-info-row">
+            <span class="bill-info-label">Bill</span>
+            <span>${billLabel(bill)} ${chamberBadge(bill.CHAMBER)}</span>
+        </div>
+        <div class="bill-info-row">
+            <span class="bill-info-label">Title</span>
+            <span style="font-size:0.8rem;max-width:220px;text-align:right;">${title.substring(0, 120)}</span>
+        </div>
+        <div class="bill-info-row">
+            <span class="bill-info-label">Actions</span>
+            <span>${actions.length}</span>
+        </div>
+        <div class="bill-info-row">
+            <span class="bill-info-label">First Action</span>
+            <span>${firstDate}</span>
+        </div>
+        <div class="bill-info-row">
+            <span class="bill-info-label">Last Action</span>
+            <span>${lastDate}</span>
+        </div>
+        <div class="bill-info-row">
+            <span class="bill-info-label">In Committee</span>
+            <span>${bill.IN_COMMITTEE || 'N/A'}</span>
+        </div>
+        <div class="bill-info-row">
+            <span class="bill-info-label">Sponsors</span>
+            <span style="font-size:0.8rem;">${(bill.SPONSORS ? bill.SPONSORS.length : 0)} sponsor(s)</span>
+        </div>
+    `;
+}
+
+// ---- Render Status Pipeline ----
+function renderStatusPipeline(bill) {
+    const panel = document.getElementById('statusPipeline');
+    const statuses = bill.STATUS || [];
+
+    if (statuses.length === 0) {
+        panel.innerHTML = '<div class="empty-state">No status data available</div>';
+        return;
+    }
+
+    let html = '<div class="status-pipeline">';
+    statuses.forEach(s => {
+        const checked = s.checked ? 'checked' : '';
+        const checkMark = s.checked ? '&#10003;' : '';
+        const dateStr = s.date ? formatStatusDate(s.date) : '';
+        html += `
+            <div class="status-step ${checked}">
+                <div class="status-dot">${checkMark}</div>
+                <div>
+                    <div class="status-text">${s.text || ''} ${chamberBadge(s.chamber)}</div>
+                    ${dateStr ? `<div class="status-date">${dateStr}</div>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    panel.innerHTML = html;
+}
+
+function formatStatusDate(d) {
+    if (!d || d.length < 8) return '';
+    const yr = d.substring(0, 4);
+    const mo = d.substring(4, 6);
+    const dy = d.substring(6, 8);
+    return formatDate(`${yr}-${mo}-${dy}`);
+}
+
+// ---- Render Timeline ----
+function renderTimeline(bill) {
+    const body = document.getElementById('timelineBody');
+    const actions = bill.ACTIONS || [];
+    const filter = document.getElementById('chamberFilter').value;
+
+    let filtered = actions;
+    if (filter !== 'all') {
+        filtered = actions.filter(a => a.ACTION_CHAMBER === filter);
+    }
+
+    if (filtered.length === 0) {
+        body.innerHTML = '<div class="empty-state"><div class="icon">&#128203;</div>No actions found for this filter.</div>';
+        document.getElementById('timelineCount').textContent = '';
+        return;
+    }
+
+    document.getElementById('timelineTitle').textContent = `Timeline: ${billLabel(bill)}`;
+    document.getElementById('timelineCount').textContent = `${filtered.length} action(s)`;
+
+    // Detect handoffs
+    let prevChamber = null;
+    let html = '<div class="timeline">';
+
+    for (let i = 0; i < filtered.length; i++) {
+        const a = filtered[i];
+        const text = cleanActionText(a.ACTION);
+        const type = classifyAction(text);
+        const isHandoff = prevChamber && a.ACTION_CHAMBER && a.ACTION_CHAMBER !== prevChamber;
+        const handoffClass = isHandoff ? 'handoff' : '';
+        const chamberClass = `chamber-${a.ACTION_CHAMBER || 'X'}`;
+
+        // Days since previous action
+        let daysLabel = '';
+        if (i > 0 && filtered[i - 1].ACTION_DATE && a.ACTION_DATE) {
+            const d = daysBetween(filtered[i - 1].ACTION_DATE, a.ACTION_DATE);
+            if (d > 0) daysLabel = `${d} day${d !== 1 ? 's' : ''} since previous`;
+        }
+
+        html += `
+            <div class="timeline-entry ${chamberClass} ${handoffClass}">
+                <div class="timeline-date">
+                    ${formatDate(a.ACTION_DATE)}
+                    ${chamberBadge(a.ACTION_CHAMBER)}
+                    ${isHandoff ? '<span class="action-type-badge enrolled" style="margin-left:4px;">CHAMBER HANDOFF</span>' : ''}
+                </div>
+                <div class="timeline-action-text">${text}</div>
+                <div class="timeline-meta">
+                    <span class="action-type-badge ${type}">${classifyLabel(type)}</span>
+                    ${a.ACTION_NUMBER ? `<span style="font-size:0.7rem;color:var(--lsa-gray-400);">#${a.ACTION_NUMBER}</span>` : ''}
+                    ${daysLabel ? `<span class="days-indicator">${daysLabel}</span>` : ''}
+                </div>
+            </div>
+        `;
+        if (a.ACTION_CHAMBER) prevChamber = a.ACTION_CHAMBER;
+    }
+
+    html += '</div>';
+    body.innerHTML = html;
+}
+
+// ---- Stalled Bills ----
+function renderStalledBills() {
+    const stalled = getStalledBills();
+    const body = document.getElementById('stalledBody');
+    document.getElementById('stalledCount').textContent = `${stalled.length} bill(s)`;
+
+    if (stalled.length === 0) {
+        body.innerHTML = '<div class="empty-state"><div class="icon">&#9989;</div>No stalled bills detected!</div>';
+        return;
+    }
+
+    let html = '';
+    stalled.forEach(s => {
+        const b = s.bill;
+        const lastText = cleanActionText(s.lastAction.ACTION).substring(0, 80);
+        html += `
+            <div class="stalled-bill" onclick="jumpToBill('${b.BILL_NUMBER}')">
+                <div class="bill-num">${billLabel(b)} ${chamberBadge(b.CHAMBER)}</div>
+                <div style="font-size:0.8rem;color:var(--lsa-gray-600);margin:2px 0;">${(b.TITLE || b.SHORT_TITLE || '').substring(0, 70)}</div>
+                <div class="stall-info">${s.daysSince} days since last action: "${lastText}..."</div>
+                <div class="stall-info">Last action: ${formatDate(s.lastDate)}</div>
+            </div>
+        `;
+    });
+    body.innerHTML = html;
+}
+
+function jumpToBill(billNum) {
+    document.getElementById('billSelector').value = billNum;
+    selectBill(billNum);
+    switchTab('timeline');
+}
+
+// ---- Handoff Analysis ----
+function renderHandoffAnalysis() {
+    const panel = document.getElementById('handoffAnalysis');
+    const crossovers = getCrossoverDays();
+
+    let billsWithCrossover = 0;
+    let totalBills = STATE.bills.length;
+    let minCross = Infinity, maxCross = 0;
+
+    STATE.bills.forEach(b => {
+        const actions = b.ACTIONS || [];
+        const origin = b.CHAMBER;
+        let crossed = false;
+        for (const a of actions) {
+            if (a.ACTION_CHAMBER && a.ACTION_CHAMBER !== origin) { crossed = true; break; }
+        }
+        if (crossed) billsWithCrossover++;
+    });
+
+    crossovers.forEach(d => {
+        if (d < minCross) minCross = d;
+        if (d > maxCross) maxCross = d;
+    });
+
+    const avg = crossovers.length > 0 ? Math.round(crossovers.reduce((s, v) => s + v, 0) / crossovers.length) : 'N/A';
+
+    panel.innerHTML = `
+        <div class="handoff-stat">
+            <span class="label">Bills that crossed chambers</span>
+            <span class="value">${billsWithCrossover} / ${totalBills}</span>
+        </div>
+        <div class="handoff-stat">
+            <span class="label">Avg days to cross</span>
+            <span class="value">${avg === 'N/A' ? avg : avg + 'd'}</span>
+        </div>
+        <div class="handoff-stat">
+            <span class="label">Fastest crossover</span>
+            <span class="value">${crossovers.length ? minCross + 'd' : 'N/A'}</span>
+        </div>
+        <div class="handoff-stat">
+            <span class="label">Slowest crossover</span>
+            <span class="value">${crossovers.length ? maxCross + 'd' : 'N/A'}</span>
+        </div>
+        <div class="handoff-stat">
+            <span class="label">Crossover rate</span>
+            <span class="value">${totalBills ? Math.round(billsWithCrossover / totalBills * 100) : 0}%</span>
+        </div>
+    `;
+}
+
+// ---- Compare Bills ----
+function renderCompareChips() {
+    const container = document.getElementById('compareChips');
+    let html = '';
+    STATE.bills.forEach(b => {
+        const selected = STATE.compareBills.includes(String(b.BILL_NUMBER)) ? 'selected' : '';
+        html += `<span class="compare-chip ${selected}" data-bill="${b.BILL_NUMBER}" onclick="toggleCompare('${b.BILL_NUMBER}')">${billLabel(b)}</span>`;
+    });
+    container.innerHTML = html;
+}
+
+function toggleCompare(billNum) {
+    const idx = STATE.compareBills.indexOf(String(billNum));
+    if (idx >= 0) {
+        STATE.compareBills.splice(idx, 1);
+    } else {
+        if (STATE.compareBills.length >= 3) {
+            STATE.compareBills.shift();
+        }
+        STATE.compareBills.push(String(billNum));
+    }
+    renderCompareChips();
+    renderComparison();
+}
+
+function renderComparison() {
+    const body = document.getElementById('compareBody');
+    const selected = STATE.compareBills.map(n => STATE.bills.find(b => String(b.BILL_NUMBER) === n)).filter(Boolean);
+
+    if (selected.length < 2) {
+        body.innerHTML = '<div class="empty-state"><div class="icon">&#128202;</div>Select at least 2 bills to compare</div>';
+        return;
+    }
+
+    const colClass = selected.length === 3 ? 'cols-3' : 'cols-2';
+    let html = `<div class="comparison-container ${colClass}">`;
+
+    selected.forEach(bill => {
+        const actions = bill.ACTIONS || [];
+        html += `<div style="min-width:0;">
+            <div style="font-weight:700;font-size:0.9rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                ${billLabel(bill)} ${chamberBadge(bill.CHAMBER)}
+            </div>
+            <div style="font-size:0.75rem;color:var(--lsa-gray-500);margin-bottom:8px;">${(bill.TITLE || bill.SHORT_TITLE || '').substring(0, 80)}</div>
+            <div style="font-size:0.8rem;color:var(--lsa-gray-600);margin-bottom:12px;">${actions.length} actions | ${bill.IN_COMMITTEE || 'N/A'}</div>
+            <div class="timeline" style="padding-left:30px;">`;
+
+        let prevCh = null;
+        actions.forEach((a, i) => {
+            const text = cleanActionText(a.ACTION);
+            const type = classifyAction(text);
+            const isHandoff = prevCh && a.ACTION_CHAMBER && a.ACTION_CHAMBER !== prevCh;
+            html += `
+                <div class="timeline-entry ${isHandoff ? 'handoff' : ''} chamber-${a.ACTION_CHAMBER || 'X'}" style="padding:8px 12px;margin-bottom:10px;">
+                    <div class="timeline-date" style="font-size:0.7rem;">${formatDate(a.ACTION_DATE)} ${chamberBadge(a.ACTION_CHAMBER)}</div>
+                    <div style="font-size:0.75rem;color:var(--lsa-gray-600);margin-top:2px;">${text.substring(0, 100)}</div>
+                    <span class="action-type-badge ${type}" style="margin-top:4px;">${classifyLabel(type)}</span>
+                </div>
+            `;
+            if (a.ACTION_CHAMBER) prevCh = a.ACTION_CHAMBER;
+        });
+
+        html += '</div></div>';
+    });
+
+    html += '</div>';
+    body.innerHTML = html;
+}
+
+// ---- Search ----
+function performSearch(keyword) {
+    const body = document.getElementById('searchBody');
+    if (!keyword || keyword.length < 2) {
+        body.innerHTML = '<div class="empty-state"><div class="icon">&#128269;</div>Type at least 2 characters to search</div>';
+        document.getElementById('searchCount').textContent = '';
+        return;
+    }
+
+    const results = [];
+    const kw = keyword.toLowerCase();
+    STATE.bills.forEach(b => {
+        (b.ACTIONS || []).forEach(a => {
+            const text = cleanActionText(a.ACTION);
+            if (text.toLowerCase().includes(kw)) {
+                results.push({ bill: b, action: a, text });
+            }
+        });
+    });
+
+    document.getElementById('searchCount').textContent = `${results.length} result(s)`;
+
+    if (results.length === 0) {
+        body.innerHTML = `<div class="empty-state"><div class="icon">&#128269;</div>No actions match "${keyword}"</div>`;
+        return;
+    }
+
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    let html = '';
+    results.slice(0, 100).forEach(r => {
+        const highlighted = r.text.replace(regex, '<mark>$1</mark>');
+        html += `
+            <div class="search-result" onclick="jumpToBill('${r.bill.BILL_NUMBER}')">
+                <div class="bill-ref">${billLabel(r.bill)} ${chamberBadge(r.action.ACTION_CHAMBER)}</div>
+                <div style="font-size:0.7rem;color:var(--lsa-gray-400);">${formatDate(r.action.ACTION_DATE)}</div>
+                <div class="action-text">${highlighted}</div>
+            </div>
+        `;
+    });
+
+    if (results.length > 100) {
+        html += `<div style="text-align:center;padding:12px;color:var(--lsa-gray-400);font-size:0.8rem;">Showing first 100 of ${results.length} results</div>`;
+    }
+
+    body.innerHTML = html;
+}
+
+// ---- Tabs ----
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    document.querySelectorAll('.tab-content').forEach(tc => {
+        tc.classList.toggle('active', tc.id === `tab-${tabName}`);
+    });
+}
+
+// ---- Events ----
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+document.getElementById('billSelector').addEventListener('change', e => {
+    if (e.target.value) selectBill(e.target.value);
+});
+
+document.getElementById('chamberFilter').addEventListener('change', () => {
+    if (STATE.selectedBill) renderTimeline(STATE.selectedBill);
+});
+
+document.getElementById('btnLoadBills').addEventListener('click', loadBills);
+
+let searchTimer;
+document.getElementById('actionSearch').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        performSearch(e.target.value.trim());
+        if (e.target.value.trim().length >= 2) switchTab('search');
+    }, 300);
+});
+
+// ---- Init ----
+loadSession();
+loadBills();
+</script>
+</body>
+</html>
