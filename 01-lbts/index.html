@@ -1029,7 +1029,7 @@
 <!-- ERROR BANNER -->
 <div class="error-banner" id="errorBanner">
     <span>&#9888;</span>
-    <span id="errorMessage">Could not load data from the API. Showing demo data.</span>
+    <span id="errorMessage">Could not load data from the API.</span>
     <button class="dismiss" onclick="this.parentElement.classList.remove('visible')">&times;</button>
 </div>
 
@@ -1159,69 +1159,12 @@
     let usingLiveData = false;
     let sessionsList = [];
     let billCountData = [];
-
-    // ===== DEMO / FALLBACK DATA =====
-    const DEMO_BILLS = generateDemoBills();
-
-    function generateDemoBills() {
-        const houseBills = [
-            { billNumber: 'H. 3001', title: 'A BILL TO AMEND THE CODE OF LAWS OF SOUTH CAROLINA, RELATING TO INCOME TAX RATES, SO AS TO REDUCE THE TOP MARGINAL RATE.', sponsor: 'Rep. Smith', chamber: 'House', status: 'introduced', lastAction: '2025-01-14', lastActionDesc: 'Introduced and read first time', subject: 'Taxation', actions: [{date:'2025-01-14', desc:'Introduced and read first time'}, {date:'2025-01-14', desc:'Referred to Ways and Means Committee'}] },
-            { billNumber: 'H. 3015', title: 'A BILL TO ENACT THE "SOUTH CAROLINA EDUCATION REFORM ACT" INCLUDING PROVISIONS FOR TEACHER PAY INCREASES AND CLASSROOM SIZE REDUCTION.', sponsor: 'Rep. Johnson', chamber: 'House', status: 'committee', lastAction: '2025-02-03', lastActionDesc: 'Committee hearing scheduled', subject: 'Education', committee: 'Education and Public Works', actions: [{date:'2025-01-15', desc:'Introduced and read first time'},{date:'2025-01-15', desc:'Referred to Education and Public Works Committee'},{date:'2025-02-03', desc:'Committee hearing scheduled'}] },
-            { billNumber: 'H. 3042', title: 'A BILL TO AMEND SECTION 16-23-20, CODE OF LAWS OF SOUTH CAROLINA, RELATING TO UNLAWFUL CARRYING OF HANDGUNS.', sponsor: 'Rep. Williams', chamber: 'House', status: 'committee', lastAction: '2025-02-10', lastActionDesc: 'Testimony received in committee', subject: 'Judiciary', committee: 'Judiciary Committee', actions: [{date:'2025-01-21', desc:'Introduced and read first time'},{date:'2025-01-21', desc:'Referred to Judiciary Committee'},{date:'2025-02-10', desc:'Testimony received in committee'}] },
-            { billNumber: 'H. 3078', title: 'A BILL TO PROVIDE INFRASTRUCTURE FUNDING FOR RURAL BROADBAND EXPANSION IN UNDERSERVED AREAS OF SOUTH CAROLINA.', sponsor: 'Rep. Davis', chamber: 'House', status: 'floor', lastAction: '2025-03-01', lastActionDesc: 'Read second time, ordered to third reading', subject: 'Technology', actions: [{date:'2025-01-28', desc:'Introduced'},{date:'2025-02-05', desc:'Committee favorable report'},{date:'2025-02-20', desc:'Read second time'},{date:'2025-03-01', desc:'Ordered to third reading'}] },
-            { billNumber: 'H. 3102', title: 'A BILL TO CREATE THE SOUTH CAROLINA CLEAN ENERGY INCENTIVE PROGRAM.', sponsor: 'Rep. Anderson', chamber: 'House', status: 'floor', lastAction: '2025-03-05', lastActionDesc: 'Debate adjourned', subject: 'Environment', actions: [{date:'2025-02-01', desc:'Introduced'},{date:'2025-02-15', desc:'Committee favorable report'},{date:'2025-03-05', desc:'Debate adjourned on the floor'}] },
-            { billNumber: 'H. 3155', title: 'A BILL TO AMEND THE SOUTH CAROLINA RETIREMENT SYSTEM FOR STATE EMPLOYEES.', sponsor: 'Rep. Martin', chamber: 'House', status: 'passed', lastAction: '2025-03-12', lastActionDesc: 'Passed House, sent to Senate', subject: 'Government', actions: [{date:'2025-01-20', desc:'Introduced'},{date:'2025-02-10', desc:'Committee favorable report'},{date:'2025-02-28', desc:'Read third time'},{date:'2025-03-12', desc:'Passed House 85-30'}], yeas: 85, nays: 30 },
-            { billNumber: 'H. 3200', title: 'A JOINT RESOLUTION TO APPROVE REGULATIONS OF THE DEPARTMENT OF HEALTH AND ENVIRONMENTAL CONTROL.', sponsor: 'Rep. Clark', chamber: 'House', status: 'enacted', lastAction: '2025-03-20', lastActionDesc: 'Ratified, Act No. 15', subject: 'Health', actNumber: '15', actions: [{date:'2025-01-10', desc:'Introduced'},{date:'2025-01-25', desc:'Committee favorable report'},{date:'2025-02-08', desc:'Passed House'},{date:'2025-02-22', desc:'Passed Senate'},{date:'2025-03-10', desc:'Enrolled for ratification'},{date:'2025-03-20', desc:'Ratified, Act No. 15'}], yeas: 110, nays: 5 },
-            { billNumber: 'H. 3210', title: 'A BILL TO AMEND THE VEHICLE REGISTRATION REQUIREMENTS FOR ELECTRIC VEHICLES.', sponsor: 'Rep. Taylor', chamber: 'House', status: 'introduced', lastAction: '2025-03-01', lastActionDesc: 'Introduced and read first time', subject: 'Transportation', actions: [{date:'2025-03-01', desc:'Introduced and read first time'}] },
-            { billNumber: 'H. 3225', title: 'A BILL TO PROVIDE TAX CREDITS FOR SMALL BUSINESSES HIRING VETERANS.', sponsor: 'Rep. Brown', chamber: 'House', status: 'committee', lastAction: '2025-03-08', lastActionDesc: 'Subcommittee appointed', subject: 'Taxation', committee: 'Ways and Means', actions: [{date:'2025-02-15', desc:'Introduced'},{date:'2025-02-15', desc:'Referred to Ways and Means'},{date:'2025-03-08', desc:'Subcommittee appointed'}] },
-            { billNumber: 'H. 3250', title: 'A BILL TO ESTABLISH THE SOUTH CAROLINA WORKFORCE DEVELOPMENT TRAINING FUND.', sponsor: 'Rep. Wilson', chamber: 'House', status: 'passed', lastAction: '2025-03-18', lastActionDesc: 'Passed House, sent to Senate', subject: 'Labor', actions: [{date:'2025-01-22', desc:'Introduced'},{date:'2025-02-12', desc:'Committee favorable report'},{date:'2025-03-01', desc:'Read third time'},{date:'2025-03-18', desc:'Passed House 92-22'}], yeas: 92, nays: 22 },
-        ];
-
-        const senateBills = [
-            { billNumber: 'S. 100', title: 'A BILL TO AMEND THE SOUTH CAROLINA CODE RELATING TO MEDICAID EXPANSION AND HEALTHCARE ACCESS.', sponsor: 'Sen. Thompson', chamber: 'Senate', status: 'committee', lastAction: '2025-02-12', lastActionDesc: 'Referred to Medical Affairs Committee', subject: 'Health', committee: 'Medical Affairs', actions: [{date:'2025-01-16', desc:'Introduced and read first time'},{date:'2025-01-16', desc:'Referred to Medical Affairs Committee'},{date:'2025-02-12', desc:'Hearing scheduled'}] },
-            { billNumber: 'S. 115', title: 'A BILL TO CREATE JUDICIAL CIRCUIT COURT REFORM AND CASE MANAGEMENT EFFICIENCY.', sponsor: 'Sen. Rodriguez', chamber: 'Senate', status: 'floor', lastAction: '2025-02-25', lastActionDesc: 'Read third time', subject: 'Judiciary', actions: [{date:'2025-01-18', desc:'Introduced'},{date:'2025-02-05', desc:'Committee favorable report'},{date:'2025-02-25', desc:'Read third time'}] },
-            { billNumber: 'S. 130', title: 'A BILL TO ESTABLISH THE COASTAL RESILIENCE AND FLOOD MITIGATION PROGRAM.', sponsor: 'Sen. Adams', chamber: 'Senate', status: 'introduced', lastAction: '2025-01-22', lastActionDesc: 'Introduced and read first time', subject: 'Environment', actions: [{date:'2025-01-22', desc:'Introduced and read first time'}] },
-            { billNumber: 'S. 145', title: 'A JOINT RESOLUTION PROPOSING AN AMENDMENT TO THE CONSTITUTION RELATING TO THE APPOINTMENT OF JUDGES.', sponsor: 'Sen. Harris', chamber: 'Senate', status: 'committee', lastAction: '2025-02-28', lastActionDesc: 'Favorable report with amendments', subject: 'Judiciary', committee: 'Judiciary Committee', actions: [{date:'2025-01-25', desc:'Introduced'},{date:'2025-01-25', desc:'Referred to Judiciary Committee'},{date:'2025-02-28', desc:'Favorable report with amendments'}] },
-            { billNumber: 'S. 160', title: 'A BILL TO AMEND TITLE 59, RELATING TO CHARTER SCHOOL AUTHORIZATION AND OVERSIGHT.', sponsor: 'Sen. Baker', chamber: 'Senate', status: 'enacted', lastAction: '2025-03-15', lastActionDesc: 'Signed by Governor, Act No. 22', subject: 'Education', actNumber: '22', actions: [{date:'2025-01-12', desc:'Introduced'},{date:'2025-01-28', desc:'Committee favorable report'},{date:'2025-02-10', desc:'Passed Senate'},{date:'2025-02-28', desc:'Passed House with amendments'},{date:'2025-03-05', desc:'Conference committee appointed'},{date:'2025-03-10', desc:'Conference report adopted'},{date:'2025-03-15', desc:'Signed by Governor, Act No. 22'}], yeas: 95, nays: 18 },
-            { billNumber: 'S. 175', title: 'A BILL TO REGULATE CRYPTOCURRENCY AND DIGITAL ASSET TRANSACTIONS IN SOUTH CAROLINA.', sponsor: 'Sen. Chen', chamber: 'Senate', status: 'introduced', lastAction: '2025-02-05', lastActionDesc: 'Introduced and read first time', subject: 'Banking', actions: [{date:'2025-02-05', desc:'Introduced and read first time'},{date:'2025-02-05', desc:'Referred to Banking and Insurance Committee'}] },
-            { billNumber: 'S. 190', title: 'A BILL TO AMEND SECTION 12-6-1110, RELATING TO SOUTH CAROLINA TAXABLE INCOME FOR MILITARY RETIREES.', sponsor: 'Sen. Mitchell', chamber: 'Senate', status: 'passed', lastAction: '2025-03-10', lastActionDesc: 'Passed Senate, sent to House', subject: 'Taxation', actions: [{date:'2025-01-30', desc:'Introduced'},{date:'2025-02-20', desc:'Committee favorable report'},{date:'2025-03-10', desc:'Passed Senate 40-5'}], yeas: 40, nays: 5 },
-            { billNumber: 'S. 205', title: 'A BILL TO PROTECT AGRICULTURAL LANDS FROM COMMERCIAL OVERDEVELOPMENT.', sponsor: 'Sen. Parker', chamber: 'Senate', status: 'committee', lastAction: '2025-03-02', lastActionDesc: 'Public hearing scheduled', subject: 'Agriculture', committee: 'Agriculture and Natural Resources', actions: [{date:'2025-02-10', desc:'Introduced'},{date:'2025-02-10', desc:'Referred to Agriculture and Natural Resources'},{date:'2025-03-02', desc:'Public hearing scheduled'}] },
-            { billNumber: 'S. 220', title: 'A BILL TO AMEND THE SOUTH CAROLINA FREEDOM OF INFORMATION ACT TO INCLUDE DIGITAL COMMUNICATIONS.', sponsor: 'Sen. Wright', chamber: 'Senate', status: 'floor', lastAction: '2025-03-08', lastActionDesc: 'Amended on floor, debate continues', subject: 'Government', actions: [{date:'2025-02-01', desc:'Introduced'},{date:'2025-02-18', desc:'Committee favorable report'},{date:'2025-03-08', desc:'Amended on floor, debate continues'}] },
-            { billNumber: 'S. 235', title: 'A BILL TO PROVIDE MENTAL HEALTH RESOURCES FOR FIRST RESPONDERS AND LAW ENFORCEMENT.', sponsor: 'Sen. Garcia', chamber: 'Senate', status: 'enacted', lastAction: '2025-03-22', lastActionDesc: 'Ratified, Act No. 28', subject: 'Health', actNumber: '28', actions: [{date:'2025-01-08', desc:'Pre-filed'},{date:'2025-01-14', desc:'Introduced'},{date:'2025-02-01', desc:'Committee favorable report'},{date:'2025-02-15', desc:'Passed Senate'},{date:'2025-03-01', desc:'Passed House'},{date:'2025-03-22', desc:'Ratified, Act No. 28'}], yeas: 120, nays: 2 },
-        ];
-
-        return [...houseBills, ...senateBills];
-    }
-
-    const DEMO_SESSIONS = [
-        { sessionNumber: 126, description: '126th Session', years: '2025-2026', isCurrent: true },
-        { sessionNumber: 125, description: '125th Session', years: '2023-2024', isCurrent: false },
-        { sessionNumber: 124, description: '124th Session', years: '2021-2022', isCurrent: false },
-        { sessionNumber: 123, description: '123rd Session', years: '2019-2020', isCurrent: false },
-        { sessionNumber: 122, description: '122nd Session', years: '2017-2018', isCurrent: false },
-        { sessionNumber: 121, description: '121st Session', years: '2015-2016', isCurrent: false },
-        { sessionNumber: 120, description: '120th Session', years: '2013-2014', isCurrent: false },
-    ];
-
-    const DEMO_BILL_COUNTS = [
-        { session: 126, count: 1247, years: '2025-2026' },
-        { session: 125, count: 4832, years: '2023-2024' },
-        { session: 124, count: 4618, years: '2021-2022' },
-        { session: 123, count: 5102, years: '2019-2020' },
-        { session: 122, count: 4756, years: '2017-2018' },
-        { session: 121, count: 4391, years: '2015-2016' },
-        { session: 120, count: 4215, years: '2013-2014' },
-    ];
-
-    const DEMO_SUBJECTS = [
-        'Agriculture', 'Banking', 'Education', 'Environment', 'Government',
-        'Health', 'Judiciary', 'Labor', 'Taxation', 'Technology', 'Transportation'
-    ];
+    let subjectsBillMap = {}; // maps bill number string -> array of subject texts
 
     // ===== API FETCH HELPERS =====
     async function apiFetch(endpoint) {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const timeout = setTimeout(() => controller.abort(), 15000);
         try {
             const resp = await fetch(`${API_BASE}${endpoint}`, {
                 signal: controller.signal,
@@ -1229,7 +1172,14 @@
             });
             clearTimeout(timeout);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            return await resp.json();
+            const json = await resp.json();
+            // ALL API responses are wrapped: {error, message, data}
+            if (json && typeof json === 'object' && 'data' in json) {
+                // Handle "Not Found" string in data
+                if (json.data === 'Not Found' || json.data === null) return null;
+                return json.data;
+            }
+            return json;
         } catch (e) {
             clearTimeout(timeout);
             throw e;
@@ -1241,77 +1191,124 @@
         document.getElementById('errorBanner').classList.add('visible');
     }
 
+    function hideError() {
+        document.getElementById('errorBanner').classList.remove('visible');
+    }
+
     function setDataBadge(isLive) {
         const badge = document.getElementById('dataSourceBadge');
         if (isLive) {
             badge.textContent = 'LIVE API';
             badge.className = 'data-source-badge live';
         } else {
-            badge.textContent = 'DEMO DATA';
+            badge.textContent = 'NO DATA';
             badge.className = 'data-source-badge demo';
         }
         usingLiveData = isLive;
     }
 
-    // ===== CLASSIFY BILL STAGE =====
+    function updateLoadingStatus(msg) {
+        ['colIntroduced','colCommittee','colFloor','colPassed','colEnacted'].forEach(id => {
+            document.getElementById(id).innerHTML = `<div class="loading-indicator"><div class="spinner"></div>${escHtml(msg)}</div>`;
+        });
+    }
+
+    // ===== CLASSIFY BILL STAGE using STATUS array =====
     function classifyStage(bill) {
         if (bill._stage) return bill._stage;
 
-        const lastAction = (bill.lastActionDesc || bill.lastAction || '').toLowerCase();
-        const allActions = (bill.actions || []).map(a => (a.desc || a.description || '').toLowerCase()).join(' ');
-        const combined = lastAction + ' ' + allActions;
+        // Use ACT_NUMBER / RAT_NUMBER first
+        if (bill.actNumber) return 'enacted';
+        if (bill.ratNumber) return 'enacted';
 
-        if (/ratified|enacted|signed by governor|act no|became law|approved by governor/i.test(combined)) return 'enacted';
-        if (/passed (house|senate)|passed both|sent to (house|senate)|enrolled/i.test(combined)) return 'passed';
-        if (/read (second|third|2nd|3rd) time|ordered to third|floor|debate|amended on floor|special order/i.test(combined)) return 'floor';
-        if (/committee|referred|hearing|subcommittee|testimony|favorable report|tabled in committee/i.test(combined)) return 'committee';
+        // Use STATUS array (array of {text, checked} objects)
+        if (bill.statusSteps && bill.statusSteps.length > 0) {
+            // Find the highest checked step
+            const stageMap = {
+                'introduced': 'introduced',
+                'in committee': 'committee',
+                'committee': 'committee',
+                'floor': 'floor',
+                'debate': 'floor',
+                'passed': 'passed',
+                'sent to other chamber': 'passed',
+                'enrolled': 'passed',
+                'ratified': 'enacted',
+                'enacted': 'enacted',
+                'signed': 'enacted',
+                'vetoed': 'enacted'
+            };
+
+            let highestStage = 'introduced';
+            const stageOrder = ['introduced', 'committee', 'floor', 'passed', 'enacted'];
+
+            bill.statusSteps.forEach(step => {
+                if (step.checked) {
+                    const stepText = (step.text || '').toLowerCase();
+                    for (const [keyword, stage] of Object.entries(stageMap)) {
+                        if (stepText.includes(keyword)) {
+                            if (stageOrder.indexOf(stage) > stageOrder.indexOf(highestStage)) {
+                                highestStage = stage;
+                            }
+                            break;
+                        }
+                    }
+                }
+            });
+            return highestStage;
+        }
+
+        // Use IN_COMMITTEE
+        if (bill.committee) return 'committee';
+
+        // Fallback: parse actions text
+        const allActions = (bill.actions || []).map(a => (a.desc || '').toLowerCase()).join(' ');
+        if (/ratified|enacted|signed by governor|act no|became law/i.test(allActions)) return 'enacted';
+        if (/passed (house|senate)|passed both|sent to (house|senate)|enrolled/i.test(allActions)) return 'passed';
+        if (/read (second|third|2nd|3rd) time|ordered to third|floor|debate|amended on floor/i.test(allActions)) return 'floor';
+        if (/committee|referred|hearing|subcommittee|testimony|favorable report/i.test(allActions)) return 'committee';
         return 'introduced';
     }
 
-    // ===== PARSE LIVE BILL DATA =====
+    // ===== PARSE LIVE BILL from /bills/{session}/{id} =====
     function parseLiveBill(raw) {
-        // The API returns data in varied formats; attempt to normalize
         const bill = {};
 
-        // Bill number: might be in billNumber, bill_number, prefixedNumber, etc.
-        bill.billNumber = raw.billNumber || raw.prefixedNumber || raw.bill_number ||
-            ((raw.prefix || '') + ' ' + (raw.number || raw.billId || '')).trim() || 'Unknown';
+        // Chamber from CHAMBER field: "S" or "H"
+        const chamberCode = (raw.CHAMBER || '').toUpperCase();
+        bill.chamber = chamberCode === 'H' ? 'House' : chamberCode === 'S' ? 'Senate' : 'Unknown';
 
-        // Title
-        bill.title = raw.title || raw.billTitle || raw.description || raw.summary || 'No title available';
+        // Bill number: construct from chamber + BILL_NUMBER
+        const prefix = chamberCode === 'H' ? 'H.' : chamberCode === 'S' ? 'S.' : '';
+        bill.billNumber = `${prefix} ${raw.BILL_NUMBER || ''}`.trim() || 'Unknown';
+        bill.rawBillNumber = String(raw.BILL_NUMBER || '');
+
+        // Title and Summary
+        bill.title = raw.TITLE || raw.SUMMARY || 'No title available';
         if (bill.title.length > 300) bill.title = bill.title.substring(0, 297) + '...';
+        bill.summary = raw.SUMMARY || '';
+        bill.fullTitle = raw.TITLE || '';
 
-        // Sponsor
-        bill.sponsor = raw.sponsor || raw.sponsorName || raw.primarySponsor ||
-            (raw.sponsors && raw.sponsors.length > 0 ? (raw.sponsors[0].name || raw.sponsors[0]) : '') || 'Unknown';
+        // Sponsor from SPONSORTEXT
+        bill.sponsor = raw.SPONSORTEXT || 'Unknown';
 
-        // Chamber
-        const bn = bill.billNumber.toUpperCase();
-        if (bn.startsWith('H') || bn.startsWith('H.')) {
-            bill.chamber = 'House';
-        } else if (bn.startsWith('S') || bn.startsWith('S.')) {
-            bill.chamber = 'Senate';
-        } else {
-            bill.chamber = raw.chamber || raw.body || 'Unknown';
+        // Committee from IN_COMMITTEE
+        bill.committee = '';
+        if (raw.IN_COMMITTEE && typeof raw.IN_COMMITTEE === 'object' && raw.IN_COMMITTEE !== null) {
+            bill.committee = raw.IN_COMMITTEE.name || raw.IN_COMMITTEE.COMMITTEE_NAME || '';
         }
 
-        // Subject
-        bill.subject = raw.subject || raw.subjectArea || raw.category || '';
+        // Subject - will be populated from subjects data later
+        bill.subject = '';
 
-        // Committee
-        bill.committee = raw.committee || raw.currentCommittee || '';
-
-        // Actions
+        // Actions from ACTIONS array: [{ACTION, ACTION_DATE, ACTION_CHAMBER, ACTION_NUMBER}]
         bill.actions = [];
-        if (raw.actions && Array.isArray(raw.actions)) {
-            bill.actions = raw.actions.map(a => ({
-                date: a.date || a.actionDate || '',
-                desc: a.description || a.actionDescription || a.desc || ''
-            }));
-        } else if (raw.history && Array.isArray(raw.history)) {
-            bill.actions = raw.history.map(h => ({
-                date: h.date || h.actionDate || '',
-                desc: h.description || h.action || h.desc || ''
+        if (raw.ACTIONS && Array.isArray(raw.ACTIONS)) {
+            bill.actions = raw.ACTIONS.map(a => ({
+                date: a.ACTION_DATE || '',
+                desc: a.ACTION || '',
+                chamber: a.ACTION_CHAMBER || '',
+                number: a.ACTION_NUMBER || ''
             }));
         }
 
@@ -1321,28 +1318,56 @@
             bill.lastAction = last.date;
             bill.lastActionDesc = last.desc;
         } else {
-            bill.lastAction = raw.lastActionDate || raw.dateOfAction || '';
-            bill.lastActionDesc = raw.lastAction || raw.lastActionDescription || '';
+            bill.lastAction = '';
+            bill.lastActionDesc = '';
         }
 
-        // Votes
-        bill.yeas = raw.yeas || raw.ayes || null;
-        bill.nays = raw.nays || raw.nos || null;
+        // Intro dates
+        bill.houseIntroDate = raw.HOUSE_INTRO_DATE || '';
+        bill.senateIntroDate = raw.SENATE_INTRO_DATE || '';
 
-        // Act number
-        bill.actNumber = raw.actNumber || raw.act_number || '';
+        // Act / Ratification numbers
+        bill.actNumber = raw.ACT_NUMBER || '';
+        bill.ratNumber = raw.RAT_NUMBER || '';
 
-        // Sponsors list
+        // STATUS array for pipeline display: [{text, date, display, chamber, level, checked}]
+        bill.statusSteps = [];
+        if (raw.STATUS && Array.isArray(raw.STATUS)) {
+            bill.statusSteps = raw.STATUS.map(s => ({
+                text: s.text || s.display || '',
+                date: s.date || '',
+                checked: !!s.checked,
+                chamber: s.chamber || '',
+                level: s.level || 0
+            }));
+        }
+
+        // Sponsors list from SPONSORS array: [{PERM_SPONSOR_CODE, SPONSOR_ORDER}]
         bill.sponsorsList = [];
-        if (raw.sponsors && Array.isArray(raw.sponsors)) {
-            bill.sponsorsList = raw.sponsors.map(s => typeof s === 'string' ? s : (s.name || s.sponsorName || ''));
+        if (raw.SPONSORS && Array.isArray(raw.SPONSORS)) {
+            bill.sponsorsList = raw.SPONSORS.map(s => s.PERM_SPONSOR_CODE || s.SPONSOR_NAME || '').filter(Boolean);
         }
-        if (bill.sponsorsList.length === 0 && bill.sponsor) {
+        if (bill.sponsorsList.length === 0 && bill.sponsor && bill.sponsor !== 'Unknown') {
             bill.sponsorsList = [bill.sponsor];
         }
 
-        // Status classification
-        bill.status = raw.status || '';
+        // Votes
+        bill.yeas = null;
+        bill.nays = null;
+        if (raw.VOTES && Array.isArray(raw.VOTES) && raw.VOTES.length > 0) {
+            const lastVote = raw.VOTES[raw.VOTES.length - 1];
+            bill.yeas = lastVote.YEAS || lastVote.yeas || null;
+            bill.nays = lastVote.NAYS || lastVote.nays || null;
+        }
+
+        // Links
+        bill.fullTextUrl = raw.FULLTEXT_URL || '';
+        bill.fiscalImpactUrl = raw.FISCALIMPACT_URL || '';
+
+        // Session
+        bill.sessionNumber = raw.SESS_NUMBER || currentSession;
+
+        // Classify stage
         bill._stage = classifyStage(bill);
 
         return bill;
@@ -1350,12 +1375,13 @@
 
     // ===== LOAD DATA =====
     async function initialize() {
+        hideError();
+
         // Try loading current session
         try {
             const sessionData = await apiFetch('/currentsession');
-            if (sessionData && (sessionData.sessionNumber || sessionData.session || typeof sessionData === 'number')) {
-                currentSession = sessionData.sessionNumber || sessionData.session || sessionData;
-                if (typeof currentSession === 'object') currentSession = 126;
+            if (Array.isArray(sessionData) && sessionData.length > 0) {
+                currentSession = parseInt(sessionData[0].SESS_NUMBER) || 126;
             }
         } catch (e) {
             console.warn('Could not fetch current session, using default 126');
@@ -1376,18 +1402,27 @@
         try {
             const data = await apiFetch('/sessions');
             if (Array.isArray(data) && data.length > 0) {
-                sessionsList = data.map(s => ({
-                    sessionNumber: s.sessionNumber || s.session || s.id,
-                    description: s.description || s.sessionDescription || `Session ${s.sessionNumber || s.session}`,
-                    years: s.years || s.sessionYears || '',
-                    isCurrent: (s.sessionNumber || s.session) == currentSession
-                })).filter(s => s.sessionNumber);
+                sessionsList = data.map(s => {
+                    const sessNum = parseInt(s.SESS_NUMBER) || 0;
+                    const startYear = (s.SESS_START_DATE || '').substring(0, 4);
+                    const endYear = (s.SESS_END_DATE || '').substring(0, 4);
+                    const years = startYear && endYear ? `${startYear}-${endYear}` : startYear || '';
+                    return {
+                        sessionNumber: sessNum,
+                        description: `${sessNum}${getSuffix(sessNum)} Session`,
+                        years: years,
+                        isCurrent: sessNum == currentSession
+                    };
+                }).filter(s => s.sessionNumber);
                 sessionsList.sort((a, b) => b.sessionNumber - a.sessionNumber);
-            } else {
-                sessionsList = DEMO_SESSIONS;
             }
         } catch (e) {
-            sessionsList = DEMO_SESSIONS;
+            console.warn('Failed to load sessions:', e);
+        }
+
+        // If no sessions loaded, create a minimal list
+        if (sessionsList.length === 0) {
+            sessionsList = [{ sessionNumber: 126, description: '126th Session', years: '2025-2026', isCurrent: true }];
         }
         populateSessionSelect();
     }
@@ -1408,12 +1443,33 @@
         try {
             const data = await apiFetch('/subjects/current');
             if (Array.isArray(data) && data.length > 0) {
-                const subjects = data.map(s => s.subject || s.name || s.description || s).filter(Boolean);
-                populateSubjectSelect(subjects);
+                // Build subject text list and bill-to-subject mapping
+                const subjectTexts = new Set();
+                subjectsBillMap = {};
+
+                data.forEach(s => {
+                    const text = s.A_TEXT || '';
+                    if (!text) return;
+                    subjectTexts.add(text);
+
+                    // Map bill numbers to subjects
+                    if (s.BILLS && Array.isArray(s.BILLS)) {
+                        s.BILLS.forEach(billNum => {
+                            const key = String(billNum);
+                            if (!subjectsBillMap[key]) subjectsBillMap[key] = [];
+                            subjectsBillMap[key].push(text);
+                        });
+                    }
+                });
+
+                const sorted = [...subjectTexts].sort();
+                populateSubjectSelect(sorted);
                 return;
             }
-        } catch (e) { /* fall through */ }
-        populateSubjectSelect(DEMO_SUBJECTS);
+        } catch (e) {
+            console.warn('Failed to load subjects:', e);
+        }
+        populateSubjectSelect([]);
     }
 
     function populateSubjectSelect(subjects) {
@@ -1432,114 +1488,87 @@
             const data = await apiFetch('/session-billcount');
             if (Array.isArray(data) && data.length > 0) {
                 billCountData = data.map(d => ({
-                    session: d.session || d.sessionNumber,
-                    count: d.count || d.billCount || d.total || 0,
-                    years: d.years || d.sessionYears || ''
-                }));
-                return;
-            } else if (data && typeof data === 'object') {
-                // Might be an object with session keys
-                billCountData = Object.entries(data).map(([key, val]) => ({
-                    session: parseInt(key) || key,
-                    count: typeof val === 'number' ? val : (val.count || val.total || 0),
-                    years: val.years || ''
-                }));
+                    session: parseInt(d.SESS_NUMBER) || 0,
+                    count: parseInt(d.BILL_COUNT) || 0,
+                    years: '',
+                    firstDate: d.FIRST_DATE || '',
+                    lastDate: d.LAST_DATE || ''
+                })).filter(d => d.session > 0);
+
+                // Enrich with years from sessions list
+                billCountData.forEach(d => {
+                    const si = sessionsList.find(s => s.sessionNumber === d.session);
+                    if (si) d.years = si.years;
+                });
                 return;
             }
-        } catch (e) { /* fall through */ }
-        billCountData = DEMO_BILL_COUNTS;
+        } catch (e) {
+            console.warn('Failed to load bill counts:', e);
+        }
+        billCountData = [];
     }
 
     async function loadBills() {
         showColumnLoading();
         let bills = [];
-        let liveSuccess = false;
 
-        // Strategy 1: Try dashboard endpoints for bulk data
-        try {
-            const [houseData, senateData] = await Promise.allSettled([
-                apiFetch('/dashboard/currentbill/house'),
-                apiFetch('/dashboard/currentbill/senate')
-            ]);
+        // Fetch Senate bills (1-50) and House bills (3001-3050) in parallel
+        const senateBillIds = [];
+        for (let i = 1; i <= 50; i++) senateBillIds.push(i);
+        const houseBillIds = [];
+        for (let i = 3001; i <= 3050; i++) houseBillIds.push(i);
+        const allIds = [...senateBillIds, ...houseBillIds];
 
-            let houseBills = [];
-            let senateBills = [];
+        const totalToFetch = allIds.length;
+        let fetched = 0;
+        let succeeded = 0;
 
-            if (houseData.status === 'fulfilled' && houseData.value) {
-                const hd = houseData.value;
-                houseBills = Array.isArray(hd) ? hd : (hd.bills || hd.data || []);
-            }
-            if (senateData.status === 'fulfilled' && senateData.value) {
-                const sd = senateData.value;
-                senateBills = Array.isArray(sd) ? sd : (sd.bills || sd.data || []);
-            }
+        updateLoadingStatus(`Loading 0 of ${totalToFetch} bills...`);
 
-            if (houseBills.length > 0 || senateBills.length > 0) {
-                bills = [...houseBills, ...senateBills].map(parseLiveBill);
-                liveSuccess = true;
-            }
-        } catch (e) {
-            console.warn('Dashboard endpoints failed:', e);
-        }
+        // Fetch in batches of 20 to avoid overwhelming the browser
+        const BATCH_SIZE = 20;
+        for (let batchStart = 0; batchStart < allIds.length; batchStart += BATCH_SIZE) {
+            const batch = allIds.slice(batchStart, batchStart + BATCH_SIZE);
+            const results = await Promise.allSettled(
+                batch.map(id =>
+                    apiFetch(`/bills/${currentSession}/${id}`)
+                        .then(data => {
+                            fetched++;
+                            if (data && typeof data === 'object' && data.BILL_NUMBER) {
+                                succeeded++;
+                                return { success: true, data };
+                            }
+                            return { success: false };
+                        })
+                        .catch(() => {
+                            fetched++;
+                            return { success: false };
+                        })
+                )
+            );
 
-        // Strategy 2: Try individual bill endpoints
-        if (!liveSuccess) {
-            try {
-                const promises = [];
-                for (let i = 1; i <= 30; i++) {
-                    promises.push(
-                        apiFetch(`/bills/${currentSession}/${i}`)
-                            .then(data => ({ success: true, data }))
-                            .catch(() => ({ success: false }))
-                    );
+            results.forEach(r => {
+                if (r.status === 'fulfilled' && r.value.success) {
+                    bills.push(parseLiveBill(r.value.data));
                 }
-                const results = await Promise.allSettled(promises);
-                const fetched = results
-                    .filter(r => r.status === 'fulfilled' && r.value.success && r.value.data)
-                    .map(r => r.value.data);
-
-                if (fetched.length > 0) {
-                    // Each result might be a single bill or an array
-                    fetched.forEach(item => {
-                        if (Array.isArray(item)) {
-                            bills.push(...item.map(parseLiveBill));
-                        } else {
-                            bills.push(parseLiveBill(item));
-                        }
-                    });
-                    liveSuccess = bills.length > 0;
-                }
-            } catch (e) {
-                console.warn('Individual bill fetch failed:', e);
-            }
-        }
-
-        // Strategy 3: Try /bills/current
-        if (!liveSuccess) {
-            try {
-                const data = await apiFetch('/bills/current');
-                if (data) {
-                    const arr = Array.isArray(data) ? data : (data.bills || data.data || []);
-                    if (arr.length > 0) {
-                        bills = arr.slice(0, 50).map(parseLiveBill);
-                        liveSuccess = true;
-                    }
-                }
-            } catch (e) {
-                console.warn('/bills/current failed:', e);
-            }
-        }
-
-        // Fallback to demo data
-        if (!liveSuccess || bills.length === 0) {
-            bills = DEMO_BILLS.map(b => {
-                b._stage = classifyStage(b);
-                return b;
             });
-            showError('Could not load live data from the SC Statehouse API. Displaying demo data for demonstration purposes.');
-            setDataBadge(false);
-        } else {
+
+            updateLoadingStatus(`Loading ${fetched} of ${totalToFetch} bills... (${succeeded} found)`);
+        }
+
+        // Assign subjects from the subjects map
+        bills.forEach(bill => {
+            const subjects = subjectsBillMap[bill.rawBillNumber] || [];
+            bill.subject = subjects.length > 0 ? subjects[0] : '';
+            bill.allSubjects = subjects;
+        });
+
+        if (bills.length > 0) {
             setDataBadge(true);
+            hideError();
+        } else {
+            setDataBadge(false);
+            showError('Could not load any bills from the SC Statehouse API. The API may be temporarily unavailable.');
         }
 
         allBills = bills;
@@ -1547,19 +1576,25 @@
     }
 
     function showColumnLoading() {
-        ['colIntroduced','colCommittee','colFloor','colPassed','colEnacted'].forEach(id => {
-            document.getElementById(id).innerHTML = '<div class="loading-indicator"><div class="spinner"></div>Loading...</div>';
-        });
+        updateLoadingStatus('Loading...');
     }
 
     // ===== FILTERS =====
     function applyFilters() {
         filteredBills = allBills.filter(bill => {
             if (currentChamberFilter !== 'all' && bill.chamber.toLowerCase() !== currentChamberFilter) return false;
-            if (currentSubjectFilter && bill.subject !== currentSubjectFilter) return false;
+            if (currentSubjectFilter) {
+                // Check if bill has this subject in any of its subjects
+                const hasSubject = (bill.allSubjects || []).includes(currentSubjectFilter) ||
+                    bill.subject === currentSubjectFilter;
+                if (!hasSubject) return false;
+            }
             if (currentSearchTerm) {
                 const term = currentSearchTerm.toLowerCase();
-                const searchable = [bill.billNumber, bill.title, bill.sponsor, bill.subject, bill.committee || ''].join(' ').toLowerCase();
+                const searchable = [
+                    bill.billNumber, bill.title, bill.sponsor, bill.subject,
+                    bill.committee || '', bill.summary || '', bill.rawBillNumber || ''
+                ].join(' ').toLowerCase();
                 if (!searchable.includes(term)) return false;
             }
             return true;
@@ -1707,19 +1742,41 @@
         html += infoItem('Subject', bill.subject || 'N/A');
         if (bill.committee) html += infoItem('Committee', bill.committee);
         if (bill.actNumber) html += infoItem('Act Number', bill.actNumber);
+        if (bill.ratNumber) html += infoItem('Ratification Number', bill.ratNumber);
+        if (bill.houseIntroDate) html += infoItem('House Intro Date', formatDate(bill.houseIntroDate));
+        if (bill.senateIntroDate) html += infoItem('Senate Intro Date', formatDate(bill.senateIntroDate));
         if (bill.lastAction) html += infoItem('Last Action', formatDate(bill.lastAction));
         html += '</div></div>';
 
-        // Pipeline progress
+        // Pipeline progress using STATUS steps
         html += '<div class="detail-section"><h4>Pipeline Progress</h4>';
-        html += renderPipelineProgress(stage);
+        if (bill.statusSteps && bill.statusSteps.length > 0) {
+            html += renderStatusSteps(bill.statusSteps);
+        } else {
+            html += renderPipelineProgress(stage);
+        }
         html += '</div>';
+
+        // Summary (if different from title)
+        if (bill.summary && bill.summary !== bill.title) {
+            html += '<div class="detail-section"><h4>Summary</h4>';
+            html += `<p style="font-size:0.85rem; line-height:1.5; color:var(--text);">${escHtml(bill.summary)}</p></div>`;
+        }
 
         // Sponsors
         if (bill.sponsorsList && bill.sponsorsList.length > 0) {
             html += '<div class="detail-section"><h4>Sponsors</h4><div class="sponsor-list">';
             bill.sponsorsList.forEach((s, i) => {
                 html += `<span class="sponsor-tag ${i === 0 ? 'primary' : ''}">${escHtml(s)}</span>`;
+            });
+            html += '</div></div>';
+        }
+
+        // All subjects
+        if (bill.allSubjects && bill.allSubjects.length > 0) {
+            html += '<div class="detail-section"><h4>Subjects</h4><div class="sponsor-list">';
+            bill.allSubjects.forEach(s => {
+                html += `<span class="sponsor-tag">${escHtml(s)}</span>`;
             });
             html += '</div></div>';
         }
@@ -1746,17 +1803,32 @@
                 return new Date(b.date) - new Date(a.date);
             });
             sortedActions.forEach(a => {
+                const chamberTag = a.chamber ? ` [${a.chamber}]` : '';
                 html += `<div class="action-item">
-                    <div class="action-date">${escHtml(formatDate(a.date))}</div>
-                    <div class="action-desc">${escHtml(a.desc || a.description || '')}</div>
+                    <div class="action-date">${escHtml(formatDate(a.date))}${escHtml(chamberTag)}</div>
+                    <div class="action-desc">${escHtml(a.desc)}</div>
                 </div>`;
             });
             html += '</div></div>';
         }
 
+        // Links
+        if (bill.fullTextUrl || bill.fiscalImpactUrl) {
+            html += '<div class="detail-section"><h4>Documents</h4>';
+            if (bill.fullTextUrl) {
+                html += `<p style="margin-bottom:6px;"><a href="${escHtml(bill.fullTextUrl)}" target="_blank" style="color:var(--blue); text-decoration:underline;">Full Text</a></p>`;
+            }
+            if (bill.fiscalImpactUrl) {
+                html += `<p><a href="${escHtml(bill.fiscalImpactUrl)}" target="_blank" style="color:var(--blue); text-decoration:underline;">Fiscal Impact Statement</a></p>`;
+            }
+            html += '</div>';
+        }
+
         // Full title
-        html += '<div class="detail-section"><h4>Full Title</h4>';
-        html += `<p style="font-size:0.85rem; line-height:1.5; color:var(--text);">${escHtml(bill.title)}</p></div>`;
+        if (bill.fullTitle && bill.fullTitle !== bill.title) {
+            html += '<div class="detail-section"><h4>Full Title</h4>';
+            html += `<p style="font-size:0.85rem; line-height:1.5; color:var(--text);">${escHtml(bill.fullTitle)}</p></div>`;
+        }
 
         body.innerHTML = html;
     };
@@ -1774,6 +1846,22 @@
             document.body.style.overflow = '';
         }
     });
+
+    function renderStatusSteps(steps) {
+        const colors = ['#2471a3', '#b7950b', '#7d3c98', '#1e8449', '#ca6f1e', '#e53e3e', '#319795'];
+        let html = '<div style="display:flex; align-items:center; gap:4px; padding:8px 0; flex-wrap:wrap;">';
+        steps.forEach((step, i) => {
+            const color = colors[i % colors.length];
+            const active = step.checked;
+            html += `<div style="flex:1; min-width:60px; text-align:center;">
+                <div style="height:6px; border-radius:3px; background:${active ? color : '#e2e4e8'}; margin-bottom:4px;"></div>
+                <span style="font-size:0.6rem; font-weight:${active ? '700' : '400'}; color:${active ? color : '#a0aec0'};">${escHtml(step.text)}</span>
+                ${step.date ? `<br><span style="font-size:0.55rem; color:var(--text-muted);">${escHtml(formatDate(step.date))}</span>` : ''}
+            </div>`;
+        });
+        html += '</div>';
+        return html;
+    }
 
     function renderPipelineProgress(currentStage) {
         const stages = ['introduced', 'committee', 'floor', 'passed', 'enacted'];
@@ -1802,7 +1890,6 @@
 
     // ===== TIMELINE VIEW =====
     function renderTimeline() {
-        // Velocity bars - average days in each stage
         const stageColors = {
             introduced: '#2471a3',
             committee: '#b7950b',
@@ -1813,10 +1900,9 @@
         const stageLabelsArr = ['Introduced', 'In Committee', 'Floor Vote', 'Passed', 'Enacted'];
         const stageKeys = ['introduced', 'committee', 'floor', 'passed', 'enacted'];
 
-        // Calculate average "days" per stage (simulated from action dates)
-        const stageDays = { introduced: 14, committee: 28, floor: 12, passed: 8, enacted: 5 };
+        // Calculate average "days" per stage from actual action data
+        const stageDaysTotals = { introduced: [], committee: [], floor: [], passed: [], enacted: [] };
 
-        // Calculate from actual data if available
         filteredBills.forEach(bill => {
             if (bill.actions && bill.actions.length >= 2) {
                 const dates = bill.actions
@@ -1826,11 +1912,17 @@
                 if (dates.length >= 2) {
                     const total = (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24);
                     const stage = bill._stage || classifyStage(bill);
-                    if (stageDays[stage] !== undefined) {
-                        stageDays[stage] = Math.round((stageDays[stage] + total) / 2);
+                    if (stageDaysTotals[stage]) {
+                        stageDaysTotals[stage].push(total);
                     }
                 }
             }
+        });
+
+        const stageDays = {};
+        stageKeys.forEach(key => {
+            const arr = stageDaysTotals[key];
+            stageDays[key] = arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
         });
 
         const maxDays = Math.max(...Object.values(stageDays), 1);
@@ -1840,10 +1932,10 @@
         labelsEl.innerHTML = '';
 
         stageKeys.forEach((key, i) => {
-            const pct = (stageDays[key] / maxDays) * 100;
+            const pct = maxDays > 0 ? (stageDays[key] / maxDays) * 100 : 0;
             const bar = document.createElement('div');
             bar.className = 'velocity-bar';
-            bar.style.height = pct + '%';
+            bar.style.height = Math.max(pct, 2) + '%';
             bar.style.background = stageColors[key];
             bar.innerHTML = `<div class="bar-tooltip">${stageLabelsArr[i]}: ~${stageDays[key]} days avg</div>`;
             barsEl.appendChild(bar);
@@ -1857,8 +1949,12 @@
         const monthlyData = {};
         const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         filteredBills.forEach(bill => {
-            const firstAction = bill.actions && bill.actions.length > 0 ? bill.actions[0] : null;
-            const dateStr = firstAction ? firstAction.date : bill.lastAction;
+            // Use intro date or first action date
+            let dateStr = bill.houseIntroDate || bill.senateIntroDate || '';
+            if (!dateStr && bill.actions && bill.actions.length > 0) {
+                dateStr = bill.actions[0].date;
+            }
+            if (!dateStr) dateStr = bill.lastAction;
             if (dateStr) {
                 const d = new Date(dateStr);
                 if (!isNaN(d.getTime())) {
@@ -1950,7 +2046,7 @@
 
             const sessionInfo = sessionsList.find(s => s.sessionNumber == d.session);
             const years = d.years || (sessionInfo ? sessionInfo.years : '');
-            const desc = sessionInfo ? sessionInfo.description : `Session ${d.session}`;
+            const desc = sessionInfo ? sessionInfo.description : `${d.session}${getSuffix(d.session)} Session`;
 
             card.innerHTML = `
                 <div class="session-num">${escHtml(desc)}</div>
