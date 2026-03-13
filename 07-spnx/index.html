@@ -724,14 +724,16 @@
 <script>
 // ═══════════════════════════════════════════════════════════════
 // SPNX - Sponsor Network & Collaboration Graph
+// Live data from SC Statehouse REST API
 // ═══════════════════════════════════════════════════════════════
 
 const BASE = 'https://rest.scstatehouse.gov';
 
 // ─── State ───
 let allMembers = {};       // keyed by PERM_SPONSOR_CODE
-let allBills = [];
-let allSubjects = [];
+let allBills = [];         // full bill objects with SPONSORS arrays
+let allSubjects = [];      // subject objects with BILLS arrays
+let subjectBillMap = {};   // subject A_TEXT -> Set of bill number strings
 let graphNodes = [];
 let graphEdges = [];
 let filteredNodes = [];
@@ -741,7 +743,6 @@ let hoveredNode = null;
 let dragNode = null;
 let clusters = [];
 let activeTab = 'sponsors';
-let usingFallback = false;
 
 // Physics
 let simRunning = true;
@@ -771,191 +772,129 @@ const tooltip = document.getElementById('tooltip');
 const detailPanel = document.getElementById('detailPanel');
 
 // ═══════════════════════════════════════════════════════════════
-// FALLBACK DATA
-// ═══════════════════════════════════════════════════════════════
-
-function generateFallbackData() {
-    const houseMembers = [
-        { code: '1001', first: 'Murrell', last: 'Smith', party: 'R', district: '67', county: 'Sumter', chamber: 'H' },
-        { code: '1002', first: 'Bruce', last: 'Bannister', party: 'R', district: '24', county: 'Greenville', chamber: 'H' },
-        { code: '1003', first: 'Todd', last: 'Rutherford', party: 'D', district: '74', county: 'Richland', chamber: 'H' },
-        { code: '1004', first: 'Gilda', last: 'Cobb-Hunter', party: 'D', district: '66', county: 'Orangeburg', chamber: 'H' },
-        { code: '1005', first: 'Jay', last: 'Lucas', party: 'R', district: '65', county: 'Darlington', chamber: 'H' },
-        { code: '1006', first: 'Wm. Weston', last: 'Newton', party: 'R', district: '120', county: 'Beaufort', chamber: 'H' },
-        { code: '1007', first: 'Chris', last: 'Murphy', party: 'R', district: '98', county: 'Dorchester', chamber: 'H' },
-        { code: '1008', first: 'JA', last: 'Moore', party: 'D', district: '15', county: 'Berkeley', chamber: 'H' },
-        { code: '1009', first: 'Cal', last: 'Forrest', party: 'R', district: '39', county: 'Saluda', chamber: 'H' },
-        { code: '1010', first: 'Wendell', last: 'Gilliard', party: 'D', district: '111', county: 'Charleston', chamber: 'H' },
-        { code: '1011', first: 'Russell', last: 'Ott', party: 'D', district: '93', county: 'Calhoun', chamber: 'H' },
-        { code: '1012', first: 'Micah', last: 'Caskey', party: 'R', district: '89', county: 'Lexington', chamber: 'H' },
-        { code: '1013', first: 'Annie', last: 'McDaniel', party: 'D', district: '41', county: 'Fairfield', chamber: 'H' },
-        { code: '1014', first: 'Gary', last: 'Simrill', party: 'R', district: '46', county: 'York', chamber: 'H' },
-        { code: '1015', first: 'Chandra', last: 'Dillard', party: 'D', district: '23', county: 'Greenville', chamber: 'H' },
-        { code: '1016', first: 'Thomas', last: 'Beach', party: 'R', district: '30', county: 'Spartanburg', chamber: 'H' },
-        { code: '1017', first: 'Leon', last: 'Howard', party: 'D', district: '76', county: 'Richland', chamber: 'H' },
-        { code: '1018', first: 'Bill', last: 'Taylor', party: 'R', district: '86', county: 'Aiken', chamber: 'H' },
-        { code: '1019', first: 'Kambrell', last: 'Garvin', party: 'D', district: '77', county: 'Richland', chamber: 'H' },
-        { code: '1020', first: 'Tommy', last: 'Pope', party: 'R', district: '47', county: 'York', chamber: 'H' },
-    ];
-
-    const senateMembers = [
-        { code: '2001', first: 'Thomas', last: 'Alexander', party: 'R', district: '1', county: 'Oconee', chamber: 'S' },
-        { code: '2002', first: 'Luke', last: 'Rankin', party: 'R', district: '33', county: 'Horry', chamber: 'S' },
-        { code: '2003', first: 'Brad', last: 'Hutto', party: 'D', district: '40', county: 'Orangeburg', chamber: 'S' },
-        { code: '2004', first: 'Dick', last: 'Harpootlian', party: 'D', district: '20', county: 'Richland', chamber: 'S' },
-        { code: '2005', first: 'Harvey', last: 'Peeler', party: 'R', district: '14', county: 'Cherokee', chamber: 'S' },
-        { code: '2006', first: 'Nikki', last: 'Setzler', party: 'D', district: '26', county: 'Lexington', chamber: 'S' },
-        { code: '2007', first: 'Shane', last: 'Massey', party: 'R', district: '25', county: 'Edgefield', chamber: 'S' },
-        { code: '2008', first: 'Gerald', last: 'Malloy', party: 'D', district: '29', county: 'Darlington', chamber: 'S' },
-        { code: '2009', first: 'Greg', last: 'Hembree', party: 'R', district: '28', county: 'Horry', chamber: 'S' },
-        { code: '2010', first: 'Margie Bright', last: 'Matthews', party: 'D', district: '45', county: 'Colleton', chamber: 'S' },
-        { code: '2011', first: 'Ross', last: 'Turner', party: 'R', district: '8', county: 'Greenville', chamber: 'S' },
-        { code: '2012', first: 'Darrell', last: 'Jackson', party: 'D', district: '21', county: 'Richland', chamber: 'S' },
-        { code: '2013', first: 'Sean', last: 'Bennett', party: 'R', district: '38', county: 'Dorchester', chamber: 'S' },
-        { code: '2014', first: 'Mia', last: 'McLeod', party: 'D', district: '22', county: 'Richland', chamber: 'S' },
-        { code: '2015', first: 'Rex', last: 'Rice', party: 'R', district: '2', county: 'Pickens', chamber: 'S' },
-    ];
-
-    const members = {};
-    [...houseMembers, ...senateMembers].forEach(m => {
-        members[m.code] = {
-            PERM_SPONSOR_CODE: m.code,
-            FIRST: m.first,
-            LAST: m.last,
-            PARTY: m.party,
-            DISTRICT_NUMBER: m.district,
-            HOME_COUNTY: m.county,
-            CHAMBER: m.chamber,
-            TITLE: m.chamber === 'H' ? 'Representative' : 'Senator'
-        };
-    });
-
-    const codes = Object.keys(members);
-    const bills = [];
-    const subjectNames = ['Education', 'Health', 'Transportation', 'Budget', 'Criminal Justice',
-        'Agriculture', 'Environment', 'Technology', 'Veterans Affairs', 'Labor',
-        'Insurance', 'Taxes', 'Elections', 'Housing', 'Energy'];
-
-    for (let i = 0; i < 200; i++) {
-        const chamber = Math.random() < 0.6 ? 'H' : 'S';
-        const chamberCodes = codes.filter(c => members[c].CHAMBER === chamber);
-        const primaryIdx = Math.floor(Math.random() * chamberCodes.length);
-        const primary = chamberCodes[primaryIdx];
-        const numCosponsors = Math.floor(Math.random() * 6);
-        const sponsors = [{ PERM_SPONSOR_CODE: primary }];
-
-        const available = codes.filter(c => c !== primary);
-        for (let j = 0; j < numCosponsors && available.length > 0; j++) {
-            const idx = Math.floor(Math.random() * available.length);
-            sponsors.push({ PERM_SPONSOR_CODE: available.splice(idx, 1)[0] });
-        }
-
-        const subj = subjectNames[Math.floor(Math.random() * subjectNames.length)];
-        bills.push({
-            BILL_NUMBER: String(i + 1),
-            CHAMBER: chamber,
-            PERM_SPONSOR_CODE: primary,
-            SPONSORS: sponsors,
-            SUMMARY: `A bill relating to ${subj.toLowerCase()}`,
-            SUBJECT: subj,
-            TITLE: `${chamber === 'H' ? 'H' : 'S'}. ${i + 1} - ${subj} Act`
-        });
-    }
-
-    const subjects = subjectNames.map((s, i) => ({ SUBJECT_CODE: String(i + 1), SUBJECT_DESC: s }));
-
-    return { members, bills, subjects };
-}
-
-// ═══════════════════════════════════════════════════════════════
-// DATA LOADING
+// DATA LOADING - Live API only, no fallback
 // ═══════════════════════════════════════════════════════════════
 
 async function fetchJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
+    const json = await res.json();
+    // ALL responses are wrapped: {error, message, data} - unwrap
+    if (json && typeof json === 'object' && 'data' in json) {
+        return json.data;
+    }
+    return json;
 }
 
 async function loadData() {
     loadingText.textContent = 'Loading sponsor data...';
-    loadingSub.textContent = 'Fetching legislator information';
+    loadingSub.textContent = 'Connecting to SC Statehouse API';
     errorBanner.style.display = 'none';
 
     try {
-        // Load sessions first
+        // ── Step 1: Load sessions ──
         loadingSub.textContent = 'Fetching session info...';
         let sessions;
         try {
             sessions = await fetchJSON(`${BASE}/sessions`);
             populateSessionSelect(sessions);
         } catch (e) {
-            console.warn('Sessions fetch failed, using default');
+            console.warn('Sessions fetch failed:', e.message);
         }
 
-        // Load bios
-        loadingSub.textContent = 'Fetching House members...';
+        // ── Step 2: Load member bios (House + Senate in parallel) ──
+        loadingText.textContent = 'Loading members...';
+        loadingSub.textContent = 'Fetching House and Senate bios...';
         const [houseBios, senateBios] = await Promise.all([
             fetchJSON(`${BASE}/house/bios`),
             fetchJSON(`${BASE}/senate/bios`)
         ]);
 
         allMembers = {};
-        (Array.isArray(houseBios) ? houseBios : []).forEach(m => {
-            if (m.PERM_SPONSOR_CODE) allMembers[m.PERM_SPONSOR_CODE] = { ...m, CHAMBER: 'H' };
+        const houseArr = Array.isArray(houseBios) ? houseBios : [];
+        const senateArr = Array.isArray(senateBios) ? senateBios : [];
+
+        houseArr.forEach(m => {
+            if (m.PERM_SPONSOR_CODE) allMembers[m.PERM_SPONSOR_CODE] = m;
         });
-        (Array.isArray(senateBios) ? senateBios : []).forEach(m => {
-            if (m.PERM_SPONSOR_CODE) allMembers[m.PERM_SPONSOR_CODE] = { ...m, CHAMBER: 'S' };
+        senateArr.forEach(m => {
+            if (m.PERM_SPONSOR_CODE) allMembers[m.PERM_SPONSOR_CODE] = m;
         });
 
-        // Load bills
-        loadingSub.textContent = 'Fetching bill data...';
-        const [houseBills, senateBills] = await Promise.all([
-            fetchJSON(`${BASE}/dashboard/currentbill/house`),
-            fetchJSON(`${BASE}/dashboard/currentbill/senate`)
-        ]);
+        const memberCount = Object.keys(allMembers).length;
+        loadingSub.textContent = `Loaded ${memberCount} members. Fetching bills...`;
 
-        allBills = [
-            ...(Array.isArray(houseBills) ? houseBills : []),
-            ...(Array.isArray(senateBills) ? senateBills : [])
-        ];
+        if (memberCount === 0) {
+            throw new Error('No member data received from API');
+        }
 
-        // Load subjects
-        loadingSub.textContent = 'Fetching subject categories...';
+        // ── Step 3: Fetch individual bills ──
+        // House bills: 1-50, Senate bills: 3001-3050
+        const billIds = [];
+        for (let i = 1; i <= 50; i++) billIds.push(i);
+        for (let i = 3001; i <= 3050; i++) billIds.push(i);
+
+        const BATCH_SIZE = 10;
+        allBills = [];
+        let completed = 0;
+        const totalBills = billIds.length;
+
+        for (let batch = 0; batch < billIds.length; batch += BATCH_SIZE) {
+            const batchIds = billIds.slice(batch, batch + BATCH_SIZE);
+            const results = await Promise.allSettled(
+                batchIds.map(id => fetchJSON(`${BASE}/bills/126/${id}`))
+            );
+
+            results.forEach((result, idx) => {
+                completed++;
+                if (result.status === 'fulfilled' && result.value) {
+                    allBills.push(result.value);
+                }
+            });
+
+            loadingText.textContent = `Loading bills (${completed}/${totalBills})...`;
+            loadingSub.textContent = `${allBills.length} bills found so far`;
+        }
+
+        loadingSub.textContent = `${allBills.length} bills loaded. Fetching subjects...`;
+
+        // ── Step 4: Load subjects ──
+        loadingText.textContent = 'Loading subjects...';
         try {
-            allSubjects = await fetchJSON(`${BASE}/subjects/current`);
-            if (!Array.isArray(allSubjects)) allSubjects = [];
+            const subjectsRaw = await fetchJSON(`${BASE}/subjects/current`);
+            allSubjects = Array.isArray(subjectsRaw) ? subjectsRaw : [];
         } catch (e) {
+            console.warn('Subjects fetch failed:', e.message);
             allSubjects = [];
         }
 
-        if (Object.keys(allMembers).length === 0 || allBills.length === 0) {
-            throw new Error('No data received');
+        // Build subject -> bill numbers lookup
+        subjectBillMap = {};
+        allSubjects.forEach(s => {
+            const text = s.A_TEXT || '';
+            if (text && Array.isArray(s.BILLS)) {
+                subjectBillMap[text] = new Set(s.BILLS.map(String));
+            }
+        });
+
+        if (allBills.length === 0) {
+            throw new Error('No bill data received from API');
         }
 
-        usingFallback = false;
-        loadingSub.textContent = 'Building network graph...';
+        // ── Step 5: Build and display ──
+        loadingText.textContent = 'Building network...';
+        loadingSub.textContent = `${memberCount} members, ${allBills.length} bills, ${allSubjects.length} subjects`;
         populateSubjectFilter();
         buildGraph();
         updateFilters();
         hideLoading();
 
     } catch (err) {
-        console.warn('API fetch failed, using fallback data:', err.message);
-        errorBanner.textContent = `API unavailable (${err.message}). Using demo data with realistic SC legislator names.`;
+        console.error('API fetch failed:', err);
+        errorBanner.textContent = `API error: ${err.message}. Check console for details.`;
         errorBanner.style.display = 'block';
-
-        const fallback = generateFallbackData();
-        allMembers = fallback.members;
-        allBills = fallback.bills;
-        allSubjects = fallback.subjects;
-        usingFallback = true;
-
-        populateSubjectFilter();
-        buildGraph();
-        updateFilters();
-
-        setTimeout(hideLoading, 1500);
+        loadingText.textContent = 'Failed to load data';
+        loadingSub.textContent = 'Check your network connection and try again.';
     }
 }
 
@@ -967,7 +906,7 @@ function populateSessionSelect(sessions) {
     sessions.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.SESS_NUMBER;
-        opt.textContent = `${s.SESS_NUMBER}th (${s.SESS_START_DATE}-${s.SESS_END_DATE})`;
+        opt.textContent = `${s.SESS_NUMBER}th Session`;
         sel.appendChild(opt);
     });
 }
@@ -976,21 +915,19 @@ function populateSubjectFilter() {
     const sel = document.getElementById('subjectFilter');
     sel.innerHTML = '<option value="all">All Subjects</option>';
 
-    // Collect subjects from bills or subject list
-    const subjectSet = new Set();
-    if (allSubjects.length > 0) {
-        allSubjects.forEach(s => {
-            const desc = s.SUBJECT_DESC || s.SubjectDesc || s.Description || s.NAME || '';
-            if (desc) subjectSet.add(desc);
-        });
-    }
-    // Also collect from bill data
-    allBills.forEach(b => {
-        if (b.SUBJECT) subjectSet.add(b.SUBJECT);
-        if (b.SUBJECT_DESC) subjectSet.add(b.SUBJECT_DESC);
+    // Use subject data: only show subjects that have bills matching ones we loaded
+    const loadedBillNumbers = new Set(allBills.map(b => String(b.BILL_NUMBER)));
+
+    const relevantSubjects = [];
+    allSubjects.forEach(s => {
+        const text = s.A_TEXT || '';
+        if (!text || !Array.isArray(s.BILLS)) return;
+        // Check if any of this subject's bills are in our loaded set
+        const overlap = s.BILLS.some(bn => loadedBillNumbers.has(String(bn)));
+        if (overlap) relevantSubjects.push(text);
     });
 
-    [...subjectSet].sort().forEach(s => {
+    relevantSubjects.sort().forEach(s => {
         const opt = document.createElement('option');
         opt.value = s;
         opt.textContent = s;
@@ -1014,10 +951,10 @@ function buildGraph() {
     allBills.forEach(bill => {
         const sponsors = bill.SPONSORS || [];
         const sponsorCodes = sponsors
-            .map(s => s.PERM_SPONSOR_CODE || s.SponsorCode || s.sponsorCode)
+            .map(s => s.PERM_SPONSOR_CODE)
             .filter(Boolean);
 
-        // Also include primary sponsor if not in sponsors array
+        // Also include primary sponsor if not already in sponsors array
         if (bill.PERM_SPONSOR_CODE && !sponsorCodes.includes(bill.PERM_SPONSOR_CODE)) {
             sponsorCodes.unshift(bill.PERM_SPONSOR_CODE);
         }
@@ -1028,19 +965,26 @@ function buildGraph() {
             memberBills[code].push(bill);
         });
 
-        // Build edges from co-sponsorships
+        // Build edges from co-sponsorships (pairs among all sponsors)
         for (let i = 0; i < sponsorCodes.length; i++) {
             for (let j = i + 1; j < sponsorCodes.length; j++) {
                 const a = sponsorCodes[i], b = sponsorCodes[j];
                 const key = a < b ? `${a}|${b}` : `${b}|${a}`;
-                if (!edgeMap[key]) edgeMap[key] = { source: a < b ? a : b, target: a < b ? b : a, weight: 0, bills: [] };
+                if (!edgeMap[key]) {
+                    edgeMap[key] = {
+                        source: a < b ? a : b,
+                        target: a < b ? b : a,
+                        weight: 0,
+                        bills: []
+                    };
+                }
                 edgeMap[key].weight++;
                 edgeMap[key].bills.push(bill);
             }
         }
     });
 
-    // Create nodes
+    // Create nodes from members who appear in at least one bill
     const cx = canvas.width / 2, cy = canvas.height / 2;
     graphNodes = [];
 
@@ -1056,7 +1000,6 @@ function buildGraph() {
             chamber: m.CHAMBER || 'H',
             district: m.DISTRICT_NUMBER || '',
             county: m.HOME_COUNTY || '',
-            title: m.TITLE || '',
             billCount: billCount,
             bills: memberBills[code] || [],
             x: cx + (Math.random() - 0.5) * 600,
@@ -1068,8 +1011,10 @@ function buildGraph() {
         });
     });
 
+    // Only keep edges where both endpoints are visible nodes
+    const nodeIdSet = new Set(graphNodes.map(n => n.id));
     graphEdges = Object.values(edgeMap).filter(e => {
-        return graphNodes.some(n => n.id === e.source) && graphNodes.some(n => n.id === e.target);
+        return nodeIdSet.has(e.source) && nodeIdSet.has(e.target);
     });
 
     // Reset simulation
@@ -1088,7 +1033,6 @@ function detectBipartisanClusters() {
     clusters = [];
     const visited = new Set();
 
-    // Find connected components with mixed parties
     graphNodes.forEach(node => {
         if (visited.has(node.id)) return;
 
@@ -1137,23 +1081,17 @@ function updateFilters() {
     const subject = document.getElementById('subjectFilter').value;
     document.getElementById('minConnVal').textContent = minConn;
 
-    // Filter by subject: only show bills matching subject
-    let relevantBillSet = null;
-    if (subject !== 'all') {
-        relevantBillSet = new Set();
-        allBills.forEach(b => {
-            const billSubject = b.SUBJECT || b.SUBJECT_DESC || '';
-            if (billSubject === subject) {
-                relevantBillSet.add(b.BILL_NUMBER + '|' + b.CHAMBER);
-            }
-        });
+    // Filter by subject: use the subjects API BILLS arrays
+    let relevantBillNumbers = null;
+    if (subject !== 'all' && subjectBillMap[subject]) {
+        relevantBillNumbers = subjectBillMap[subject]; // Set of bill number strings
     }
 
     // Filter edges by subject
     let activeEdges = graphEdges;
-    if (relevantBillSet) {
+    if (relevantBillNumbers) {
         activeEdges = graphEdges.map(e => {
-            const matchingBills = e.bills.filter(b => relevantBillSet.has(b.BILL_NUMBER + '|' + b.CHAMBER));
+            const matchingBills = e.bills.filter(b => relevantBillNumbers.has(String(b.BILL_NUMBER)));
             if (matchingBills.length === 0) return null;
             return { ...e, weight: matchingBills.length, filteredBills: matchingBills };
         }).filter(Boolean);
@@ -1173,7 +1111,7 @@ function updateFilters() {
         return nodeIds.has(e.source) && nodeIds.has(e.target) && e.weight >= minConn;
     });
 
-    // Further filter nodes: only keep those with at least one edge (unless minConn is 1)
+    // Further filter nodes: only keep those with at least one edge when minConn > 1
     if (minConn > 1) {
         const connectedIds = new Set();
         filteredEdges.forEach(e => { connectedIds.add(e.source); connectedIds.add(e.target); });
@@ -1204,23 +1142,16 @@ function updateStats() {
     document.getElementById('statConnections').textContent = filteredEdges.length;
     document.getElementById('statVisibleNodes').textContent = filteredNodes.length;
 
-    // Bipartisan rate: % of co-sponsored bills with mixed parties
-    let bipartisanCount = 0;
-    let cosponsoredTotal = 0;
-    allBills.forEach(bill => {
-        const sponsors = bill.SPONSORS || [];
-        if (sponsors.length < 2) return;
-        cosponsoredTotal++;
-        const parties = new Set();
-        sponsors.forEach(s => {
-            const code = s.PERM_SPONSOR_CODE || s.SponsorCode;
-            const member = allMembers[code];
-            if (member) parties.add(member.PARTY);
-        });
-        if (parties.size > 1) bipartisanCount++;
+    // Bipartisan rate: edges between members of different parties
+    let bipartisanEdges = 0;
+    let totalEdges = filteredEdges.length;
+    filteredEdges.forEach(e => {
+        const sNode = graphNodes.find(n => n.id === e.source);
+        const tNode = graphNodes.find(n => n.id === e.target);
+        if (sNode && tNode && sNode.party !== tNode.party) bipartisanEdges++;
     });
 
-    const bipartisanRate = cosponsoredTotal > 0 ? Math.round((bipartisanCount / cosponsoredTotal) * 100) : 0;
+    const bipartisanRate = totalEdges > 0 ? Math.round((bipartisanEdges / totalEdges) * 100) : 0;
     document.getElementById('statBipartisan').textContent = bipartisanRate + '%';
 }
 
@@ -1247,7 +1178,7 @@ function updateLeaderboard() {
             list.appendChild(li);
         });
     } else {
-        // Most collaborative pairs
+        // Most collaborative pairs from actual co-sponsorship counts
         const sorted = [...filteredEdges].sort((a, b) => b.weight - a.weight).slice(0, 15);
         sorted.forEach((e, i) => {
             const s = graphNodes.find(n => n.id === e.source);
@@ -1289,12 +1220,15 @@ function selectNode(node) {
     detailPanel.classList.add('visible');
 
     document.getElementById('detailName').textContent = node.label;
+
+    const partyLabel = node.party === 'R' ? 'Republican' : node.party === 'D' ? 'Democrat' : 'Independent';
+    const chamberLabel = node.chamber === 'H' ? 'House' : 'Senate';
     document.getElementById('detailMeta').textContent =
-        `${node.title} | ${node.party === 'R' ? 'Republican' : node.party === 'D' ? 'Democrat' : 'Independent'} | District ${node.district} | ${node.county} County`;
+        `${chamberLabel} | ${partyLabel} | District ${node.district} | ${node.county} County`;
 
     document.getElementById('detailBills').textContent = node.billCount;
 
-    // Find connections
+    // Find connections from actual edge data
     const connections = {};
     filteredEdges.forEach(e => {
         if (e.source === node.id) {
@@ -1355,7 +1289,7 @@ function simulate() {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
 
-    // Repulsion between all node pairs (Barnes-Hut approximation for large graphs)
+    // Repulsion between all node pairs
     for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
             const a = nodes[i], b = nodes[j];
@@ -1364,7 +1298,6 @@ function simulate() {
             let dist = Math.sqrt(dx * dx + dy * dy) || 1;
             let force = REPULSION * simAlpha / (dist * dist);
 
-            // Cap force
             force = Math.min(force, 10);
 
             const fx = (dx / dist) * force;
@@ -1411,7 +1344,6 @@ function simulate() {
         n.x += n.vx;
         n.y += n.vy;
 
-        // Keep in bounds
         const margin = 50;
         n.x = Math.max(margin, Math.min(canvas.width - margin, n.x));
         n.y = Math.max(margin, Math.min(canvas.height - margin, n.y));
@@ -1426,16 +1358,15 @@ function simulate() {
 
 function getPartyColor(party, alpha = 1) {
     switch (party) {
-        case 'R': return `rgba(231,76,60,${alpha})`;
-        case 'D': return `rgba(74,144,217,${alpha})`;
-        default: return `rgba(155,89,182,${alpha})`;
+        case 'R': return `rgba(229,62,62,${alpha})`;   // #e53e3e
+        case 'D': return `rgba(49,130,206,${alpha})`;   // #3182ce
+        default:  return `rgba(128,90,213,${alpha})`;    // #805ad5
     }
 }
 
 function drawNode(node, isSelected, isHovered, isClusterMember) {
     const x = node.x, y = node.y, r = node.radius;
     const color = getPartyColor(node.party);
-    const glowColor = getPartyColor(node.party, 0.3);
 
     ctx.save();
 
@@ -1512,7 +1443,6 @@ function render() {
             ctx.globalAlpha = 0.06;
             ctx.fillStyle = '#2ecc71';
 
-            // Simple convex hull approximation - just draw around the centroid
             const cx = clusterNodes.reduce((s, n) => s + n.x, 0) / clusterNodes.length;
             const cy = clusterNodes.reduce((s, n) => s + n.y, 0) / clusterNodes.length;
             const maxDist = Math.max(...clusterNodes.map(n => Math.sqrt((n.x - cx) ** 2 + (n.y - cy) ** 2))) + 40;
@@ -1528,12 +1458,14 @@ function render() {
     const nodeMap = {};
     filteredNodes.forEach(n => nodeMap[n.id] = n);
 
+    // Cache max weight for edge rendering
+    const maxWeight = filteredEdges.length > 0 ? Math.max(...filteredEdges.map(x => x.weight), 1) : 1;
+
     filteredEdges.forEach(e => {
         const a = nodeMap[e.source], b = nodeMap[e.target];
         if (!a || !b) return;
 
         const isHighlighted = selectedNode && (e.source === selectedNode.id || e.target === selectedNode.id);
-        const maxWeight = Math.max(...filteredEdges.map(x => x.weight), 1);
         const thickness = 0.5 + (e.weight / maxWeight) * 4;
 
         ctx.beginPath();
@@ -1547,7 +1479,7 @@ function render() {
             ctx.strokeStyle = 'rgba(100,120,150,0.05)';
             ctx.lineWidth = thickness * 0.5;
         } else {
-            // Bipartisan edges get gold tint
+            // Bipartisan edges (cross-party) get gold tint
             const isBipartisan = a.party !== b.party;
             if (isBipartisan) {
                 ctx.strokeStyle = `rgba(201,169,78,${0.08 + (e.weight / maxWeight) * 0.2})`;
@@ -1606,7 +1538,6 @@ function screenToWorld(sx, sy) {
 }
 
 function findNodeAt(wx, wy) {
-    // Check in reverse order so top-drawn nodes are picked first
     for (let i = filteredNodes.length - 1; i >= 0; i--) {
         const n = filteredNodes[i];
         const dx = wx - n.x, dy = wy - n.y;
@@ -1667,8 +1598,10 @@ canvas.addEventListener('mousemove', (e) => {
         canvas.style.cursor = node ? 'pointer' : 'grab';
 
         if (node) {
+            const partyLabel = node.party === 'R' ? 'Republican' : node.party === 'D' ? 'Democrat' : 'Independent';
+            const chamberLabel = node.chamber === 'H' ? 'House' : 'Senate';
             tooltip.classList.add('visible');
-            tooltip.innerHTML = `<strong>${node.label}</strong><br>${node.party === 'R' ? 'Republican' : node.party === 'D' ? 'Democrat' : 'Independent'} | ${node.chamber === 'H' ? 'House' : 'Senate'} Dist. ${node.district}<br>${node.billCount} bills sponsored`;
+            tooltip.innerHTML = `<strong>${node.label}</strong><br>${partyLabel} | ${chamberLabel} Dist. ${node.district}<br>${node.billCount} bills sponsored`;
         } else {
             tooltip.classList.remove('visible');
         }
@@ -1714,7 +1647,6 @@ canvas.addEventListener('wheel', (e) => {
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     camZoom = Math.max(0.1, Math.min(5, camZoom * delta));
 
-    // Zoom toward mouse position
     camX = sx - (sx - camX) * (camZoom / oldZoom);
     camY = sy - (sy - camY) * (camZoom / oldZoom);
 }, { passive: false });
@@ -1785,7 +1717,6 @@ canvas.addEventListener('touchend', (e) => {
     isPanning = false;
     lastTouchDist = 0;
 
-    // Tap to select
     if (e.changedTouches.length === 1) {
         const t = e.changedTouches[0];
         const rect = canvas.getBoundingClientRect();
@@ -1824,8 +1755,6 @@ document.getElementById('reloadBtn').addEventListener('click', () => {
 });
 
 document.getElementById('sessionSelect').addEventListener('change', () => {
-    // For now, only current session is supported via the API
-    // Could extend to load bills/{session} in the future
     loadingOverlay.classList.remove('hidden');
     loadData();
 });
