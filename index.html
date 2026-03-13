@@ -302,7 +302,7 @@
 
 <div class="stats-bar">
     <div class="stat">
-        <div class="stat-number">10</div>
+        <div class="stat-number">20</div>
         <div class="stat-label">Concepts</div>
     </div>
     <div class="stat">
@@ -602,6 +602,278 @@
         <div class="card-footer">
             <a href="./10-prfn/index.html" class="card-link">Launch App &rarr;</a>
             <div class="card-number">10</div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SERIES 2 - LSA STYLE GUIDE EDITIONS (11-20)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- 11. BCAL -->
+    <div class="card" data-audiences="lawmakers,leadership,staff,lobbyists">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4c6;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">BCAL</div>
+                    <div class="card-title">Bill Activity Calendar &amp; Legislative Pulse</div>
+                </div>
+            </div>
+            <div class="card-tagline">"See the heartbeat of legislation, day by day."</div>
+            <div class="card-desc">GitHub-style contribution heatmap showing legislative activity intensity across the year. Combines bill actions, votes, and meetings into a single daily pulse. Click any day for a full breakdown. Identifies busiest days and day-of-week patterns.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /vote/{session}/house, /vote/{session}/senate, /house/meetings-all, /senate/meetings-all, /bills/{session}/{id}</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./11-bcal/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">11</div>
+        </div>
+    </div>
+
+    <!-- 12. CWHP -->
+    <div class="card" data-audiences="lawmakers,leadership,staff">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x2699;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">CWHP</div>
+                    <div class="card-title">Committee Workload &amp; Health Profile</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Measure what matters in committee performance."</div>
+            <div class="card-desc">Analyzes committee effectiveness: meeting frequency, member participation, workload distribution, and cross-committee member load. Identifies overloaded members serving on 3+ committees and ranks committees by activity.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /house/committees, /senate/committees, /house/meetings-all, /senate/meetings-all, /bills (IN_COMMITTEE)</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./12-cwhp/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">12</div>
+        </div>
+    </div>
+
+    <!-- 13. JTFR -->
+    <div class="card" data-audiences="lawmakers,staff,lobbyists,agencies">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4d6;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">JTFR</div>
+                    <div class="card-title">Journal &amp; Transcript Research Finder</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Dig into the legislative record with precision."</div>
+            <div class="card-desc">Research tool for exploring House and Senate journals, calendars, introductions, and meeting transcripts across decades (1986&ndash;2026). Unified document timeline with year-over-year publication analysis.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /house/journals, /senate/journals, /house/calendars, /senate/calendars, /house/intros, /senate/intros, /meetings/transcripts</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-agencies">Agencies</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./13-jtfr/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">13</div>
+        </div>
+    </div>
+
+    <!-- 14. RCVZ -->
+    <div class="card" data-audiences="lawmakers,leadership,staff,lobbyists,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4cb;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">RCVZ</div>
+                    <div class="card-title">Roll Call Vote Analyzer &amp; Visualization</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Every vote tells a story."</div>
+            <div class="card-desc">Deep analysis of roll call votes: party-line breakdowns, margin histograms, contested vote identification, absence tracking, vote type classification, and time-of-day patterns. Drill into any vote for sponsor-by-sponsor breakdown.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /vote/{session}/house, /vote/{session}/senate, /house/bios, /senate/bios, /votesessions</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./14-rcvz/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">14</div>
+        </div>
+    </div>
+
+    <!-- 15. MTXS -->
+    <div class="card" data-audiences="leadership,staff,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f3c6;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">MTXS</div>
+                    <div class="card-title">Member Tenure &amp; Experience Scorecard</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Experience shapes legislation."</div>
+            <div class="card-desc">Seniority analysis, committee leadership mapping, cross-chamber service tracking, and demographic profiling. Identifies freshmen vs. veterans, power players, occupation trends, and county representation depth.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /house/bios, /senate/bios, /house/committees, /senate/committees, /house/officers, /senate/officers</div>
+            <div class="badges">
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./15-mtxs/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">15</div>
+        </div>
+    </div>
+
+    <!-- 16. LCDB -->
+    <div class="card" data-audiences="leadership,staff,agencies,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4c8;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">LCDB</div>
+                    <div class="card-title">Legislative Comparison Dashboard</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Compare sessions, chambers, and eras at a glance."</div>
+            <div class="card-desc">Multi-session comparison across 26 sessions (1973&ndash;2026). Productivity trends, bills-per-day metrics, era analysis by decade, side-by-side session picker, and historical vote comparison for sessions 119&ndash;126.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /session-billcount, /sessions, /vote/{session}, /website/chamberstats</div>
+            <div class="badges">
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-agencies">Agencies</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./16-lcdb/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">16</div>
+        </div>
+    </div>
+
+    <!-- 17. PGOV -->
+    <div class="card" data-audiences="leadership,staff,lobbyists,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f3db;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">PGOV</div>
+                    <div class="card-title">Party Governance &amp; Caucus Analyzer</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Understand the power dynamics shaping South Carolina."</div>
+            <div class="card-desc">Party strength analysis: committee chairmanship control, geographic distribution, voting cohesion scores, cross-party voters, supermajority analysis, and officer positions by party across both chambers.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /website/chamberstats, /house/bios, /senate/bios, /house/committees, /senate/committees, /vote, /house/officers, /senate/officers</div>
+            <div class="badges">
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./17-pgov/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">17</div>
+        </div>
+    </div>
+
+    <!-- 18. WHIP -->
+    <div class="card" data-audiences="lawmakers,leadership,lobbyists">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f9ee;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">WHIP</div>
+                    <div class="card-title">Whip Count &amp; Vote Prediction Simulator</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Predict the floor before the vote is called."</div>
+            <div class="card-desc">Interactive vote predictor using historical voting patterns. Select a bill, view each member's voting history, toggle predicted votes, and watch a live tally toward majority. Auto-predict mode uses party and pattern data. Identifies swing votes.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /vote/{session}/house, /vote/{session}/senate, /house/bios, /senate/bios, /bills/{session}/{id}</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-leadership">Leadership</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./18-whip/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">18</div>
+        </div>
+    </div>
+
+    <!-- 19. ACTX -->
+    <div class="card" data-audiences="lawmakers,staff,lobbyists,agencies">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f504;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">ACTX</div>
+                    <div class="card-title">Action Timeline &amp; Cross-Chamber Tracker</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Follow every bill across both chambers in real time."</div>
+            <div class="card-desc">Cross-chamber bill action tracker with detailed timelines showing chamber handoffs. Visualizes days-in-stage, identifies stalled bills (30+ days inactive), and enables multi-bill parallel timeline comparison with action keyword search.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /bills/{session}/{id} (ACTIONS[], STATUS[], IN_COMMITTEE), /sessions, /currentsession</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-agencies">Agencies</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./19-actx/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">19</div>
+        </div>
+    </div>
+
+    <!-- 20. RLDR -->
+    <div class="card" data-audiences="lawmakers,staff,lobbyists,constituents">
+        <div class="card-accent"></div>
+        <div class="card-body">
+            <div class="card-header">
+                <div class="card-icon">&#x1f4dc;</div>
+                <div class="card-title-group">
+                    <div class="card-acronym">RLDR</div>
+                    <div class="card-title">Rules &amp; Leadership Directory</div>
+                </div>
+            </div>
+            <div class="card-tagline">"Know the rules. Know the leaders."</div>
+            <div class="card-desc">Combined reference for House and Senate Rules of Procedure, officer directories, committee chairs, non-member staff, and telephone lists. Searchable rules with cross-references to constitutional provisions. Print-friendly views.</div>
+            <div class="card-data-sources"><strong>Data:</strong> /house/rules, /senate/rules, /house/officers, /senate/officers, /house/nonmembers, /senate/nonmembers, /house/telephonelist, /senate/telephonelist, /constitution/article_iii</div>
+            <div class="badges">
+                <span class="badge badge-lawmakers">Lawmakers</span>
+                <span class="badge badge-staff">Staff</span>
+                <span class="badge badge-lobbyists">Lobbyists</span>
+                <span class="badge badge-constituents">Constituents</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="./20-rldr/index.html" class="card-link">Launch App &rarr;</a>
+            <div class="card-number">20</div>
         </div>
     </div>
 

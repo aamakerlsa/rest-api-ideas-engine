@@ -1,0 +1,217 @@
+/**
+ * LSA Style Guide - CSS Custom Properties (Variables)
+ * Legislative Services Agency Brand Guidelines
+ * Version 1.0
+ *
+ * This file contains all design tokens for consistent branding
+ * across LSA web applications.
+ */
+
+:root {
+  /* ==========================================================================
+     COLOR PALETTE
+     ========================================================================== */
+
+  /* Primary Colors */
+  --lsa-primary: #003466;              /* South Carolina Indigo Blue */
+  --lsa-primary-rgb: 0, 52, 102;       /* RGB values for rgba() usage */
+  --lsa-white: #FFFFFF;
+  --lsa-white-rgb: 255, 255, 255;
+
+  /* Secondary Color */
+  --lsa-gold: #C09D3B;                 /* Satin Sheen Gold - from LSA Seal */
+  --lsa-gold-rgb: 192, 157, 59;
+
+  /* Tertiary Colors - Use sparingly when more than 3 colors needed */
+  --lsa-queen-blue: #3C6997;           /* Lighter blue variant */
+  --lsa-queen-blue-rgb: 60, 105, 151;
+  --lsa-ruby-red: #961B1E;             /* For errors/warnings */
+  --lsa-ruby-red-rgb: 150, 27, 30;
+  --lsa-bottle-green: #0C6E52;         /* For success states */
+  --lsa-bottle-green-rgb: 12, 110, 82;
+  --lsa-yellow: #FADF63;               /* Stil De Grain Yellow - highlights */
+  --lsa-yellow-rgb: 250, 223, 99;
+
+  /* Neutral Colors */
+  --lsa-gray-100: #F2F2F2;             /* Lightest - backgrounds */
+  --lsa-gray-200: #DDDDDD;             /* Light - borders, dividers */
+  --lsa-gray-300: #CCCCCC;             /* Medium - disabled states */
+  --lsa-gray-400: #999999;             /* Placeholder text */
+  --lsa-gray-500: #666666;             /* Secondary text */
+  --lsa-gray-600: #444444;             /* Body text alternative */
+  --lsa-gray-700: #333333;             /* Dark text */
+  --lsa-gray-800: #222222;             /* Darker text */
+  --lsa-gray-900: #111111;             /* Darkest */
+
+  /* Semantic Colors */
+  --lsa-success: var(--lsa-bottle-green);
+  --lsa-warning: var(--lsa-gold);
+  --lsa-error: var(--lsa-ruby-red);
+  --lsa-info: var(--lsa-queen-blue);
+
+  /* ==========================================================================
+     TYPOGRAPHY
+     ========================================================================== */
+
+  /* Font Families */
+  --font-primary: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Droid Serif', Georgia, 'Times New Roman', serif;
+  --font-heading-alt: 'Montserrat', 'Open Sans', sans-serif;
+  --font-display: 'Arvo', 'Droid Serif', serif;
+
+  /* Font Sizes - Using modular scale (1.25 ratio) */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;     /* 18px */
+  --text-xl: 1.25rem;      /* 20px */
+  --text-2xl: 1.5rem;      /* 24px */
+  --text-3xl: 1.875rem;    /* 30px */
+  --text-4xl: 2.25rem;     /* 36px */
+  --text-5xl: 3rem;        /* 48px */
+  --text-6xl: 3.75rem;     /* 60px */
+
+  /* Font Weights */
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* Line Heights */
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+
+  /* ==========================================================================
+     SPACING
+     ========================================================================== */
+
+  --space-0: 0;
+  --space-1: 0.25rem;      /* 4px */
+  --space-2: 0.5rem;       /* 8px */
+  --space-3: 0.75rem;      /* 12px */
+  --space-4: 1rem;         /* 16px */
+  --space-5: 1.25rem;      /* 20px */
+  --space-6: 1.5rem;       /* 24px */
+  --space-8: 2rem;         /* 32px */
+  --space-10: 2.5rem;      /* 40px */
+  --space-12: 3rem;        /* 48px */
+  --space-16: 4rem;        /* 64px */
+  --space-20: 5rem;        /* 80px */
+  --space-24: 6rem;        /* 96px */
+
+  /* ==========================================================================
+     BORDERS & RADIUS
+     ========================================================================== */
+
+  --border-width: 1px;
+  --border-width-2: 2px;
+  --border-width-4: 4px;
+
+  --radius-none: 0;
+  --radius-sm: 0.125rem;   /* 2px */
+  --radius-default: 0.25rem; /* 4px */
+  --radius-md: 0.375rem;   /* 6px */
+  --radius-lg: 0.5rem;     /* 8px */
+  --radius-xl: 0.75rem;    /* 12px */
+  --radius-2xl: 1rem;      /* 16px */
+  --radius-full: 9999px;   /* Pill/Circle */
+
+  /* ==========================================================================
+     SHADOWS - Per brand guidelines, use shadows instead of borders
+     ========================================================================== */
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-default: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+
+  /* Card shadow - recommended for cards and elevated elements */
+  --shadow-card: 0 2px 8px rgba(0, 52, 102, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  /* ==========================================================================
+     TRANSITIONS
+     ========================================================================== */
+
+  --transition-fast: 150ms ease;
+  --transition-default: 250ms ease;
+  --transition-slow: 350ms ease;
+  --transition-slower: 500ms ease;
+
+  /* ==========================================================================
+     Z-INDEX SCALE
+     ========================================================================== */
+
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+  /* ==========================================================================
+     BREAKPOINTS (for reference - use in media queries)
+     ========================================================================== */
+
+  /*
+   * --breakpoint-sm: 640px;
+   * --breakpoint-md: 768px;
+   * --breakpoint-lg: 1024px;
+   * --breakpoint-xl: 1280px;
+   * --breakpoint-2xl: 1536px;
+   */
+
+  /* ==========================================================================
+     OVERLAY OPACITIES - Per brand guidelines for cover overlays
+     ========================================================================== */
+
+  --overlay-light: 0.5;    /* 50% opacity */
+  --overlay-dark: 0.75;    /* 75% opacity */
+
+  /* ==========================================================================
+     LOGO MINIMUM SIZES (for reference)
+     ========================================================================== */
+
+  /*
+   * Horizontal logo: min-width 1.9 inches (approximately 182px at 96dpi)
+   * Vertical logo: min-width 1.5 inches (approximately 144px at 96dpi)
+   */
+  --logo-min-width-horizontal: 182px;
+  --logo-min-width-vertical: 144px;
+}
+
+/* ==========================================================================
+   DARK MODE SUPPORT (optional)
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root.auto-dark {
+    --lsa-bg-primary: var(--lsa-gray-900);
+    --lsa-bg-secondary: var(--lsa-gray-800);
+    --lsa-text-primary: var(--lsa-white);
+    --lsa-text-secondary: var(--lsa-gray-300);
+  }
+}
+
+/* Manual dark mode class */
+.dark-mode {
+  --lsa-bg-primary: var(--lsa-gray-900);
+  --lsa-bg-secondary: var(--lsa-gray-800);
+  --lsa-text-primary: var(--lsa-white);
+  --lsa-text-secondary: var(--lsa-gray-300);
+}
