@@ -707,8 +707,8 @@
         <div class="search-hint">
             Try searching:
             <span onclick="doSearch('education')">education</span>,
-            <span onclick="doSearch('budget')">budget</span>,
-            <span onclick="doSearch('Rep. Smith')">Rep. Smith</span>,
+            <span onclick="doSearch('Richland')">Richland</span>,
+            <span onclick="doSearch('Judiciary')">Judiciary</span>,
             <span onclick="doSearch('Title 59')">Title 59</span>
         </div>
     </div>
@@ -722,13 +722,13 @@
 <!-- Category tabs -->
 <div class="tabs-bar" id="tabsBar">
     <button class="tab-btn active" data-cat="all" onclick="setCategory('all')">All</button>
-    <button class="tab-btn" data-cat="bills" onclick="setCategory('bills')">Bills</button>
     <button class="tab-btn" data-cat="members" onclick="setCategory('members')">Members</button>
     <button class="tab-btn" data-cat="committees" onclick="setCategory('committees')">Committees</button>
     <button class="tab-btn" data-cat="meetings" onclick="setCategory('meetings')">Meetings</button>
     <button class="tab-btn" data-cat="laws" onclick="setCategory('laws')">Laws</button>
     <button class="tab-btn" data-cat="regulations" onclick="setCategory('regulations')">Regulations</button>
     <button class="tab-btn" data-cat="constitution" onclick="setCategory('constitution')">Constitution</button>
+    <button class="tab-btn" data-cat="subjects" onclick="setCategory('subjects')">Subjects</button>
 </div>
 
 <!-- Main content area -->
@@ -749,11 +749,17 @@
 <script>
 // =====================================================
 // PRFN - Public Research & Find Navigator
+// Live SC Statehouse REST API Integration
 // =====================================================
 
 const API = 'https://rest.scstatehouse.gov';
 const LS_KEY = 'prfn_recent_searches';
 const MAX_RECENT = 8;
+
+// Helper: trim \n and whitespace from API name fields
+function clean(str) {
+    return (str || '').replace(/\n/g, '').trim();
+}
 
 // ---- STATE ----
 let state = {
@@ -762,19 +768,21 @@ let state = {
     filters: { chamber: null, session: null },
     mode: 'browse', // 'browse' | 'search' | 'loading'
     index: {
-        bills: [],
         members: [],
         committees: [],
         meetings: [],
         laws: [],
         regulations: [],
-        constitution: []
+        constitution: [],
+        subjects: []
     },
     counts: {},
-    loaded: { bills: false, members: false, committees: false, meetings: false, laws: false, regulations: false, constitution: false },
+    loaded: { members: false, committees: false, meetings: false, laws: false, regulations: false, constitution: false, subjects: false },
     errors: {},
     sessionInfo: null
 };
+
+const ALL_CATS = ['members', 'committees', 'meetings', 'laws', 'regulations', 'constitution', 'subjects'];
 
 // ---- DOM REFS ----
 const $input = document.getElementById('searchInput');
@@ -786,125 +794,61 @@ const $scrollTop = document.getElementById('scrollTopBtn');
 const $dataStatus = document.getElementById('dataStatus');
 const $sessionInfo = document.getElementById('sessionInfo');
 
-// ---- FALLBACK DATA ----
-const FALLBACK = {
-    bills: [
-        { type: 'bill', number: 'H.3210', title: 'Education Reform Act', summary: 'A bill to reform public education standards and funding for K-12 schools across the state.', sponsor: 'Rep. Johnson', status: 'In Committee', session: '126th', chamber: 'House' },
-        { type: 'bill', number: 'S.450', title: 'Infrastructure Investment Act', summary: 'Providing funding for road and bridge repairs across South Carolina counties.', sponsor: 'Sen. Williams', status: 'Second Reading', session: '126th', chamber: 'Senate' },
-        { type: 'bill', number: 'H.4501', title: 'Healthcare Access Act', summary: 'Expanding access to telehealth services in rural communities.', sponsor: 'Rep. Davis', status: 'Introduced', session: '126th', chamber: 'House' },
-        { type: 'bill', number: 'S.892', title: 'Clean Energy Tax Credit', summary: 'Providing tax incentives for solar and renewable energy installations.', sponsor: 'Sen. Martinez', status: 'In Committee', session: '126th', chamber: 'Senate' },
-        { type: 'bill', number: 'H.2760', title: 'School Safety Act', summary: 'Strengthening safety measures and resources in public schools.', sponsor: 'Rep. Thompson', status: 'Passed House', session: '126th', chamber: 'House' },
-    ],
-    members: [
-        { type: 'member', name: 'Rep. James Johnson', party: 'R', chamber: 'House', district: '15', county: 'Richland' },
-        { type: 'member', name: 'Sen. Maria Williams', party: 'D', chamber: 'Senate', district: '22', county: 'Charleston' },
-        { type: 'member', name: 'Rep. Thomas Davis', party: 'R', chamber: 'House', district: '8', county: 'Greenville' },
-        { type: 'member', name: 'Sen. Carlos Martinez', party: 'D', chamber: 'Senate', district: '40', county: 'Beaufort' },
-        { type: 'member', name: 'Rep. Sarah Thompson', party: 'R', chamber: 'House', district: '42', county: 'Lexington' },
-    ],
-    committees: [
-        { type: 'committee', name: 'Education and Public Works', chamber: 'House', memberCount: 25, room: 'Blatt 321' },
-        { type: 'committee', name: 'Judiciary', chamber: 'Senate', memberCount: 23, room: 'Gressette 407' },
-        { type: 'committee', name: 'Ways and Means', chamber: 'House', memberCount: 25, room: 'Blatt 201' },
-        { type: 'committee', name: 'Finance', chamber: 'Senate', memberCount: 18, room: 'Gressette 105' },
-    ],
-    meetings: [
-        { type: 'meeting', date: '2026-03-13', time: '10:00 AM', committee: 'Education and Public Works', room: 'Blatt 321', chamber: 'House', status: 'upcoming' },
-        { type: 'meeting', date: '2026-03-12', time: '2:00 PM', committee: 'Judiciary', room: 'Gressette 407', chamber: 'Senate', status: 'upcoming' },
-        { type: 'meeting', date: '2026-03-10', time: '9:00 AM', committee: 'Ways and Means', room: 'Blatt 201', chamber: 'House', status: 'past' },
-    ],
-    laws: [
-        { type: 'law', title: 'Title 59 - Education', section: 'Chapter 1 - General Provisions', snippet: 'Public education laws governing schools, districts, and educational programs.' },
-        { type: 'law', title: 'Title 12 - Taxation', section: 'Chapter 6 - Income Tax Act', snippet: 'State income tax regulations and rates for individuals and corporations.' },
-        { type: 'law', title: 'Title 16 - Crimes and Offenses', section: 'Chapter 3 - Offenses Against the Person', snippet: 'Criminal laws relating to offenses against persons.' },
-    ],
-    regulations: [
-        { type: 'regulation', title: 'Chapter 43 - State Board of Education', section: 'Article 1', snippet: 'Regulations governing curriculum standards and teacher certification.' },
-        { type: 'regulation', title: 'Chapter 61 - Department of Health', section: 'Article 3', snippet: 'Health and safety regulations for food service establishments.' },
-    ],
-    constitution: [
-        { type: 'constitution', title: 'Article I - Declaration of Rights', section: 'Section 1-3', snippet: 'Fundamental rights of citizens of South Carolina.' },
-        { type: 'constitution', title: 'Article III - Legislative Department', section: 'Section 1-35', snippet: 'Structure and powers of the General Assembly.' },
-        { type: 'constitution', title: 'Article XI - Public Education', section: 'Section 1-15', snippet: 'Constitutional provisions for public education in South Carolina.' },
-    ]
-};
-
 // =====================================================
-// DATA LOADING
+// DATA LOADING - All responses unwrapped with .data
 // =====================================================
 
-async function fetchJSON(url) {
+async function fetchAPI(url) {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    return resp.json();
+    const json = await resp.json();
+    // Unwrap the {error, message, data} wrapper
+    if (json && typeof json === 'object' && 'data' in json) {
+        return json.data;
+    }
+    return json;
 }
 
 async function loadSession() {
     try {
-        const data = await fetchJSON(`${API}/currentsession`);
-        if (data) {
-            const sess = Array.isArray(data) ? data[0] : data;
+        const data = await fetchAPI(`${API}/currentsession`);
+        if (data && Array.isArray(data) && data.length > 0) {
+            const sess = data[0];
             state.sessionInfo = sess;
-            $sessionInfo.textContent = sess.description || sess.sessionName || `Session ${sess.sessionNumber || ''}`;
+            $sessionInfo.textContent = `${sess.SESS_NUMBER ? sess.SESS_NUMBER + 'th' : ''} Session`.trim() || 'SC General Assembly';
         }
     } catch {
         $sessionInfo.textContent = 'SC General Assembly';
     }
 }
 
-async function loadBills() {
-    try {
-        const [house, senate] = await Promise.all([
-            fetchJSON(`${API}/dashboard/currentbill/house`),
-            fetchJSON(`${API}/dashboard/currentbill/senate`)
-        ]);
-        const mapBill = (b, chamber) => ({
-            type: 'bill',
-            number: b.billNumber || b.number || b.billnumber || '',
-            title: b.title || b.billTitle || b.description || '',
-            summary: b.summary || b.title || b.description || b.billTitle || '',
-            sponsor: b.sponsor || b.sponsorName || b.primarySponsor || '',
-            status: b.status || b.billStatus || b.currentStatus || '',
-            session: b.session || b.sessionName || '',
-            chamber: chamber,
-            raw: b
-        });
-        const hBills = (Array.isArray(house) ? house : []).map(b => mapBill(b, 'House'));
-        const sBills = (Array.isArray(senate) ? senate : []).map(b => mapBill(b, 'Senate'));
-        state.index.bills = [...hBills, ...sBills];
-        state.loaded.bills = true;
-    } catch (e) {
-        state.errors.bills = e.message;
-        state.index.bills = FALLBACK.bills;
-        state.loaded.bills = true;
-    }
-}
-
 async function loadMembers() {
     try {
         const [house, senate] = await Promise.all([
-            fetchJSON(`${API}/house/bios`),
-            fetchJSON(`${API}/senate/bios`)
+            fetchAPI(`${API}/house/bios`),
+            fetchAPI(`${API}/senate/bios`)
         ]);
-        const mapMember = (m, chamber) => ({
+        const mapMember = (m) => ({
             type: 'member',
-            name: m.name || m.fullName || `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.memberName || '',
-            firstName: m.firstName || '',
-            lastName: m.lastName || '',
-            party: (m.party || m.partyAffiliation || '').charAt(0).toUpperCase(),
-            chamber: chamber,
-            district: m.district || m.districtNumber || '',
-            county: m.county || m.countyName || m.residence || '',
-            title: m.title || '',
+            name: clean(`${m.TITLE || ''} ${m.FIRST || ''} ${m.LAST || ''}`),
+            firstName: clean(m.FIRST || ''),
+            lastName: clean(m.LAST || ''),
+            party: (m.PARTY || '').charAt(0).toUpperCase(),
+            chamber: m.CHAMBER === 'H' ? 'House' : 'Senate',
+            district: String(m.DISTRICT_NUMBER || ''),
+            county: clean(m.HOME_COUNTY || ''),
+            email: m.E_MAIL || '',
+            occupation: clean(m.OCCUPATION || ''),
+            biography: m.BIOGRAPHY || '',
+            sponsorCode: m.PERM_SPONSOR_CODE || '',
             raw: m
         });
-        const hMembers = (Array.isArray(house) ? house : []).map(m => mapMember(m, 'House'));
-        const sMembers = (Array.isArray(senate) ? senate : []).map(m => mapMember(m, 'Senate'));
+        const hMembers = (Array.isArray(house) ? house : []).map(mapMember);
+        const sMembers = (Array.isArray(senate) ? senate : []).map(mapMember);
         state.index.members = [...hMembers, ...sMembers];
         state.loaded.members = true;
     } catch (e) {
         state.errors.members = e.message;
-        state.index.members = FALLBACK.members;
         state.loaded.members = true;
     }
 }
@@ -912,67 +856,71 @@ async function loadMembers() {
 async function loadCommittees() {
     try {
         const [house, senate] = await Promise.all([
-            fetchJSON(`${API}/house/committees`),
-            fetchJSON(`${API}/senate/committees`)
+            fetchAPI(`${API}/house/committees`),
+            fetchAPI(`${API}/senate/committees`)
         ]);
-        const mapComm = (c, chamber) => ({
+        const mapComm = (c) => ({
             type: 'committee',
-            name: c.name || c.committeeName || c.fullName || '',
-            chamber: chamber,
-            memberCount: c.memberCount || c.members?.length || c.numberOfMembers || 0,
-            room: c.room || c.meetingRoom || c.location || '',
+            name: clean(c.COMMITTEE_NAME || ''),
+            chamber: c.CHAMBER === 'H' ? 'House' : 'Senate',
+            memberCount: Array.isArray(c.members) ? c.members.length : 0,
+            room: clean(c.ROOM_NUMBER || ''),
+            phone: c.TELEPHONE_NUMBER || '',
+            building: clean(c.BUILDING || ''),
+            address: clean(c.ADDRESS || ''),
+            members: c.members || [],
             raw: c
         });
-        const hComm = (Array.isArray(house) ? house : []).map(c => mapComm(c, 'House'));
-        const sComm = (Array.isArray(senate) ? senate : []).map(c => mapComm(c, 'Senate'));
+        const hComm = (Array.isArray(house) ? house : []).map(mapComm);
+        const sComm = (Array.isArray(senate) ? senate : []).map(mapComm);
         state.index.committees = [...hComm, ...sComm];
         state.loaded.committees = true;
     } catch (e) {
         state.errors.committees = e.message;
-        state.index.committees = FALLBACK.committees;
         state.loaded.committees = true;
     }
 }
 
 async function loadMeetings() {
     try {
+        const unwrapMeetings = async (url) => {
+            try {
+                const data = await fetchAPI(url);
+                return Array.isArray(data) ? data : [];
+            } catch { return []; }
+        };
         const [hUp, sUp, hToday, sToday] = await Promise.all([
-            fetchJSON(`${API}/house/meetings-upcoming`).catch(() => []),
-            fetchJSON(`${API}/senate/meetings-upcoming`).catch(() => []),
-            fetchJSON(`${API}/house/meetings-today`).catch(() => []),
-            fetchJSON(`${API}/senate/meetings-today`).catch(() => [])
+            unwrapMeetings(`${API}/house/meetings-upcoming`),
+            unwrapMeetings(`${API}/senate/meetings-upcoming`),
+            unwrapMeetings(`${API}/house/meetings-today`),
+            unwrapMeetings(`${API}/senate/meetings-today`)
         ]);
-        const mapMeeting = (m, chamber) => {
-            const dateStr = m.date || m.meetingDate || m.startDate || '';
-            const now = new Date();
-            const mDate = dateStr ? new Date(dateStr) : null;
-            let status = 'upcoming';
-            if (mDate) {
-                const diff = mDate.getTime() - now.getTime();
-                if (diff < -86400000) status = 'past';
-                else if (Math.abs(diff) < 86400000) status = 'upcoming';
-            }
+        const mapMeeting = (m) => {
+            const dateStr = m.MEETINGDATE || '';
+            const canceled = m.CANCELED === 'Y' || m.CANCELED === true;
             return {
                 type: 'meeting',
                 date: dateStr,
-                time: m.time || m.startTime || m.meetingTime || '',
-                committee: m.committee || m.committeeName || m.description || '',
-                room: m.room || m.location || m.meetingRoom || '',
-                chamber: chamber,
-                status: status,
+                time: clean(m.TIME || m.MEETINGTIME || ''),
+                committee: clean(m.COMMITTEENAME || ''),
+                room: clean(m.LOCATION || ''),
+                chamber: m.CHAMBER === 'H' ? 'House' : (m.CHAMBER === 'S' ? 'Senate' : ''),
+                status: canceled ? 'canceled' : 'upcoming',
+                agendaLink: m.FULLAGENDALINK || '',
+                key: m.KEY || '',
                 raw: m
             };
         };
         const all = [
-            ...(Array.isArray(hUp) ? hUp : []).map(m => mapMeeting(m, 'House')),
-            ...(Array.isArray(sUp) ? sUp : []).map(m => mapMeeting(m, 'Senate')),
-            ...(Array.isArray(hToday) ? hToday : []).map(m => ({ ...mapMeeting(m, 'House'), status: 'upcoming' })),
-            ...(Array.isArray(sToday) ? sToday : []).map(m => ({ ...mapMeeting(m, 'Senate'), status: 'upcoming' }))
+            ...hUp.map(mapMeeting),
+            ...sUp.map(mapMeeting),
+            ...hToday.map(mapMeeting),
+            ...sToday.map(mapMeeting)
         ];
-        // Deduplicate by committee+date
+        // Deduplicate by KEY or committee+date+time
         const seen = new Set();
         state.index.meetings = all.filter(m => {
-            const key = `${m.committee}-${m.date}-${m.time}`;
+            const key = m.key || `${m.committee}-${m.date}-${m.time}`;
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
@@ -980,65 +928,90 @@ async function loadMeetings() {
         state.loaded.meetings = true;
     } catch (e) {
         state.errors.meetings = e.message;
-        state.index.meetings = FALLBACK.meetings;
         state.loaded.meetings = true;
     }
 }
 
 async function loadLaws() {
     try {
-        const data = await fetchJSON(`${API}/codeoflaws`);
-        const arr = Array.isArray(data) ? data : (data?.titles || data?.chapters || []);
-        state.index.laws = arr.map(l => ({
-            type: 'law',
-            title: l.title || l.name || l.titleName || '',
-            section: l.section || l.chapter || l.chapterName || '',
-            snippet: l.description || l.summary || l.title || '',
-            raw: l
-        }));
+        const data = await fetchAPI(`${API}/codeoflaws`);
+        const arr = Array.isArray(data) ? data : [];
+        state.index.laws = arr.map(l => {
+            const titleName = clean(l.name || '');
+            const chapters = Array.isArray(l.children) ? l.children.map(ch => clean(ch.name || '')).join('; ') : '';
+            return {
+                type: 'law',
+                title: titleName,
+                path: l.path || '',
+                section: chapters,
+                snippet: chapters ? `Chapters: ${chapters}` : '',
+                childCount: Array.isArray(l.children) ? l.children.length : 0,
+                raw: l
+            };
+        });
         state.loaded.laws = true;
     } catch (e) {
         state.errors.laws = e.message;
-        state.index.laws = FALLBACK.laws;
         state.loaded.laws = true;
     }
 }
 
 async function loadRegulations() {
     try {
-        const data = await fetchJSON(`${API}/codeofregs`);
-        const arr = Array.isArray(data) ? data : (data?.chapters || data?.titles || []);
-        state.index.regulations = arr.map(r => ({
-            type: 'regulation',
-            title: r.title || r.name || r.chapterName || '',
-            section: r.section || r.article || r.chapter || '',
-            snippet: r.description || r.summary || r.title || '',
-            raw: r
-        }));
+        const data = await fetchAPI(`${API}/codeofregs`);
+        const arr = Array.isArray(data) ? data : [];
+        state.index.regulations = arr.map(r => {
+            const chapterName = clean(r.name || '');
+            const chTitle = r.data?.CHAPTER_TITLE ? clean(r.data.CHAPTER_TITLE) : '';
+            return {
+                type: 'regulation',
+                title: chapterName,
+                section: chTitle,
+                snippet: chTitle || chapterName,
+                raw: r
+            };
+        });
         state.loaded.regulations = true;
     } catch (e) {
         state.errors.regulations = e.message;
-        state.index.regulations = FALLBACK.regulations;
         state.loaded.regulations = true;
     }
 }
 
 async function loadConstitution() {
     try {
-        const data = await fetchJSON(`${API}/constitution`);
-        const arr = Array.isArray(data) ? data : (data?.articles || data?.sections || []);
+        const data = await fetchAPI(`${API}/constitution`);
+        const arr = Array.isArray(data) ? data : [];
         state.index.constitution = arr.map(c => ({
             type: 'constitution',
-            title: c.title || c.name || c.articleName || '',
-            section: c.section || c.sections || '',
-            snippet: c.description || c.summary || c.title || '',
+            title: clean(c.name || ''),
+            path: c.path || '',
+            section: '',
+            snippet: '',
             raw: c
         }));
         state.loaded.constitution = true;
     } catch (e) {
         state.errors.constitution = e.message;
-        state.index.constitution = FALLBACK.constitution;
         state.loaded.constitution = true;
+    }
+}
+
+async function loadSubjects() {
+    try {
+        const data = await fetchAPI(`${API}/subjects/current`);
+        const arr = Array.isArray(data) ? data : [];
+        state.index.subjects = arr.map(s => ({
+            type: 'subject',
+            title: clean(s.A_TEXT || ''),
+            billCount: Array.isArray(s.BILLS) ? s.BILLS.length : 0,
+            bills: s.BILLS || [],
+            raw: s
+        }));
+        state.loaded.subjects = true;
+    } catch (e) {
+        state.errors.subjects = e.message;
+        state.loaded.subjects = true;
     }
 }
 
@@ -1046,13 +1019,13 @@ async function loadAllData() {
     updateDataStatus();
     await Promise.all([
         loadSession(),
-        loadBills(),
         loadMembers(),
         loadCommittees(),
         loadMeetings(),
         loadLaws(),
         loadRegulations(),
-        loadConstitution()
+        loadConstitution(),
+        loadSubjects()
     ]);
     updateCounts();
     updateDataStatus();
@@ -1060,15 +1033,13 @@ async function loadAllData() {
 }
 
 function updateDataStatus() {
-    const cats = ['bills', 'members', 'committees', 'meetings', 'laws', 'regulations', 'constitution'];
-    const loaded = cats.filter(c => state.loaded[c]).length;
-    const errored = cats.filter(c => state.errors[c]).length;
-    const pending = cats.length - loaded;
+    const loaded = ALL_CATS.filter(c => state.loaded[c]).length;
+    const pending = ALL_CATS.length - loaded;
 
     if (pending > 0) {
-        $dataStatus.innerHTML = `<div class="data-dot"><span class="dot dot-yellow"></span> Loading data... (${loaded}/${cats.length} sources)</div>`;
+        $dataStatus.innerHTML = `<div class="data-dot"><span class="dot dot-yellow"></span> Loading data... (${loaded}/${ALL_CATS.length} sources)</div>`;
     } else {
-        const items = cats.map(c => {
+        const items = ALL_CATS.map(c => {
             const count = state.index[c].length;
             const hasError = !!state.errors[c];
             const dotClass = hasError ? 'dot-yellow' : (count > 0 ? 'dot-green' : 'dot-gray');
@@ -1094,14 +1065,12 @@ function searchScore(item, query) {
 
     let searchableFields = [];
     switch (item.type) {
-        case 'bill':
-            searchableFields = [item.number, item.title, item.summary, item.sponsor, item.status];
-            break;
         case 'member':
-            searchableFields = [item.name, item.firstName, item.lastName, item.party, item.chamber, item.district, item.county];
+            searchableFields = [item.name, item.firstName, item.lastName, item.party, item.chamber,
+                                String(item.district), item.county, item.occupation, item.sponsorCode];
             break;
         case 'committee':
-            searchableFields = [item.name, item.chamber, item.room];
+            searchableFields = [item.name, item.chamber, item.room, item.building];
             break;
         case 'meeting':
             searchableFields = [item.committee, item.room, item.chamber, item.date];
@@ -1113,7 +1082,10 @@ function searchScore(item, query) {
             searchableFields = [item.title, item.section, item.snippet];
             break;
         case 'constitution':
-            searchableFields = [item.title, item.section, item.snippet];
+            searchableFields = [item.title, item.path];
+            break;
+        case 'subject':
+            searchableFields = [item.title];
             break;
     }
 
@@ -1124,7 +1096,6 @@ function searchScore(item, query) {
     for (const term of terms) {
         if (text.includes(term)) {
             score += 10;
-            // Bonus for exact field matches
             for (const f of searchableFields) {
                 const nf = normalizeText(f);
                 if (nf === term) score += 30;
@@ -1136,24 +1107,21 @@ function searchScore(item, query) {
         }
     }
 
-    // All terms must match for a positive score
     if (!allMatch) return 0;
 
     // Boost for type-specific relevance
-    if (item.type === 'bill' && normalizeText(item.number).includes(q)) score += 50;
     if (item.type === 'member' && normalizeText(item.name).includes(q)) score += 50;
+    if (item.type === 'committee' && normalizeText(item.name).includes(q)) score += 40;
 
     return score;
 }
 
 function searchAll(query) {
-    const cats = state.category === 'all'
-        ? ['bills', 'members', 'committees', 'meetings', 'laws', 'regulations', 'constitution']
-        : [state.category];
+    const cats = state.category === 'all' ? ALL_CATS : [state.category];
 
     let results = [];
     for (const cat of cats) {
-        for (const item of state.index[cat]) {
+        for (const item of (state.index[cat] || [])) {
             const score = searchScore(item, query);
             if (score > 0) {
                 results.push({ ...item, _score: score });
@@ -1166,26 +1134,24 @@ function searchAll(query) {
         results = results.filter(r => !r.chamber || r.chamber.toLowerCase() === state.filters.chamber.toLowerCase());
     }
 
-    // Sort by score descending
     results.sort((a, b) => b._score - a._score);
     return results;
 }
 
 function updateCounts(query) {
-    const cats = ['bills', 'members', 'committees', 'meetings', 'laws', 'regulations', 'constitution'];
     state.counts = {};
     let total = 0;
-    for (const cat of cats) {
+    for (const cat of ALL_CATS) {
         if (query) {
             let count = 0;
-            for (const item of state.index[cat]) {
+            for (const item of (state.index[cat] || [])) {
                 if (searchScore(item, query) > 0) count++;
             }
             state.counts[cat] = count;
             total += count;
         } else {
-            state.counts[cat] = state.index[cat].length;
-            total += state.index[cat].length;
+            state.counts[cat] = (state.index[cat] || []).length;
+            total += state.counts[cat];
         }
     }
     state.counts.all = total;
@@ -1298,24 +1264,45 @@ function renderBrowse() {
     ` : '';
 
     const categories = [
-        { cat: 'bills', icon: '&#128220;', name: 'Bills & Resolutions', desc: 'Browse current legislation being considered' },
-        { cat: 'members', icon: '&#128101;', name: 'Members', desc: 'Find your representatives and senators' },
+        { cat: 'members', icon: '&#128101;', name: 'Members', desc: 'House Representatives and Senators' },
         { cat: 'committees', icon: '&#127970;', name: 'Committees', desc: 'Standing and special committees' },
-        { cat: 'meetings', icon: '&#128197;', name: 'Meetings', desc: 'Upcoming and recent committee meetings' },
+        { cat: 'meetings', icon: '&#128197;', name: 'Meetings', desc: 'Upcoming and today\'s committee meetings' },
         { cat: 'laws', icon: '&#9878;', name: 'Code of Laws', desc: 'South Carolina statutes and codes' },
         { cat: 'regulations', icon: '&#128203;', name: 'Regulations', desc: 'State administrative regulations' },
         { cat: 'constitution', icon: '&#128216;', name: 'Constitution', desc: 'SC State Constitution articles' },
+        { cat: 'subjects', icon: '&#128218;', name: 'Subjects', desc: 'Legislative subjects and related bills' },
     ];
 
     const cardsHtml = categories.map(c => {
-        const count = state.index[c.cat]?.length || 0;
+        const count = (state.index[c.cat] || []).length;
         const loaded = state.loaded[c.cat];
+        let countLabel = `${count} items`;
+        // Specific labels
+        if (c.cat === 'members' && count > 0) {
+            const houseCount = state.index.members.filter(m => m.chamber === 'House').length;
+            const senateCount = state.index.members.filter(m => m.chamber === 'Senate').length;
+            countLabel = `${houseCount} House + ${senateCount} Senate`;
+        } else if (c.cat === 'committees' && count > 0) {
+            const houseCount = state.index.committees.filter(m => m.chamber === 'House').length;
+            const senateCount = state.index.committees.filter(m => m.chamber === 'Senate').length;
+            countLabel = `${houseCount} House + ${senateCount} Senate`;
+        } else if (c.cat === 'laws' && count > 0) {
+            countLabel = `${count} titles`;
+        } else if (c.cat === 'regulations' && count > 0) {
+            countLabel = `${count} chapters`;
+        } else if (c.cat === 'constitution' && count > 0) {
+            countLabel = `${count} articles`;
+        } else if (c.cat === 'meetings' && count > 0) {
+            countLabel = `${count} upcoming`;
+        } else if (c.cat === 'subjects' && count > 0) {
+            countLabel = `${count} subjects`;
+        }
         return `
             <div class="browse-card fade-in" onclick="browseCat('${c.cat}')">
                 <div class="browse-icon">${c.icon}</div>
                 <h3>${c.name}</h3>
                 <p>${c.desc}</p>
-                ${loaded ? `<p style="margin-top:6px;font-size:0.78rem;color:var(--gold);font-weight:600;">${count} items</p>` : '<p style="margin-top:6px;font-size:0.78rem;color:var(--text-light);">Loading...</p>'}
+                ${loaded ? `<p style="margin-top:6px;font-size:0.78rem;color:var(--gold);font-weight:600;">${countLabel}</p>` : '<p style="margin-top:6px;font-size:0.78rem;color:var(--text-light);">Loading...</p>'}
             </div>
         `;
     }).join('');
@@ -1333,38 +1320,15 @@ function renderBrowse() {
 
 function renderResultCard(item) {
     switch (item.type) {
-        case 'bill': return renderBillCard(item);
         case 'member': return renderMemberCard(item);
         case 'committee': return renderCommitteeCard(item);
         case 'meeting': return renderMeetingCard(item);
         case 'law': return renderLawCard(item);
         case 'regulation': return renderRegulationCard(item);
         case 'constitution': return renderConstitutionCard(item);
+        case 'subject': return renderSubjectCard(item);
         default: return '';
     }
-}
-
-function renderBillCard(b) {
-    return `
-        <div class="result-card" data-type="bill">
-            <div class="card-header">
-                <span class="source-badge badge-bill">Bill</span>
-                <div>
-                    <div class="card-title">${highlight(b.number + ' - ' + (b.title || 'Untitled'))}</div>
-                    <div class="card-meta">
-                        ${b.sponsor ? `<span class="card-meta-item">&#128100; ${highlight(b.sponsor)}</span>` : ''}
-                        ${b.status ? `<span class="card-meta-item">&#128204; ${highlight(b.status)}</span>` : ''}
-                        ${b.chamber ? `<span class="card-meta-item">&#127970; ${b.chamber}</span>` : ''}
-                        ${b.session ? `<span class="card-meta-item">&#128197; ${b.session}</span>` : ''}
-                    </div>
-                </div>
-            </div>
-            ${b.summary ? `<div class="card-snippet">${highlight(b.summary)}</div>` : ''}
-            <div class="card-actions">
-                <a class="action-link" href="https://www.scstatehouse.gov/billsearch.php" target="_blank">View Full Text</a>
-                <a class="action-link" href="https://www.scstatehouse.gov/billsearch.php" target="_blank">Track This Bill</a>
-            </div>
-        </div>`;
 }
 
 function renderMemberCard(m) {
@@ -1381,17 +1345,21 @@ function renderMemberCard(m) {
                         ${m.chamber ? `<span class="card-meta-item">&#127970; ${m.chamber}</span>` : ''}
                         ${m.district ? `<span class="card-meta-item">&#128205; District ${m.district}</span>` : ''}
                         ${m.county ? `<span class="card-meta-item">&#127968; ${highlight(m.county)} County</span>` : ''}
+                        ${m.occupation ? `<span class="card-meta-item">&#128188; ${highlight(m.occupation)}</span>` : ''}
                     </div>
                 </div>
             </div>
+            ${m.email ? `<div class="card-snippet">Email: ${escapeHtml(m.email)}</div>` : ''}
             <div class="card-actions">
                 <a class="action-link" href="https://www.scstatehouse.gov/member.php?chamber=${m.chamber === 'House' ? 'H' : 'S'}" target="_blank">View Profile</a>
-                <a class="action-link" href="https://www.scstatehouse.gov/member.php?chamber=${m.chamber === 'House' ? 'H' : 'S'}" target="_blank">View Legislation</a>
             </div>
         </div>`;
 }
 
 function renderCommitteeCard(c) {
+    const memberList = c.members && c.members.length > 0
+        ? c.members.slice(0, 5).map(m => clean(`${m.FIRST || ''} ${m.LAST || ''}`)).join(', ')
+        : '';
     return `
         <div class="result-card" data-type="committee">
             <div class="card-header">
@@ -1401,23 +1369,25 @@ function renderCommitteeCard(c) {
                     <div class="card-meta">
                         ${c.chamber ? `<span class="card-meta-item">&#127970; ${c.chamber}</span>` : ''}
                         ${c.memberCount ? `<span class="card-meta-item">&#128101; ${c.memberCount} members</span>` : ''}
-                        ${c.room ? `<span class="card-meta-item">&#128206; ${highlight(c.room)}</span>` : ''}
+                        ${c.room ? `<span class="card-meta-item">&#128206; ${c.building ? highlight(c.building) + ' ' : ''}${highlight(c.room)}</span>` : ''}
+                        ${c.phone ? `<span class="card-meta-item">&#128222; ${c.phone}</span>` : ''}
                     </div>
                 </div>
             </div>
+            ${memberList ? `<div class="card-snippet">Members: ${escapeHtml(memberList)}${c.members.length > 5 ? ` and ${c.members.length - 5} more` : ''}</div>` : ''}
             <div class="card-actions">
                 <a class="action-link" href="https://www.scstatehouse.gov/committees.php" target="_blank">View Details</a>
-                <a class="action-link" href="https://www.scstatehouse.gov/committees.php" target="_blank">Meeting Schedule</a>
             </div>
         </div>`;
 }
 
 function renderMeetingCard(m) {
-    const statusClass = m.status === 'live' ? 'status-live' : m.status === 'upcoming' ? 'status-upcoming' : 'status-past';
-    const statusLabel = m.status === 'live' ? 'Live Now' : m.status === 'upcoming' ? 'Upcoming' : 'Past';
+    const isCanceled = m.status === 'canceled';
+    const statusClass = isCanceled ? 'status-past' : 'status-upcoming';
+    const statusLabel = isCanceled ? 'Canceled' : 'Upcoming';
     const dateFormatted = m.date ? formatDate(m.date) : 'Date TBD';
     return `
-        <div class="result-card" data-type="meeting">
+        <div class="result-card" data-type="meeting"${isCanceled ? ' style="opacity:0.7"' : ''}>
             <div class="card-header">
                 <span class="source-badge badge-meeting">Meeting</span>
                 <div style="flex:1">
@@ -1434,7 +1404,7 @@ function renderMeetingCard(m) {
                 </div>
             </div>
             <div class="card-actions">
-                <a class="action-link" href="https://www.scstatehouse.gov/meetings.php" target="_blank">View Agenda</a>
+                ${m.agendaLink ? `<a class="action-link" href="${escapeHtml(m.agendaLink)}" target="_blank">View Agenda</a>` : '<span class="action-link" style="opacity:0.5;cursor:default;">No Agenda Available</span>'}
             </div>
         </div>`;
 }
@@ -1447,7 +1417,7 @@ function renderLawCard(l) {
                 <div>
                     <div class="card-title">${highlight(l.title || 'Code of Laws')}</div>
                     <div class="card-meta">
-                        ${l.section ? `<span class="card-meta-item">&#128196; ${highlight(l.section)}</span>` : ''}
+                        ${l.childCount ? `<span class="card-meta-item">&#128196; ${l.childCount} chapters</span>` : ''}
                     </div>
                 </div>
             </div>
@@ -1470,7 +1440,6 @@ function renderRegulationCard(r) {
                     </div>
                 </div>
             </div>
-            ${r.snippet ? `<div class="card-snippet">${highlight(r.snippet)}</div>` : ''}
             <div class="card-actions">
                 <a class="action-link" href="https://www.scstatehouse.gov/coderegs/statmast.php" target="_blank">Read Full Text</a>
             </div>
@@ -1484,14 +1453,28 @@ function renderConstitutionCard(c) {
                 <span class="source-badge badge-constitution">Constitution</span>
                 <div>
                     <div class="card-title">${highlight(c.title || 'Constitution')}</div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a class="action-link" href="https://www.scstatehouse.gov/scconstitution/scconst.php" target="_blank">Read Full Text</a>
+            </div>
+        </div>`;
+}
+
+function renderSubjectCard(s) {
+    return `
+        <div class="result-card" data-type="bill">
+            <div class="card-header">
+                <span class="source-badge badge-bill">Subject</span>
+                <div>
+                    <div class="card-title">${highlight(s.title || 'Subject')}</div>
                     <div class="card-meta">
-                        ${c.section ? `<span class="card-meta-item">&#128196; ${highlight(c.section)}</span>` : ''}
+                        ${s.billCount ? `<span class="card-meta-item">&#128220; ${s.billCount} related bill${s.billCount !== 1 ? 's' : ''}</span>` : ''}
                     </div>
                 </div>
             </div>
-            ${c.snippet ? `<div class="card-snippet">${highlight(c.snippet)}</div>` : ''}
             <div class="card-actions">
-                <a class="action-link" href="https://www.scstatehouse.gov/scconstitution/scconst.php" target="_blank">Read Full Text</a>
+                <a class="action-link" href="https://www.scstatehouse.gov/billsearch.php" target="_blank">View Bills</a>
             </div>
         </div>`;
 }
@@ -1593,7 +1576,6 @@ function setCategory(cat) {
         updateCounts(state.query);
         render();
     } else {
-        // In browse mode, clicking a category shows that category's items
         if (cat !== 'all') {
             browseCat(cat);
         } else {
@@ -1623,7 +1605,6 @@ function browseCat(cat) {
         return;
     }
 
-    // Temporarily set query empty for no highlighting
     const oldQuery = state.query;
     state.query = '';
     const cards = items.slice(0, 50).map(renderResultCard).join('');
@@ -1680,11 +1661,11 @@ function showSuggestions(query) {
         return;
     }
 
-    const typeLabels = { bill: 'Bill', member: 'Member', committee: 'Committee', meeting: 'Meeting', law: 'Law', regulation: 'Regulation', constitution: 'Constitution' };
-    const typeIcons = { bill: '&#128220;', member: '&#128100;', committee: '&#127970;', meeting: '&#128197;', law: '&#9878;', regulation: '&#128203;', constitution: '&#128216;' };
+    const typeLabels = { member: 'Member', committee: 'Committee', meeting: 'Meeting', law: 'Law', regulation: 'Regulation', constitution: 'Constitution', subject: 'Subject' };
+    const typeIcons = { member: '&#128100;', committee: '&#127970;', meeting: '&#128197;', law: '&#9878;', regulation: '&#128203;', constitution: '&#128216;', subject: '&#128218;' };
 
     $suggestions.innerHTML = top.map(r => {
-        const label = r.type === 'bill' ? r.number : r.type === 'member' ? r.name : r.type === 'committee' ? r.name : r.type === 'meeting' ? r.committee : r.title;
+        const label = r.type === 'member' ? r.name : r.type === 'committee' ? r.name : r.type === 'meeting' ? r.committee : r.title;
         return `<div class="suggestion-item" onclick="doSearch('${escapeHtml(query)}')">
             <span class="sug-icon">${typeIcons[r.type] || ''}</span>
             ${escapeHtml(label || 'Result')}
@@ -1730,14 +1711,12 @@ $clearBtn.addEventListener('click', () => {
     $input.focus();
 });
 
-// Close suggestions on outside click
 document.addEventListener('click', (e) => {
     if (!document.getElementById('searchBox').contains(e.target)) {
         $suggestions.classList.remove('visible');
     }
 });
 
-// Scroll to top button
 window.addEventListener('scroll', () => {
     $scrollTop.classList.toggle('visible', window.scrollY > 400);
 });
