@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RCVZ - Roll Call Vote Analyzer &amp; Visualization</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Droid+Serif:wght@400;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/lsa-styles.css">
+    <style>
+        :root {
+            --navy: #003466;
+            --navy-light: #3C6997;
+            --navy-dark: #002244;
+            --gold: #C09D3B;
+            --gold-light: #d4b95e;
+            --gold-pale: #f5ecd3;
+            --white: #ffffff;
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --text: #2d3748;
+            --text-muted: #718096;
+            --text-light: #a0aec0;
+            --shadow: 0 2px 8px rgba(0,52,102,0.08);
+            --shadow-hover: 0 8px 24px rgba(0,52,102,0.15);
+            --shadow-lg: 0 4px 16px rgba(0,52,102,0.12);
+            --green: #0C6E52;
+            --red: #961B1E;
+            --blue: #3182ce;
+            --orange: #dd6b20;
+            --purple: #805ad5;
+            --teal: #319795;
+            --radius: 10px;
+            --radius-lg: 16px;
+            --rep-color: #c0392b;
+            --dem-color: #2980b9;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ---- TOP BAR ---- */
+        .top-bar {
+            background: var(--navy-dark);
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar a {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .top-bar a:hover { color: var(--gold); }
+        .top-bar .session-info {
+            color: var(--text-light);
+            font-size: 0.8rem;
+        }
+
+        /* ---- HEADER ---- */
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            color: var(--white);
+            padding: 32px 24px 24px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+        .logo-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 4px;
+        }
+        .logo-seal {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        header h1 {
+            font-family: 'Arvo', 'Droid Serif', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .tagline {
+            color: var(--gold-light);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            margin-top: 4px;
+            font-weight: 400;
+            font-style: italic;
+        }
+
+        /* ---- CONTROLS ---- */
+        .controls-bar {
+            background: var(--white);
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-group label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .control-group select {
+            padding: 8px 14px;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--bg);
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text);
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: box-shadow 0.2s;
+        }
+        .control-group select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--gold);
+        }
+
+        .toggle-group {
+            display: flex;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .toggle-btn {
+            padding: 8px 20px;
+            border: none;
+            background: var(--bg);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-btn.active {
+            background: var(--navy);
+            color: var(--white);
+        }
+        .toggle-btn:hover:not(.active) {
+            background: #e2e4e8;
+        }
+
+        .load-indicator {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        /* ---- MAIN LAYOUT ---- */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ---- TABS ---- */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 6px;
+            box-shadow: var(--shadow);
+        }
+        .tab-btn {
+            padding: 10px 18px;
+            border: none;
+            background: transparent;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: var(--radius);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tab-btn.active {
+            background: var(--navy);
+            color: var(--white);
+            box-shadow: var(--shadow);
+        }
+        .tab-btn:hover:not(.active) {
+            background: var(--bg);
+            color: var(--text);
+        }
+        .tab-btn .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-left: 4px;
+        }
+        .tab-btn.active .badge {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ---- CARDS ---- */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.2s;
+        }
+        .card:hover { box-shadow: var(--shadow-hover); }
+        .card-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        /* ---- STATS ROW ---- */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        .stat-value {
+            font-family: 'Arvo', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.2;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+        .stat-sub {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        /* ---- VOTE LIST ---- */
+        .vote-list { list-style: none; }
+        .vote-item {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 16px;
+            align-items: center;
+        }
+        .vote-item:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateX(4px);
+        }
+        .vote-bill {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--navy);
+            min-width: 80px;
+        }
+        .vote-motion {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        .vote-motion .vote-time-small {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-left: 8px;
+        }
+        .vote-result {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .vote-result .yea-nay {
+            font-family: 'Montserrat', sans-serif;
+        }
+        .result-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .result-pass { background: #e6f4ea; color: var(--green); }
+        .result-fail { background: #fce8e8; color: var(--red); }
+
+        /* ---- VOTE DETAIL MODAL ---- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,34,68,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-hover);
+            max-width: 900px;
+            width: 100%;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            padding: 32px;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--bg);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        .modal-close:hover { background: #e2e4e8; color: var(--text); }
+        .modal h2 {
+            font-family: 'Arvo', serif;
+            font-size: 1.4rem;
+            color: var(--navy);
+            margin-bottom: 4px;
+        }
+        .modal .modal-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .modal-stat {
+            background: var(--bg);
+            border-radius: var(--radius);
+            padding: 12px;
+            text-align: center;
+        }
+        .modal-stat .val {
+            font-family: 'Arvo', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .modal-stat .lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .party-breakdown {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .party-box {
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+        .party-box.rep { background: #fce8e8; }
+        .party-box.dem { background: #e8f0fc; }
+        .party-box h4 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .party-box.rep h4 { color: var(--rep-color); }
+        .party-box.dem h4 { color: var(--dem-color); }
+        .party-vote-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 2px 0;
+        }
+
+        .sponsor-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .sponsor-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: var(--navy);
+            color: var(--white);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .sponsor-table th:first-child { border-radius: var(--radius) 0 0 0; }
+        .sponsor-table th:last-child { border-radius: 0 var(--radius) 0 0; }
+        .sponsor-table td {
+            padding: 8px 12px;
+        }
+        .sponsor-table tr:nth-child(even) { background: var(--bg); }
+        .sponsor-table .voted-y { color: var(--green); font-weight: 700; }
+        .sponsor-table .voted-n { color: var(--red); font-weight: 700; }
+        .sponsor-table .voted-nv { color: var(--text-light); font-style: italic; }
+        .sponsor-table .voted-ea { color: var(--orange); font-style: italic; }
+        .party-tag {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--white);
+        }
+        .party-tag.R { background: var(--rep-color); }
+        .party-tag.D { background: var(--dem-color); }
+        .party-tag.I { background: var(--purple); }
+        .party-tag.U { background: var(--text-light); }
+
+        /* ---- BAR CHART ---- */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .bar-row {
+            display: grid;
+            grid-template-columns: 120px 1fr 50px;
+            gap: 10px;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+        .bar-label {
+            text-align: right;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .bar-track {
+            height: 28px;
+            background: var(--bg);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.6s ease;
+            min-width: 2px;
+        }
+        .bar-val {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+
+        /* ---- HISTOGRAM ---- */
+        .histogram {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 180px;
+            padding: 0 4px;
+        }
+        .hist-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            cursor: pointer;
+        }
+        .hist-bar {
+            width: 100%;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.4s ease;
+            min-height: 2px;
+        }
+        .hist-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .hist-count {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 2px;
+        }
+
+        /* ---- ABSENCE TABLE ---- */
+        .absence-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .absence-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: var(--navy);
+            color: var(--white);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        .absence-table th:first-child { border-radius: var(--radius) 0 0 0; }
+        .absence-table th:last-child { border-radius: 0 var(--radius) 0 0; }
+        .absence-table td { padding: 10px 12px; }
+        .absence-table tr:nth-child(even) { background: var(--bg); }
+        .absence-table tr:hover { background: var(--gold-pale); }
+
+        /* ---- TIME CHART ---- */
+        .time-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 160px;
+            padding: 0;
+        }
+        .time-bar-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+        }
+        .time-bar {
+            width: 100%;
+            border-radius: 3px 3px 0 0;
+            transition: height 0.4s ease;
+        }
+        .time-label {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .time-count {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 2px;
+        }
+
+        /* ---- LOADING / ERROR ---- */
+        .loading-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-muted);
+        }
+        .loading-state .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg);
+            border-top-color: var(--navy);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--red);
+            background: #fce8e8;
+            border-radius: var(--radius-lg);
+            margin: 20px 0;
+        }
+
+        /* ---- PAGINATION ---- */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .page-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--white);
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .page-btn:hover:not(:disabled) { background: var(--navy); color: var(--white); }
+        .page-btn:disabled { opacity: 0.4; cursor: default; }
+        .page-info { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* ---- SEARCH FILTER ---- */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filter-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--white);
+            font-family: inherit;
+            font-size: 0.9rem;
+            box-shadow: var(--shadow);
+            color: var(--text);
+        }
+        .filter-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--gold);
+        }
+        .filter-select {
+            padding: 10px 14px;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--white);
+            font-family: inherit;
+            font-size: 0.9rem;
+            box-shadow: var(--shadow);
+            color: var(--text);
+            cursor: pointer;
+        }
+        .filter-select:focus { outline: none; box-shadow: 0 0 0 2px var(--gold); }
+
+        /* ---- UNITY GAUGE ---- */
+        .gauge-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 20px;
+        }
+        .gauge {
+            position: relative;
+            width: 140px;
+            height: 140px;
+        }
+        .gauge svg {
+            transform: rotate(-90deg);
+        }
+        .gauge-bg {
+            fill: none;
+            stroke: var(--bg);
+            stroke-width: 12;
+        }
+        .gauge-fill {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease;
+        }
+        .gauge-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .gauge-text .pct {
+            font-family: 'Arvo', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1;
+        }
+        .gauge-text .lbl {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 768px) {
+            .controls-bar { padding: 12px 16px; gap: 10px; }
+            .main-content { padding: 16px; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .vote-item { grid-template-columns: 1fr; gap: 8px; }
+            .party-breakdown { grid-template-columns: 1fr; }
+            .bar-row { grid-template-columns: 80px 1fr 40px; }
+            .tab-btn { padding: 8px 12px; font-size: 0.8rem; }
+            header h1 { font-size: 1.4rem; }
+            .modal { padding: 20px; }
+        }
+        @media (max-width: 480px) {
+            .stats-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+    <a href="../">&#8592; Back to Ideas Engine</a>
+    <span class="session-info" id="sessionInfoText">SC General Assembly</span>
+</div>
+
+<!-- Header -->
+<header>
+    <div class="logo-row">
+        <img src="../assets/images/LSA_seal.png" alt="LSA Seal" class="logo-seal">
+        <h1>RCVZ</h1>
+    </div>
+    <div class="tagline">Every vote tells a story.</div>
+</header>
+
+<!-- Controls -->
+<div class="controls-bar">
+    <div class="control-group">
+        <label>Session</label>
+        <select id="sessionSelect"></select>
+    </div>
+    <div class="control-group">
+        <label>Chamber</label>
+        <div class="toggle-group">
+            <button class="toggle-btn active" data-chamber="house" id="btnHouse">House</button>
+            <button class="toggle-btn" data-chamber="senate" id="btnSenate">Senate</button>
+        </div>
+    </div>
+    <span class="load-indicator" id="loadIndicator"></span>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Stats Row -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="stat-value" id="statTotal">--</div><div class="stat-label">Total Votes</div></div>
+        <div class="stat-card"><div class="stat-value" id="statPassed">--</div><div class="stat-label">Passed</div><div class="stat-sub" id="statPassRate"></div></div>
+        <div class="stat-card"><div class="stat-value" id="statFailed">--</div><div class="stat-label">Failed</div></div>
+        <div class="stat-card"><div class="stat-value" id="statAvgMargin">--</div><div class="stat-label">Avg Margin</div></div>
+        <div class="stat-card"><div class="stat-value" id="statUnity">--</div><div class="stat-label">Party Unity</div><div class="stat-sub">strict party-line</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar" id="tabBar">
+        <button class="tab-btn active" data-tab="feed">Vote Feed</button>
+        <button class="tab-btn" data-tab="party">Party Analysis</button>
+        <button class="tab-btn" data-tab="margin">Margin Analysis</button>
+        <button class="tab-btn" data-tab="contested">Most Contested</button>
+        <button class="tab-btn" data-tab="unanimous">Most Unanimous</button>
+        <button class="tab-btn" data-tab="absence">Absence Tracker</button>
+        <button class="tab-btn" data-tab="types">Vote Types</button>
+        <button class="tab-btn" data-tab="time">Time Analysis</button>
+    </div>
+
+    <!-- Tab Panels -->
+    <div id="panelFeed" class="tab-panel active">
+        <div class="filter-bar">
+            <input type="text" class="filter-input" id="voteSearch" placeholder="Search votes by bill number, motion...">
+            <select class="filter-select" id="voteResultFilter">
+                <option value="all">All Results</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
+            </select>
+        </div>
+        <div id="voteFeedList"></div>
+        <div class="pagination" id="feedPagination"></div>
+    </div>
+
+    <div id="panelParty" class="tab-panel">
+        <div id="partyContent"></div>
+    </div>
+
+    <div id="panelMargin" class="tab-panel">
+        <div id="marginContent"></div>
+    </div>
+
+    <div id="panelContested" class="tab-panel">
+        <div id="contestedContent"></div>
+    </div>
+
+    <div id="panelUnanimous" class="tab-panel">
+        <div id="unanimousContent"></div>
+    </div>
+
+    <div id="panelAbsence" class="tab-panel">
+        <div id="absenceContent"></div>
+    </div>
+
+    <div id="panelTypes" class="tab-panel">
+        <div id="typesContent"></div>
+    </div>
+
+    <div id="panelTime" class="tab-panel">
+        <div id="timeContent"></div>
+    </div>
+</div>
+
+<!-- Vote Detail Modal -->
+<div class="modal-overlay" id="voteModal">
+    <div class="modal">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+const API = 'https://rest.scstatehouse.gov';
+
+// ---- STATE ----
+const state = {
+    session: 126,
+    chamber: 'house',
+    votes: [],
+    bios: {},          // PERM_SPONSOR_CODE -> {PARTY, FIRST, LAST, ...}
+    loading: false,
+    feedPage: 1,
+    feedPerPage: 30,
+    feedFilter: '',
+    feedResult: 'all'
+};
+
+// ---- HELPERS ----
+async function fetchAPI(url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    if (json && typeof json === 'object' && 'data' in json) {
+        return json.data;
+    }
+    return json;
+}
+
+function $(id) { return document.getElementById(id); }
+
+function formatTime(votetime) {
+    if (!votetime) return '';
+    // Formats like "2025-01-14T14:30:00" or "14:30:00" or "1430"
+    const match = votetime.match(/(\d{1,2}):(\d{2})/);
+    if (match) {
+        let h = parseInt(match[1]);
+        const m = match[2];
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        if (h > 12) h -= 12;
+        if (h === 0) h = 12;
+        return `${h}:${m} ${ampm}`;
+    }
+    return votetime;
+}
+
+function getHour(votetime) {
+    if (!votetime) return -1;
+    const match = votetime.match(/(\d{1,2}):/);
+    if (match) return parseInt(match[1]);
+    return -1;
+}
+
+function getChoiceData(vote) {
+    // Get first choice set (usually only one)
+    if (Array.isArray(vote.CHOICES) && vote.CHOICES.length > 0) {
+        return vote.CHOICES[0];
+    }
+    return null;
+}
+
+function getStats(vote) {
+    const choice = getChoiceData(vote);
+    if (!choice) return { yeas: 0, nays: 0, nv: 0, ea: 0 };
+    const stats = choice.STATS || {};
+    return {
+        yeas: parseInt(stats.Yeas) || parseInt(choice.YEAS) || 0,
+        nays: parseInt(stats.Nays) || parseInt(choice.NAYS) || 0,
+        nv: parseInt(stats['N/V']) || 0,
+        ea: parseInt(stats['Exc. Abs.']) || 0
+    };
+}
+
+function getMargin(vote) {
+    const s = getStats(vote);
+    return Math.abs(s.yeas - s.nays);
+}
+
+function isPassed(vote) {
+    return vote.APPROVED === '1' || vote.APPROVED === 1 || vote.APPROVED === true;
+}
+
+function getMotionCategory(motion) {
+    if (!motion) return 'Other';
+    const m = motion.toUpperCase();
+    if (m.includes('PASSAGE') || m.includes('THIRD READING') || m.includes('3RD READING')) return 'Passage';
+    if (m.includes('AMENDMENT') || m.includes('AMEND')) return 'Amendment';
+    if (m.includes('RECOMMIT')) return 'Recommit';
+    if (m.includes('TABLE') || m.includes('TABLING')) return 'Table';
+    if (m.includes('ADJOURN')) return 'Adjourn';
+    if (m.includes('RECONSIDER')) return 'Reconsider';
+    if (m.includes('SECOND READING') || m.includes('2ND READING')) return 'Second Reading';
+    if (m.includes('SUSPEND')) return 'Suspend Rules';
+    if (m.includes('CONCUR')) return 'Concurrence';
+    if (m.includes('VETO')) return 'Veto Override';
+    if (m.includes('RESOLUTION')) return 'Resolution';
+    return 'Other';
+}
+
+function getPartyBreakdown(vote) {
+    const choice = getChoiceData(vote);
+    if (!choice || !Array.isArray(choice.SPONSORS)) return null;
+    const breakdown = { R: { Y: 0, N: 0, NV: 0, EA: 0, total: 0 }, D: { Y: 0, N: 0, NV: 0, EA: 0, total: 0 }, I: { Y: 0, N: 0, NV: 0, EA: 0, total: 0 } };
+    choice.SPONSORS.forEach(sp => {
+        const bio = state.bios[sp.PERM_SPONSOR_CODE];
+        const party = bio ? (bio.PARTY || '').charAt(0).toUpperCase() : 'I';
+        const p = breakdown[party] || breakdown.I;
+        const how = (sp.HOWVOTED || '').toUpperCase();
+        if (how === 'Y') p.Y++;
+        else if (how === 'N') p.N++;
+        else if (how === 'E') p.EA++;
+        else p.NV++;
+        p.total++;
+    });
+    return breakdown;
+}
+
+function isPartyLine(vote) {
+    const bd = getPartyBreakdown(vote);
+    if (!bd) return false;
+    // A strict party-line vote: all R voted one way, all D voted the other way
+    // (ignoring absent/NV, and only if at least some voted on each side)
+    const rVoting = bd.R.Y + bd.R.N;
+    const dVoting = bd.D.Y + bd.D.N;
+    if (rVoting < 2 || dVoting < 2) return false;
+    // R all Yea and D all Nay, or R all Nay and D all Yea
+    return (bd.R.N === 0 && bd.D.Y === 0) || (bd.R.Y === 0 && bd.D.N === 0);
+}
+
+// ---- INIT ----
+async function init() {
+    await loadSessions();
+    setupEvents();
+    await loadData();
+}
+
+async function loadSessions() {
+    try {
+        const data = await fetchAPI(`${API}/votesessions`);
+        const sel = $('sessionSelect');
+        const sessions = Array.isArray(data) ? data : [];
+        // Sort descending
+        sessions.sort((a, b) => {
+            const aNum = parseInt(a.SESS_NUMBER || a.SESSION || a) || 0;
+            const bNum = parseInt(b.SESS_NUMBER || b.SESSION || b) || 0;
+            return bNum - aNum;
+        });
+        sessions.forEach(s => {
+            const num = s.SESS_NUMBER || s.SESSION || s;
+            const opt = document.createElement('option');
+            opt.value = num;
+            opt.textContent = `Session ${num}`;
+            if (parseInt(num) === state.session) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        // If no sessions loaded, add defaults 119-126
+        if (sel.options.length === 0) {
+            for (let i = 126; i >= 119; i--) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `Session ${i}`;
+                if (i === state.session) opt.selected = true;
+                sel.appendChild(opt);
+            }
+        }
+    } catch (e) {
+        const sel = $('sessionSelect');
+        for (let i = 126; i >= 119; i--) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `Session ${i}`;
+            if (i === state.session) opt.selected = true;
+            sel.appendChild(opt);
+        }
+    }
+}
+
+function setupEvents() {
+    $('sessionSelect').addEventListener('change', (e) => {
+        state.session = parseInt(e.target.value);
+        state.feedPage = 1;
+        loadData();
+    });
+    $('btnHouse').addEventListener('click', () => setChamber('house'));
+    $('btnSenate').addEventListener('click', () => setChamber('senate'));
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            const tabId = 'panel' + btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1);
+            $(tabId).classList.add('active');
+        });
+    });
+
+    // Vote feed filters
+    $('voteSearch').addEventListener('input', (e) => {
+        state.feedFilter = e.target.value.toLowerCase();
+        state.feedPage = 1;
+        renderFeed();
+    });
+    $('voteResultFilter').addEventListener('change', (e) => {
+        state.feedResult = e.target.value;
+        state.feedPage = 1;
+        renderFeed();
+    });
+
+    // Modal
+    $('modalClose').addEventListener('click', closeModal);
+    $('voteModal').addEventListener('click', (e) => {
+        if (e.target === $('voteModal')) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+}
+
+function setChamber(chamber) {
+    state.chamber = chamber;
+    state.feedPage = 1;
+    $('btnHouse').classList.toggle('active', chamber === 'house');
+    $('btnSenate').classList.toggle('active', chamber === 'senate');
+    loadData();
+}
+
+async function loadData() {
+    state.loading = true;
+    $('loadIndicator').textContent = 'Loading...';
+    showLoading();
+
+    try {
+        // Load bios and votes in parallel
+        const bioEndpoint = state.chamber === 'house' ? `${API}/house/bios` : `${API}/senate/bios`;
+        const voteEndpoint = `${API}/vote/${state.session}/${state.chamber}`;
+
+        const [bios, votes] = await Promise.all([
+            fetchAPI(bioEndpoint),
+            fetchAPI(voteEndpoint)
+        ]);
+
+        // Build bios lookup
+        state.bios = {};
+        (Array.isArray(bios) ? bios : []).forEach(b => {
+            if (b.PERM_SPONSOR_CODE) {
+                state.bios[b.PERM_SPONSOR_CODE] = b;
+            }
+        });
+
+        state.votes = Array.isArray(votes) ? votes : [];
+        $('loadIndicator').textContent = `${state.votes.length} votes loaded`;
+        $('sessionInfoText').textContent = `Session ${state.session} - ${state.chamber === 'house' ? 'House' : 'Senate'}`;
+
+        renderAll();
+    } catch (e) {
+        showError(`Failed to load data: ${e.message}`);
+        $('loadIndicator').textContent = 'Error loading';
+    }
+
+    state.loading = false;
+}
+
+function showLoading() {
+    const panels = ['voteFeedList', 'partyContent', 'marginContent', 'contestedContent', 'unanimousContent', 'absenceContent', 'typesContent', 'timeContent'];
+    panels.forEach(id => {
+        $(id).innerHTML = '<div class="loading-state"><div class="spinner"></div><div>Loading vote data...</div></div>';
+    });
+    $('feedPagination').innerHTML = '';
+}
+
+function showError(msg) {
+    const panels = ['voteFeedList', 'partyContent', 'marginContent', 'contestedContent', 'unanimousContent', 'absenceContent', 'typesContent', 'timeContent'];
+    panels.forEach(id => {
+        $(id).innerHTML = `<div class="error-state">${msg}</div>`;
+    });
+}
+
+function renderAll() {
+    renderStats();
+    renderFeed();
+    renderPartyAnalysis();
+    renderMarginAnalysis();
+    renderContested();
+    renderUnanimous();
+    renderAbsence();
+    renderVoteTypes();
+    renderTimeAnalysis();
+}
+
+// ---- STATS ----
+function renderStats() {
+    const votes = state.votes;
+    const total = votes.length;
+    const passed = votes.filter(isPassed).length;
+    const failed = total - passed;
+    const margins = votes.map(getMargin);
+    const avgMargin = total > 0 ? (margins.reduce((a, b) => a + b, 0) / total).toFixed(1) : '--';
+    const partyLineCount = votes.filter(isPartyLine).length;
+    const unity = total > 0 ? ((partyLineCount / total) * 100).toFixed(1) : '--';
+
+    $('statTotal').textContent = total;
+    $('statPassed').textContent = passed;
+    $('statPassRate').textContent = total > 0 ? `${((passed / total) * 100).toFixed(1)}% pass rate` : '';
+    $('statFailed').textContent = failed;
+    $('statAvgMargin').textContent = avgMargin;
+    $('statUnity').textContent = unity !== '--' ? `${unity}%` : '--';
+}
+
+// ---- VOTE FEED ----
+function getFilteredVotes() {
+    let filtered = [...state.votes];
+    if (state.feedFilter) {
+        filtered = filtered.filter(v => {
+            const bill = (v.BILL_NUMBER || '').toLowerCase();
+            const motion = (v.MOTION || '').toLowerCase();
+            return bill.includes(state.feedFilter) || motion.includes(state.feedFilter);
+        });
+    }
+    if (state.feedResult === 'passed') filtered = filtered.filter(isPassed);
+    else if (state.feedResult === 'failed') filtered = filtered.filter(v => !isPassed(v));
+    return filtered;
+}
+
+function renderFeed() {
+    const filtered = getFilteredVotes();
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / state.feedPerPage));
+    if (state.feedPage > totalPages) state.feedPage = totalPages;
+    const start = (state.feedPage - 1) * state.feedPerPage;
+    const page = filtered.slice(start, start + state.feedPerPage);
+
+    if (total === 0) {
+        $('voteFeedList').innerHTML = '<div class="loading-state">No votes match your filters.</div>';
+        $('feedPagination').innerHTML = '';
+        return;
+    }
+
+    let html = '<ul class="vote-list">';
+    page.forEach((vote, idx) => {
+        const st = getStats(vote);
+        const passed = isPassed(vote);
+        const time = formatTime(vote.VOTETIME);
+        html += `
+            <li class="vote-item" onclick="openVoteDetail(${start + idx}, true)" data-vidx="${start + idx}">
+                <div class="vote-bill">${vote.BILL_NUMBER || `Vote #${vote.VOTE_NUMBER || ''}`}</div>
+                <div class="vote-motion">${vote.MOTION || 'Vote'}
+                    ${time ? `<span class="vote-time-small">${time}</span>` : ''}
+                </div>
+                <div class="vote-result">
+                    <span class="yea-nay" style="color:var(--green)">${st.yeas}Y</span>
+                    <span class="yea-nay" style="color:var(--red)">${st.nays}N</span>
+                    <span class="result-badge ${passed ? 'result-pass' : 'result-fail'}">${passed ? 'Passed' : 'Failed'}</span>
+                </div>
+            </li>`;
+    });
+    html += '</ul>';
+    $('voteFeedList').innerHTML = html;
+
+    // Pagination
+    let pHtml = '';
+    pHtml += `<button class="page-btn" onclick="changeFeedPage(-1)" ${state.feedPage <= 1 ? 'disabled' : ''}>&laquo; Prev</button>`;
+    pHtml += `<span class="page-info">Page ${state.feedPage} of ${totalPages} (${total} votes)</span>`;
+    pHtml += `<button class="page-btn" onclick="changeFeedPage(1)" ${state.feedPage >= totalPages ? 'disabled' : ''}>Next &raquo;</button>`;
+    $('feedPagination').innerHTML = pHtml;
+}
+
+window.changeFeedPage = function(dir) {
+    state.feedPage += dir;
+    renderFeed();
+    $('panelFeed').scrollIntoView({ behavior: 'smooth' });
+};
+
+// ---- VOTE DETAIL MODAL ----
+window.openVoteDetail = function(idx, fromFiltered) {
+    const votes = fromFiltered ? getFilteredVotes() : state.votes;
+    const vote = votes[idx];
+    if (!vote) return;
+    const st = getStats(vote);
+    const passed = isPassed(vote);
+    const choice = getChoiceData(vote);
+    const bd = getPartyBreakdown(vote);
+
+    let html = `
+        <h2>${vote.BILL_NUMBER || `Vote #${vote.VOTE_NUMBER || ''}`}</h2>
+        <div class="modal-subtitle">${vote.MOTION || 'Vote'} | ${formatTime(vote.VOTETIME) || ''} | ${choice?.RESULTTEXT || (passed ? 'Approved' : 'Not Approved')}</div>
+
+        <div class="modal-stats">
+            <div class="modal-stat"><div class="val" style="color:var(--green)">${st.yeas}</div><div class="lbl">Yeas</div></div>
+            <div class="modal-stat"><div class="val" style="color:var(--red)">${st.nays}</div><div class="lbl">Nays</div></div>
+            <div class="modal-stat"><div class="val" style="color:var(--text-light)">${st.nv}</div><div class="lbl">N/V</div></div>
+            <div class="modal-stat"><div class="val" style="color:var(--orange)">${st.ea}</div><div class="lbl">Exc. Abs.</div></div>
+            <div class="modal-stat"><div class="val">${getMargin(vote)}</div><div class="lbl">Margin</div></div>
+            <div class="modal-stat"><div class="val"><span class="result-badge ${passed ? 'result-pass' : 'result-fail'}">${passed ? 'PASSED' : 'FAILED'}</span></div><div class="lbl">Result</div></div>
+        </div>`;
+
+    // Party breakdown
+    if (bd) {
+        html += `
+        <div class="party-breakdown">
+            <div class="party-box rep">
+                <h4>Republican (${bd.R.total})</h4>
+                <div class="party-vote-row"><span>Yea</span><strong>${bd.R.Y}</strong></div>
+                <div class="party-vote-row"><span>Nay</span><strong>${bd.R.N}</strong></div>
+                <div class="party-vote-row"><span>N/V</span><strong>${bd.R.NV}</strong></div>
+                <div class="party-vote-row"><span>Exc. Abs.</span><strong>${bd.R.EA}</strong></div>
+            </div>
+            <div class="party-box dem">
+                <h4>Democrat (${bd.D.total})</h4>
+                <div class="party-vote-row"><span>Yea</span><strong>${bd.D.Y}</strong></div>
+                <div class="party-vote-row"><span>Nay</span><strong>${bd.D.N}</strong></div>
+                <div class="party-vote-row"><span>N/V</span><strong>${bd.D.NV}</strong></div>
+                <div class="party-vote-row"><span>Exc. Abs.</span><strong>${bd.D.EA}</strong></div>
+            </div>
+        </div>`;
+    }
+
+    // Sponsor table
+    if (choice && Array.isArray(choice.SPONSORS) && choice.SPONSORS.length > 0) {
+        const sponsors = [...choice.SPONSORS].sort((a, b) => {
+            const aName = (a.FULL_NAME || a.LAST || '').toLowerCase();
+            const bName = (b.FULL_NAME || b.LAST || '').toLowerCase();
+            return aName.localeCompare(bName);
+        });
+        html += `<table class="sponsor-table">
+            <thead><tr><th>Member</th><th>Party</th><th>Vote</th></tr></thead><tbody>`;
+        sponsors.forEach(sp => {
+            const bio = state.bios[sp.PERM_SPONSOR_CODE];
+            const party = bio ? (bio.PARTY || '').charAt(0).toUpperCase() : '?';
+            const how = (sp.HOWVOTED || '').toUpperCase();
+            let howClass = '';
+            let howLabel = how;
+            if (how === 'Y') { howClass = 'voted-y'; howLabel = 'Yea'; }
+            else if (how === 'N') { howClass = 'voted-n'; howLabel = 'Nay'; }
+            else if (how === 'E') { howClass = 'voted-ea'; howLabel = 'Exc. Abs.'; }
+            else { howClass = 'voted-nv'; howLabel = how || 'N/V'; }
+
+            const name = sp.FULL_NAME || `${bio?.FIRST || ''} ${bio?.LAST || ''}`.trim() || sp.PERM_SPONSOR_CODE;
+            html += `<tr>
+                <td>${name}</td>
+                <td><span class="party-tag ${party}">${party}</span></td>
+                <td class="${howClass}">${howLabel}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+    }
+
+    $('modalBody').innerHTML = html;
+    $('voteModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+};
+
+function closeModal() {
+    $('voteModal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+// ---- PARTY ANALYSIS ----
+function renderPartyAnalysis() {
+    const votes = state.votes;
+    if (votes.length === 0) {
+        $('partyContent').innerHTML = '<div class="loading-state">No vote data available.</div>';
+        return;
+    }
+
+    // Aggregate party voting patterns
+    const totals = { R: { Y: 0, N: 0, NV: 0, EA: 0 }, D: { Y: 0, N: 0, NV: 0, EA: 0 } };
+    let partyLineCount = 0;
+    let bipartisanCount = 0;
+
+    votes.forEach(v => {
+        const bd = getPartyBreakdown(v);
+        if (!bd) return;
+        ['R', 'D'].forEach(p => {
+            totals[p].Y += bd[p].Y;
+            totals[p].N += bd[p].N;
+            totals[p].NV += bd[p].NV;
+            totals[p].EA += bd[p].EA;
+        });
+        if (isPartyLine(v)) partyLineCount++;
+        // Bipartisan: majority of both parties voted same way
+        const rMajY = bd.R.Y > bd.R.N;
+        const dMajY = bd.D.Y > bd.D.N;
+        if (rMajY === dMajY && (bd.R.Y + bd.R.N) > 0 && (bd.D.Y + bd.D.N) > 0) bipartisanCount++;
+    });
+
+    const unityPct = votes.length > 0 ? ((partyLineCount / votes.length) * 100) : 0;
+    const bipartisanPct = votes.length > 0 ? ((bipartisanCount / votes.length) * 100) : 0;
+    const circumference = 2 * Math.PI * 54;
+
+    let html = `
+    <div class="card">
+        <div class="card-title"><span class="icon" style="background:var(--gold-pale);color:var(--navy);">&#9878;</span> Party Unity Score</div>
+        <div class="gauge-container">
+            <div class="gauge">
+                <svg width="140" height="140" viewBox="0 0 140 140">
+                    <circle class="gauge-bg" cx="70" cy="70" r="54"></circle>
+                    <circle class="gauge-fill" cx="70" cy="70" r="54"
+                        stroke="var(--navy)"
+                        stroke-dasharray="${circumference}"
+                        stroke-dashoffset="${circumference - (circumference * unityPct / 100)}"></circle>
+                </svg>
+                <div class="gauge-text">
+                    <div class="pct">${unityPct.toFixed(1)}%</div>
+                    <div class="lbl">Party-Line</div>
+                </div>
+            </div>
+            <div class="gauge">
+                <svg width="140" height="140" viewBox="0 0 140 140">
+                    <circle class="gauge-bg" cx="70" cy="70" r="54"></circle>
+                    <circle class="gauge-fill" cx="70" cy="70" r="54"
+                        stroke="var(--green)"
+                        stroke-dasharray="${circumference}"
+                        stroke-dashoffset="${circumference - (circumference * bipartisanPct / 100)}"></circle>
+                </svg>
+                <div class="gauge-text">
+                    <div class="pct">${bipartisanPct.toFixed(1)}%</div>
+                    <div class="lbl">Bipartisan</div>
+                </div>
+            </div>
+            <div style="text-align:left;max-width:300px;">
+                <div style="margin-bottom:8px;font-size:0.9rem;"><strong>${partyLineCount}</strong> of ${votes.length} votes were strict party-line</div>
+                <div style="font-size:0.9rem;"><strong>${bipartisanCount}</strong> of ${votes.length} votes had bipartisan majorities</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><span class="icon" style="background:#fce8e8;color:var(--rep-color);">R</span> Republican Aggregate Voting</div>
+        <div class="bar-chart">
+            ${partyBar('Yea', totals.R.Y, totals.R.Y + totals.R.N + totals.R.NV + totals.R.EA, 'var(--green)')}
+            ${partyBar('Nay', totals.R.N, totals.R.Y + totals.R.N + totals.R.NV + totals.R.EA, 'var(--red)')}
+            ${partyBar('N/V', totals.R.NV, totals.R.Y + totals.R.N + totals.R.NV + totals.R.EA, 'var(--text-light)')}
+            ${partyBar('Exc. Abs.', totals.R.EA, totals.R.Y + totals.R.N + totals.R.NV + totals.R.EA, 'var(--orange)')}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><span class="icon" style="background:#e8f0fc;color:var(--dem-color);">D</span> Democrat Aggregate Voting</div>
+        <div class="bar-chart">
+            ${partyBar('Yea', totals.D.Y, totals.D.Y + totals.D.N + totals.D.NV + totals.D.EA, 'var(--green)')}
+            ${partyBar('Nay', totals.D.N, totals.D.Y + totals.D.N + totals.D.NV + totals.D.EA, 'var(--red)')}
+            ${partyBar('N/V', totals.D.NV, totals.D.Y + totals.D.N + totals.D.NV + totals.D.EA, 'var(--text-light)')}
+            ${partyBar('Exc. Abs.', totals.D.EA, totals.D.Y + totals.D.N + totals.D.NV + totals.D.EA, 'var(--orange)')}
+        </div>
+    </div>`;
+
+    $('partyContent').innerHTML = html;
+}
+
+function partyBar(label, value, total, color) {
+    const pct = total > 0 ? (value / total * 100) : 0;
+    return `<div class="bar-row">
+        <div class="bar-label">${label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="bar-val">${value.toLocaleString()}</div>
+    </div>`;
+}
+
+// ---- MARGIN ANALYSIS ----
+function renderMarginAnalysis() {
+    const votes = state.votes;
+    if (votes.length === 0) {
+        $('marginContent').innerHTML = '<div class="loading-state">No vote data available.</div>';
+        return;
+    }
+
+    const margins = votes.map(getMargin);
+    const maxMargin = Math.max(...margins);
+
+    // Create bins
+    const binSize = Math.max(1, Math.ceil(maxMargin / 20));
+    const bins = {};
+    for (let i = 0; i <= maxMargin; i += binSize) {
+        const key = i === 0 ? `0-${binSize - 1}` : `${i}-${i + binSize - 1}`;
+        bins[key] = { min: i, max: i + binSize - 1, count: 0 };
+    }
+    margins.forEach(m => {
+        const binIdx = Math.floor(m / binSize) * binSize;
+        const key = binIdx === 0 ? `0-${binSize - 1}` : `${binIdx}-${binIdx + binSize - 1}`;
+        if (bins[key]) bins[key].count++;
+    });
+
+    const binArr = Object.entries(bins).filter(([, v]) => v.count > 0);
+    const maxCount = Math.max(...binArr.map(([, v]) => v.count));
+
+    let html = `<div class="card">
+        <div class="card-title"><span class="icon" style="background:var(--gold-pale);color:var(--navy);">&#9632;</span> Vote Margin Distribution</div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">Distribution of the absolute difference between Yea and Nay votes. Lower margins indicate more contested votes.</p>
+        <div class="histogram">`;
+    binArr.forEach(([label, v]) => {
+        const h = maxCount > 0 ? (v.count / maxCount * 100) : 0;
+        const color = v.min < 10 ? 'var(--red)' : v.min < 30 ? 'var(--orange)' : v.min < 60 ? 'var(--gold)' : 'var(--green)';
+        html += `<div class="hist-col" title="${label}: ${v.count} votes">
+            <div class="hist-count">${v.count}</div>
+            <div class="hist-bar" style="height:${Math.max(2, h)}%;background:${color}"></div>
+            <div class="hist-label">${label}</div>
+        </div>`;
+    });
+    html += '</div></div>';
+
+    // Summary stats
+    const sorted = [...margins].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)] || 0;
+    const avg = (margins.reduce((a, b) => a + b, 0) / margins.length).toFixed(1);
+    const closeVotes = margins.filter(m => m <= 5).length;
+    const blowouts = margins.filter(m => m >= 50).length;
+
+    html += `<div class="stats-row" style="margin-top:16px;">
+        <div class="stat-card"><div class="stat-value">${avg}</div><div class="stat-label">Avg Margin</div></div>
+        <div class="stat-card"><div class="stat-value">${median}</div><div class="stat-label">Median Margin</div></div>
+        <div class="stat-card"><div class="stat-value">${closeVotes}</div><div class="stat-label">Close Votes (&le;5)</div></div>
+        <div class="stat-card"><div class="stat-value">${blowouts}</div><div class="stat-label">Blowouts (&ge;50)</div></div>
+    </div>`;
+
+    $('marginContent').innerHTML = html;
+}
+
+// ---- MOST CONTESTED ----
+function renderContested() {
+    const votes = state.votes;
+    if (votes.length === 0) {
+        $('contestedContent').innerHTML = '<div class="loading-state">No vote data available.</div>';
+        return;
+    }
+
+    const sorted = [...votes].sort((a, b) => getMargin(a) - getMargin(b));
+    const top = sorted.slice(0, 25);
+
+    let html = `<div class="card">
+        <div class="card-title"><span class="icon" style="background:#fce8e8;color:var(--red);">&#9888;</span> Most Contested Votes (Narrowest Margins)</div>
+        <ul class="vote-list">`;
+    top.forEach((vote, idx) => {
+        const st = getStats(vote);
+        const passed = isPassed(vote);
+        const margin = getMargin(vote);
+        const globalIdx = state.votes.indexOf(vote);
+        html += `
+            <li class="vote-item" onclick="openVoteDetail(${globalIdx}, false)">
+                <div class="vote-bill">${vote.BILL_NUMBER || `Vote #${vote.VOTE_NUMBER || ''}`}<br><span style="font-size:0.75rem;color:var(--red);font-weight:400;">Margin: ${margin}</span></div>
+                <div class="vote-motion">${vote.MOTION || 'Vote'}</div>
+                <div class="vote-result">
+                    <span class="yea-nay" style="color:var(--green)">${st.yeas}Y</span>
+                    <span class="yea-nay" style="color:var(--red)">${st.nays}N</span>
+                    <span class="result-badge ${passed ? 'result-pass' : 'result-fail'}">${passed ? 'Passed' : 'Failed'}</span>
+                </div>
+            </li>`;
+    });
+    html += '</ul></div>';
+    $('contestedContent').innerHTML = html;
+}
+
+// ---- MOST UNANIMOUS ----
+function renderUnanimous() {
+    const votes = state.votes;
+    if (votes.length === 0) {
+        $('unanimousContent').innerHTML = '<div class="loading-state">No vote data available.</div>';
+        return;
+    }
+
+    const sorted = [...votes].sort((a, b) => getMargin(b) - getMargin(a));
+    const top = sorted.slice(0, 25);
+
+    let html = `<div class="card">
+        <div class="card-title"><span class="icon" style="background:#e6f4ea;color:var(--green);">&#10004;</span> Most Unanimous Votes (Widest Margins)</div>
+        <ul class="vote-list">`;
+    top.forEach((vote) => {
+        const st = getStats(vote);
+        const passed = isPassed(vote);
+        const margin = getMargin(vote);
+        const globalIdx = state.votes.indexOf(vote);
+        html += `
+            <li class="vote-item" onclick="openVoteDetail(${globalIdx}, false)">
+                <div class="vote-bill">${vote.BILL_NUMBER || `Vote #${vote.VOTE_NUMBER || ''}`}<br><span style="font-size:0.75rem;color:var(--green);font-weight:400;">Margin: ${margin}</span></div>
+                <div class="vote-motion">${vote.MOTION || 'Vote'}</div>
+                <div class="vote-result">
+                    <span class="yea-nay" style="color:var(--green)">${st.yeas}Y</span>
+                    <span class="yea-nay" style="color:var(--red)">${st.nays}N</span>
+                    <span class="result-badge ${passed ? 'result-pass' : 'result-fail'}">${passed ? 'Passed' : 'Failed'}</span>
+                </div>
+            </li>`;
+    });
+    html += '</ul></div>';
+    $('unanimousContent').innerHTML = html;
+}
+
+// ---- ABSENCE TRACKER ----
+function renderAbsence() {
+    const votes = state.votes;
+    if (votes.length === 0) {
+        $('absenceContent').innerHTML = '<div class="loading-state">No vote data available.</div>';
+        return;
+    }
+
+    // Tally NV and EA per member
+    const members = {};
+    votes.forEach(v => {
+        const choice = getChoiceData(v);
+        if (!choice || !Array.isArray(choice.SPONSORS)) return;
+        choice.SPONSORS.forEach(sp => {
+            const code = sp.PERM_SPONSOR_CODE;
+            if (!code) return;
+            if (!members[code]) {
+                const bio = state.bios[code];
+                members[code] = {
+                    code,
+                    name: sp.FULL_NAME || `${bio?.FIRST || ''} ${bio?.LAST || ''}`.trim() || code,
+                    party: bio ? (bio.PARTY || '').charAt(0).toUpperCase() : '?',
+                    nv: 0,
+                    ea: 0,
+                    total: 0
+                };
+            }
+            const how = (sp.HOWVOTED || '').toUpperCase();
+            if (how !== 'Y' && how !== 'N' && how !== 'E') members[code].nv++;
+            if (how === 'E') members[code].ea++;
+            members[code].total++;
+        });
+    });
+
+    const arr = Object.values(members).sort((a, b) => (b.nv + b.ea) - (a.nv + a.ea));
+    const top = arr.slice(0, 40);
+
+    let html = `<div class="card">
+        <div class="card-title"><span class="icon" style="background:var(--gold-pale);color:var(--orange);">&#128101;</span> Member Absence Tracker (Top 40)</div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">Members ranked by combined N/V (not voting) and Exc. Abs. (excused absence) counts across all ${votes.length} votes.</p>
+        <div style="overflow-x:auto;">
+        <table class="absence-table">
+            <thead><tr>
+                <th>#</th>
+                <th>Member</th>
+                <th>Party</th>
+                <th>N/V</th>
+                <th>Exc. Abs.</th>
+                <th>Combined</th>
+                <th>Out of</th>
+                <th>Absence %</th>
+            </tr></thead>
+            <tbody>`;
+    top.forEach((m, i) => {
+        const combined = m.nv + m.ea;
+        const pct = m.total > 0 ? ((combined / m.total) * 100).toFixed(1) : '0';
+        html += `<tr>
+            <td>${i + 1}</td>
+            <td>${m.name}</td>
+            <td><span class="party-tag ${m.party}">${m.party}</span></td>
+            <td>${m.nv}</td>
+            <td>${m.ea}</td>
+            <td><strong>${combined}</strong></td>
+            <td>${m.total}</td>
+            <td>${pct}%</td>
+        </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+    $('absenceContent').innerHTML = html;
+}
+
+// ---- VOTE TYPES ----
+function renderVoteTypes() {
+    const votes = state.votes;
+    if (votes.length === 0) {
+        $('typesContent').innerHTML = '<div class="loading-state">No vote data available.</div>';
+        return;
+    }
+
+    const categories = {};
+    votes.forEach(v => {
+        const cat = getMotionCategory(v.MOTION);
+        if (!categories[cat]) categories[cat] = { count: 0, passed: 0, failed: 0 };
+        categories[cat].count++;
+        if (isPassed(v)) categories[cat].passed++;
+        else categories[cat].failed++;
+    });
+
+    const sorted = Object.entries(categories).sort((a, b) => b[1].count - a[1].count);
+    const maxCount = sorted.length > 0 ? sorted[0][1].count : 1;
+    const colors = ['var(--navy)', 'var(--navy-light)', 'var(--gold)', 'var(--green)', 'var(--blue)', 'var(--orange)', 'var(--purple)', 'var(--teal)', 'var(--red)', 'var(--text-muted)', '#d53f8c', '#805ad5'];
+
+    let html = `<div class="card">
+        <div class="card-title"><span class="icon" style="background:var(--gold-pale);color:var(--navy);">&#9776;</span> Vote Type Breakdown by Motion</div>
+        <div class="bar-chart">`;
+    sorted.forEach(([cat, data], idx) => {
+        const pct = maxCount > 0 ? (data.count / maxCount * 100) : 0;
+        const color = colors[idx % colors.length];
+        html += `<div class="bar-row">
+            <div class="bar-label">${cat}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+            <div class="bar-val">${data.count}</div>
+        </div>`;
+    });
+    html += '</div></div>';
+
+    // Detail table
+    html += `<div class="card" style="margin-top:16px;">
+        <div class="card-title">Breakdown Details</div>
+        <div style="overflow-x:auto;">
+        <table class="absence-table">
+            <thead><tr><th>Type</th><th>Total</th><th>Passed</th><th>Failed</th><th>Pass Rate</th></tr></thead>
+            <tbody>`;
+    sorted.forEach(([cat, data]) => {
+        const rate = data.count > 0 ? ((data.passed / data.count) * 100).toFixed(1) : '0';
+        html += `<tr>
+            <td><strong>${cat}</strong></td>
+            <td>${data.count}</td>
+            <td style="color:var(--green)">${data.passed}</td>
+            <td style="color:var(--red)">${data.failed}</td>
+            <td>${rate}%</td>
+        </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+
+    $('typesContent').innerHTML = html;
+}
+
+// ---- TIME ANALYSIS ----
+function renderTimeAnalysis() {
+    const votes = state.votes;
+    if (votes.length === 0) {
+        $('timeContent').innerHTML = '<div class="loading-state">No vote data available.</div>';
+        return;
+    }
+
+    const hours = new Array(24).fill(0);
+    const hoursDetail = {};
+    votes.forEach(v => {
+        const h = getHour(v.VOTETIME);
+        if (h >= 0 && h < 24) {
+            hours[h]++;
+            if (!hoursDetail[h]) hoursDetail[h] = { passed: 0, failed: 0, total: 0 };
+            hoursDetail[h].total++;
+            if (isPassed(v)) hoursDetail[h].passed++;
+            else hoursDetail[h].failed++;
+        }
+    });
+
+    // Only show hours with data, or at least 8am-8pm
+    const maxH = Math.max(...hours);
+    const startHour = Math.min(8, hours.findIndex(h => h > 0));
+    const endHour = Math.max(20, hours.length - [...hours].reverse().findIndex(h => h > 0));
+
+    let html = `<div class="card">
+        <div class="card-title"><span class="icon" style="background:var(--gold-pale);color:var(--navy);">&#128336;</span> When Do Votes Happen?</div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">Distribution of roll call votes by hour of day (parsed from VOTETIME).</p>
+        <div class="time-chart">`;
+
+    for (let h = Math.max(0, startHour); h <= Math.min(23, endHour); h++) {
+        const count = hours[h];
+        const pct = maxH > 0 ? (count / maxH * 100) : 0;
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+        const color = count === maxH && count > 0 ? 'var(--gold)' : 'var(--navy-light)';
+        html += `<div class="time-bar-col" title="${displayH}${ampm}: ${count} votes">
+            ${count > 0 ? `<div class="time-count">${count}</div>` : ''}
+            <div class="time-bar" style="height:${Math.max(count > 0 ? 3 : 0, pct)}%;background:${color}"></div>
+            <div class="time-label">${displayH}${ampm.charAt(0).toLowerCase()}</div>
+        </div>`;
+    }
+    html += '</div></div>';
+
+    // Peak hours
+    const peakHours = Object.entries(hoursDetail)
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, 5);
+
+    if (peakHours.length > 0) {
+        html += `<div class="card" style="margin-top:16px;">
+            <div class="card-title">Peak Voting Hours</div>
+            <div style="overflow-x:auto;">
+            <table class="absence-table">
+                <thead><tr><th>Hour</th><th>Votes</th><th>Passed</th><th>Failed</th><th>Pass Rate</th></tr></thead>
+                <tbody>`;
+        peakHours.forEach(([h, data]) => {
+            const hr = parseInt(h);
+            const ampm = hr >= 12 ? 'PM' : 'AM';
+            const displayH = hr > 12 ? hr - 12 : (hr === 0 ? 12 : hr);
+            const rate = data.total > 0 ? ((data.passed / data.total) * 100).toFixed(1) : '0';
+            html += `<tr>
+                <td><strong>${displayH}:00 ${ampm}</strong></td>
+                <td>${data.total}</td>
+                <td style="color:var(--green)">${data.passed}</td>
+                <td style="color:var(--red)">${data.failed}</td>
+                <td>${rate}%</td>
+            </tr>`;
+        });
+        html += '</tbody></table></div></div>';
+    }
+
+    $('timeContent').innerHTML = html;
+}
+
+// ---- LAUNCH ----
+init();
+</script>
+</body>
+</html>
