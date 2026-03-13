@@ -840,21 +840,35 @@ function cleanActionText(text) {
 
 function billLabel(bill) {
     const prefix = bill.CHAMBER === 'S' ? 'S' : 'H';
-    return `${prefix}.${bill.BILL_NUMBER || bill.NUMBER || ''}`;
+    return `${prefix}.${bill.BILL_NUMBER || ''}`;
 }
 
 // ---- API ----
 async function fetchJSON(url) {
     const resp = await fetch(url);
-    const json = await resp.json();
-    return json.data;
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    // Handle plain string "Not Found" responses
+    if (text === '"Not Found"' || text === 'Not Found') return null;
+    let json;
+    try { json = JSON.parse(text); } catch { return null; }
+    // Unwrap the {error, message, data} envelope
+    if (json && typeof json === 'object' && 'data' in json) {
+        if (json.data === 'Not Found' || json.data === null) return null;
+        return json.data;
+    }
+    return json;
 }
 
 async function loadSession() {
     try {
         const data = await fetchJSON(`${BASE}/currentsession`);
-        if (data) {
-            document.getElementById('sessionInfo').textContent = `Session ${data.SESSION_ID || data.YEAR || ''}`;
+        if (Array.isArray(data) && data.length > 0) {
+            const sess = data[0];
+            const num = sess.SESS_NUMBER || '';
+            document.getElementById('sessionInfo').textContent = num ? `${num}th Session` : 'SC General Assembly';
+        } else if (data && typeof data === 'object') {
+            document.getElementById('sessionInfo').textContent = `Session ${data.SESS_NUMBER || '126'}`;
         }
     } catch {
         document.getElementById('sessionInfo').textContent = 'Session 126';
@@ -866,18 +880,22 @@ async function loadBills() {
     STATE.bills = [];
     document.getElementById('timelineLoading').style.display = 'flex';
 
-    const ranges = [];
-    // Senate: 1-40, House: 3001-3040
-    for (let i = 1; i <= 40; i++) ranges.push(i);
-    for (let i = 3001; i <= 3040; i++) ranges.push(i);
+    // Fetch Senate bills (1-50) and House bills (3001-3050) individually
+    const allIds = [];
+    for (let i = 1; i <= 50; i++) allIds.push(i);
+    for (let i = 3001; i <= 3050; i++) allIds.push(i);
 
-    const results = await Promise.allSettled(
-        ranges.map(n => fetchJSON(`${BASE}/bills/126/${n}`))
-    );
-
-    for (const r of results) {
-        if (r.status === 'fulfilled' && r.value && r.value.BILL_NUMBER !== undefined) {
-            STATE.bills.push(r.value);
+    // Fetch in batches to avoid overwhelming the server
+    const batchSize = 10;
+    for (let i = 0; i < allIds.length; i += batchSize) {
+        const batch = allIds.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+            batch.map(n => fetchJSON(`${BASE}/bills/126/${n}`))
+        );
+        for (const r of results) {
+            if (r.status === 'fulfilled' && r.value && typeof r.value === 'object' && r.value.BILL_NUMBER !== undefined) {
+                STATE.bills.push(r.value);
+            }
         }
     }
 
@@ -912,7 +930,7 @@ function populateBillSelector() {
         senate.forEach(b => {
             const opt = document.createElement('option');
             opt.value = b.BILL_NUMBER;
-            opt.textContent = `S.${b.BILL_NUMBER} - ${(b.TITLE || b.SHORT_TITLE || '').substring(0, 60)}`;
+            opt.textContent = `S.${b.BILL_NUMBER} - ${(b.TITLE || b.SUMMARY || '').substring(0, 60)}`;
             grp.appendChild(opt);
         });
         sel.appendChild(grp);
@@ -923,7 +941,7 @@ function populateBillSelector() {
         house.forEach(b => {
             const opt = document.createElement('option');
             opt.value = b.BILL_NUMBER;
-            opt.textContent = `H.${b.BILL_NUMBER} - ${(b.TITLE || b.SHORT_TITLE || '').substring(0, 60)}`;
+            opt.textContent = `H.${b.BILL_NUMBER} - ${(b.TITLE || b.SUMMARY || '').substring(0, 60)}`;
             grp.appendChild(opt);
         });
         sel.appendChild(grp);
@@ -1035,7 +1053,7 @@ function getCrossoverDays() {
 // ---- Render Bill Info ----
 function renderBillInfo(bill) {
     const panel = document.getElementById('billInfoPanel');
-    const title = bill.TITLE || bill.SHORT_TITLE || 'No title';
+    const title = bill.TITLE || bill.SUMMARY || 'No title';
     const actions = bill.ACTIONS || [];
     const firstDate = actions.length > 0 ? formatDate(actions[0].ACTION_DATE) : 'N/A';
     const lastDate = actions.length > 0 ? formatDate(actions[actions.length - 1].ACTION_DATE) : 'N/A';
@@ -1063,11 +1081,11 @@ function renderBillInfo(bill) {
         </div>
         <div class="bill-info-row">
             <span class="bill-info-label">In Committee</span>
-            <span>${bill.IN_COMMITTEE || 'N/A'}</span>
+            <span>${(bill.IN_COMMITTEE && typeof bill.IN_COMMITTEE === 'object') ? (bill.IN_COMMITTEE.name || bill.IN_COMMITTEE.COMMITTEE_NAME || 'N/A') : (bill.IN_COMMITTEE || 'N/A')}</span>
         </div>
         <div class="bill-info-row">
-            <span class="bill-info-label">Sponsors</span>
-            <span style="font-size:0.8rem;">${(bill.SPONSORS ? bill.SPONSORS.length : 0)} sponsor(s)</span>
+            <span class="bill-info-label">Sponsor</span>
+            <span style="font-size:0.8rem;">${bill.SPONSORTEXT || ((bill.SPONSORS && bill.SPONSORS.length) ? bill.SPONSORS.length + ' sponsor(s)' : 'N/A')}</span>
         </div>
     `;
 }
@@ -1084,14 +1102,18 @@ function renderStatusPipeline(bill) {
 
     let html = '<div class="status-pipeline">';
     statuses.forEach(s => {
-        const checked = s.checked ? 'checked' : '';
-        const checkMark = s.checked ? '&#10003;' : '';
-        const dateStr = s.date ? formatStatusDate(s.date) : '';
+        const isChecked = s.checked || s.CHECKED;
+        const checked = isChecked ? 'checked' : '';
+        const checkMark = isChecked ? '&#10003;' : '';
+        const statusText = s.text || s.display || s.STATUS_DESCRIPTION || '';
+        const statusChamber = s.chamber || s.CHAMBER || '';
+        const statusDate = s.date || s.STATUS_DATE || '';
+        const dateStr = statusDate ? formatStatusDate(statusDate) : '';
         html += `
             <div class="status-step ${checked}">
                 <div class="status-dot">${checkMark}</div>
                 <div>
-                    <div class="status-text">${s.text || ''} ${chamberBadge(s.chamber)}</div>
+                    <div class="status-text">${statusText} ${chamberBadge(statusChamber)}</div>
                     ${dateStr ? `<div class="status-date">${dateStr}</div>` : ''}
                 </div>
             </div>
@@ -1102,11 +1124,16 @@ function renderStatusPipeline(bill) {
 }
 
 function formatStatusDate(d) {
-    if (!d || d.length < 8) return '';
-    const yr = d.substring(0, 4);
-    const mo = d.substring(4, 6);
-    const dy = d.substring(6, 8);
-    return formatDate(`${yr}-${mo}-${dy}`);
+    if (!d) return '';
+    // Handle YYYYMMDD format
+    if (/^\d{8}$/.test(d)) {
+        const yr = d.substring(0, 4);
+        const mo = d.substring(4, 6);
+        const dy = d.substring(6, 8);
+        return formatDate(`${yr}-${mo}-${dy}`);
+    }
+    // Handle ISO or other date formats
+    return formatDate(d);
 }
 
 // ---- Render Timeline ----
@@ -1188,7 +1215,7 @@ function renderStalledBills() {
         html += `
             <div class="stalled-bill" onclick="jumpToBill('${b.BILL_NUMBER}')">
                 <div class="bill-num">${billLabel(b)} ${chamberBadge(b.CHAMBER)}</div>
-                <div style="font-size:0.8rem;color:var(--lsa-gray-600);margin:2px 0;">${(b.TITLE || b.SHORT_TITLE || '').substring(0, 70)}</div>
+                <div style="font-size:0.8rem;color:var(--lsa-gray-600);margin:2px 0;">${(b.TITLE || b.SUMMARY || '').substring(0, 70)}</div>
                 <div class="stall-info">${s.daysSince} days since last action: "${lastText}..."</div>
                 <div class="stall-info">Last action: ${formatDate(s.lastDate)}</div>
             </div>
@@ -1296,8 +1323,8 @@ function renderComparison() {
             <div style="font-weight:700;font-size:0.9rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
                 ${billLabel(bill)} ${chamberBadge(bill.CHAMBER)}
             </div>
-            <div style="font-size:0.75rem;color:var(--lsa-gray-500);margin-bottom:8px;">${(bill.TITLE || bill.SHORT_TITLE || '').substring(0, 80)}</div>
-            <div style="font-size:0.8rem;color:var(--lsa-gray-600);margin-bottom:12px;">${actions.length} actions | ${bill.IN_COMMITTEE || 'N/A'}</div>
+            <div style="font-size:0.75rem;color:var(--lsa-gray-500);margin-bottom:8px;">${(bill.TITLE || bill.SUMMARY || '').substring(0, 80)}</div>
+            <div style="font-size:0.8rem;color:var(--lsa-gray-600);margin-bottom:12px;">${actions.length} actions | ${(bill.IN_COMMITTEE && typeof bill.IN_COMMITTEE === 'object') ? (bill.IN_COMMITTEE.name || bill.IN_COMMITTEE.COMMITTEE_NAME || 'N/A') : (bill.IN_COMMITTEE || 'N/A')}</div>
             <div class="timeline" style="padding-left:30px;">`;
 
         let prevCh = null;

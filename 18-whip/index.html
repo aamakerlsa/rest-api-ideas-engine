@@ -862,9 +862,24 @@ let loadingVotes = false;
 // ===== FETCH HELPER =====
 async function fetchJSON(url) {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    return json.data !== undefined ? json.data : json;
+    if (!res.ok) {
+        // 404s are expected for non-existent bill IDs
+        if (res.status === 404) return null;
+        throw new Error(`HTTP ${res.status}`);
+    }
+    const text = await res.text();
+    // Some endpoints return plain "Not Found" string instead of JSON
+    let json;
+    try {
+        json = JSON.parse(text);
+    } catch (e) {
+        return null; // non-JSON response (e.g. "Not Found")
+    }
+    // Unwrap the {error, message, data} envelope
+    if (json && typeof json === 'object' && 'data' in json) {
+        return json.data;
+    }
+    return json;
 }
 
 // ===== INIT =====
@@ -894,32 +909,42 @@ async function init() {
 
 // ===== LOAD BILLS =====
 async function loadBills() {
-    const houseBillIds = Array.from({ length: 20 }, (_, i) => i + 1);
-    const senateBillIds = Array.from({ length: 20 }, (_, i) => i + 3001);
-    const allIds = [...houseBillIds, ...senateBillIds];
-
-    const results = await Promise.allSettled(
-        allIds.map(id => fetchJSON(`${API}/bills/126/${id}`))
-    );
+    // Senate bills: IDs 1-100, House bills: IDs 3001-3100
+    const senateBillIds = Array.from({ length: 100 }, (_, i) => i + 1);
+    const houseBillIds = Array.from({ length: 100 }, (_, i) => i + 3001);
+    const allIds = [...senateBillIds, ...houseBillIds];
 
     allBills = [];
-    results.forEach((r, i) => {
-        if (r.status === 'fulfilled' && r.value) {
-            const bill = Array.isArray(r.value) ? r.value[0] : r.value;
-            if (bill && bill.BILL_NUMBER) {
-                allBills.push(bill);
+
+    // Fetch in batches to avoid overwhelming the browser
+    const BATCH_SIZE = 20;
+    for (let start = 0; start < allIds.length; start += BATCH_SIZE) {
+        const batch = allIds.slice(start, start + BATCH_SIZE);
+        const results = await Promise.allSettled(
+            batch.map(id => fetchJSON(`${API}/bills/126/${id}`))
+        );
+
+        results.forEach(r => {
+            if (r.status === 'fulfilled' && r.value) {
+                const bill = Array.isArray(r.value) ? r.value[0] : r.value;
+                if (bill && bill.BILL_NUMBER) {
+                    allBills.push(bill);
+                }
             }
-        }
-    });
+        });
+    }
 
     const select = document.getElementById('bill-select');
     select.innerHTML = '<option value="">-- Select a Bill --</option>';
     allBills.forEach(b => {
         const opt = document.createElement('option');
         opt.value = b.BILL_NUMBER;
-        const chamber = b.CHAMBER === 'S' ? 'S' : 'H';
-        const summary = (b.SUMMARY || b.TITLE || '').substring(0, 80);
-        opt.textContent = `${b.BILL_NUMBER} - ${summary}${summary.length >= 80 ? '...' : ''}`;
+        // Determine chamber: CHAMBER field, or infer from bill number (>=3000 = House)
+        const billNum = parseInt(b.BILL_NUMBER) || 0;
+        const chamber = b.CHAMBER ? b.CHAMBER.charAt(0).toUpperCase() : (billNum >= 3000 ? 'H' : 'S');
+        const chamberPrefix = chamber === 'H' ? 'H.' : 'S.';
+        const summary = (b.TITLE || b.SUMMARY || '').substring(0, 80);
+        opt.textContent = `${chamberPrefix}${b.BILL_NUMBER} - ${summary}${summary.length >= 80 ? '...' : ''}`;
         opt.dataset.chamber = chamber;
         select.appendChild(opt);
     });
@@ -946,10 +971,11 @@ async function loadVotes() {
 // ===== BUILD VOTE STATS =====
 function howVotedToChoice(hv) {
     if (!hv) return 'absent';
-    const h = hv.toUpperCase();
-    if (h === 'YEA' || h === 'AYE' || h === 'Y') return 'yea';
-    if (h === 'NAY' || h === 'NO' || h === 'N') return 'nay';
-    if (h === 'EXCUSED' || h === 'EXCUSED ABSENCE' || h === 'NOT VOTING' || h === 'MEDICAL') return 'absent';
+    const h = hv.toUpperCase().trim();
+    // API returns single-char codes: Y, N, E (excused), A (absent), NV (not voting)
+    if (h === 'Y' || h === 'YEA' || h === 'AYE') return 'yea';
+    if (h === 'N' || h === 'NAY' || h === 'NO') return 'nay';
+    if (h === 'E' || h === 'A' || h === 'NV' || h === 'EXCUSED' || h === 'NOT VOTING') return 'absent';
     return 'absent';
 }
 
@@ -1332,13 +1358,17 @@ function showHistoricalVotes(billNumber) {
         let totalYeas = 0, totalNays = 0;
         let passed = false;
         if (v.CHOICES && Array.isArray(v.CHOICES)) {
+            // YEAS/NAYS are on the first choice object
+            const firstChoice = v.CHOICES[0];
+            if (firstChoice) {
+                totalYeas = parseInt(firstChoice.YEAS) || 0;
+                totalNays = parseInt(firstChoice.NAYS) || 0;
+            }
             v.CHOICES.forEach(c => {
-                totalYeas += c.YEAS || 0;
-                totalNays += c.NAYS || 0;
                 if (c.RESULTTEXT && c.RESULTTEXT.toLowerCase().includes('passed')) passed = true;
             });
         }
-        if (v.APPROVED === 'Y') passed = true;
+        if (v.APPROVED === '1' || v.APPROVED === 1 || v.APPROVED === true || v.APPROVED === 'Y') passed = true;
 
         const resultClass = passed ? 'hist-passed' : 'hist-failed';
         const resultText = passed ? 'Passed' : 'Failed';

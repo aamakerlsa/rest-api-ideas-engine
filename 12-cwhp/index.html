@@ -739,8 +739,6 @@ let houseCommittees = [];
 let senateCommittees = [];
 let houseMeetings = [];
 let senateMeetings = [];
-let houseBios = [];
-let senateBios = [];
 let allBills = [];
 let currentFilter = 'all';
 
@@ -748,22 +746,46 @@ let currentFilter = 'all';
 async function apiFetch(endpoint) {
     const res = await fetch(BASE + endpoint);
     if (!res.ok) throw new Error(`API error ${res.status} for ${endpoint}`);
-    const json = await res.json();
-    return json.data;
+    const text = await res.text();
+    // Some endpoints return plain "Not Found" instead of JSON
+    if (text === 'Not Found' || text === '"Not Found"') return null;
+    let json;
+    try {
+        json = JSON.parse(text);
+    } catch (e) {
+        console.warn('Non-JSON response for ' + endpoint + ':', text.substring(0, 100));
+        return null;
+    }
+    // Unwrap the { error, message, data } envelope
+    if (json && json.hasOwnProperty('data')) {
+        return json.data;
+    }
+    return json;
+}
+
+// Safe fetch that returns null on failure
+async function apiFetchSafe(endpoint) {
+    try {
+        return await apiFetch(endpoint);
+    } catch (e) {
+        console.warn('API error for ' + endpoint + ':', e.message);
+        return null;
+    }
 }
 
 async function loadBills() {
     const promises = [];
     // House bills: 1-30
     for (let i = 1; i <= 30; i++) {
-        promises.push(apiFetch(`/bills/126/${i}`).catch(() => null));
+        promises.push(apiFetchSafe(`/bills/126/${i}`));
     }
     // Senate bills: 3001-3030
     for (let i = 3001; i <= 3030; i++) {
-        promises.push(apiFetch(`/bills/126/${i}`).catch(() => null));
+        promises.push(apiFetchSafe(`/bills/126/${i}`));
     }
     const results = await Promise.all(promises);
-    return results.filter(b => b != null);
+    // Each result is a single bill object (not an array)
+    return results.filter(b => b != null && typeof b === 'object');
 }
 
 async function loadAllData() {
@@ -772,13 +794,11 @@ async function loadAllData() {
     document.getElementById('dashboard').style.display = 'none';
 
     try {
-        const [hc, sc, hm, sm, hb, sb, bills] = await Promise.all([
+        const [hc, sc, hm, sm, bills] = await Promise.all([
             apiFetch('/house/committees'),
             apiFetch('/senate/committees'),
             apiFetch('/house/meetings-all'),
             apiFetch('/senate/meetings-all'),
-            apiFetch('/house/bios'),
-            apiFetch('/senate/bios'),
             loadBills()
         ]);
 
@@ -786,8 +806,6 @@ async function loadAllData() {
         senateCommittees = Array.isArray(sc) ? sc : [];
         houseMeetings = Array.isArray(hm) ? hm : [];
         senateMeetings = Array.isArray(sm) ? sm : [];
-        houseBios = Array.isArray(hb) ? hb : [];
-        senateBios = Array.isArray(sb) ? sb : [];
         allBills = Array.isArray(bills) ? bills : [];
 
         document.getElementById('loadingState').style.display = 'none';
@@ -812,8 +830,15 @@ function getMeetingsForCommittee(committeeName, chamber) {
 
 function getBillsForCommittee(committeeName) {
     return allBills.filter(b => {
-        const ic = (b.IN_COMMITTEE || '').trim().toUpperCase();
+        // IN_COMMITTEE is an object with .name or .COMMITTEE_NAME, or null
+        let ic = '';
+        if (b.IN_COMMITTEE && typeof b.IN_COMMITTEE === 'object') {
+            ic = (b.IN_COMMITTEE.name || b.IN_COMMITTEE.COMMITTEE_NAME || '').trim().toUpperCase();
+        } else if (typeof b.IN_COMMITTEE === 'string') {
+            ic = b.IN_COMMITTEE.trim().toUpperCase();
+        }
         const cn = (committeeName || '').trim().toUpperCase();
+        if (!ic || !cn) return false;
         return ic === cn || ic.includes(cn) || cn.includes(ic);
     });
 }
@@ -1133,6 +1158,7 @@ function openDetail(chamber, idx) {
             ...senateCommittees.map(c => ({ ...c, _chamber: 'senate' }))
         ];
         targetCommittee = combined[idx];
+        if (!targetCommittee) return;
         chamber = targetCommittee._chamber;
     } else {
         targetCommittee = committees[idx];
@@ -1168,18 +1194,18 @@ function openDetail(chamber, idx) {
     let meetingsHTML = '';
     if (meetings.length > 0) {
         const sorted = [...meetings].sort((a, b) => {
-            const da = a.MEETING_DATE || a.MEETINGDATE || '';
-            const db = b.MEETING_DATE || b.MEETINGDATE || '';
+            const da = a.MEETINGDATE || a['MEETINGTIME-ATOM'] || '';
+            const db = b.MEETINGDATE || b['MEETINGTIME-ATOM'] || '';
             return db.localeCompare(da);
         });
         meetingsHTML = `
             <div class="detail-members-title" style="margin-top:var(--space-5);">Meeting History (${meetings.length})</div>
             <ul class="meeting-list">
                 ${sorted.slice(0, 30).map(m => {
-                    const date = m.MEETING_DATE || m.MEETINGDATE || m.DATE || 'Unknown date';
-                    const time = m.MEETING_TIME || m.MEETINGTIME || m.TIME || '';
-                    const note = m.NOTE || m.NOTES || m.MEETING_NOTE || '';
-                    return `<li class="meeting-item"><span class="meeting-date">${date}</span>${time ? ' at ' + time : ''}${note ? ' - ' + note : ''}</li>`;
+                    const date = m.MEETINGDATE || 'Unknown date';
+                    const time = m.MEETINGTIME || m.DISPLAYTIME || '';
+                    const desc = m.DESCRIPTION || '';
+                    return `<li class="meeting-item"><span class="meeting-date">${date}</span>${time ? ' at ' + time : ''}${desc ? ' - ' + desc : ''}</li>`;
                 }).join('')}
                 ${sorted.length > 30 ? `<li class="meeting-item" style="color:var(--lsa-gray-400);font-style:italic;">...and ${sorted.length - 30} more</li>` : ''}
             </ul>

@@ -880,13 +880,35 @@ let senateOfficers = [];
 // ========== DATA LOADING ==========
 async function fetchJSON(url) {
     const res = await fetch(url);
-    const json = await res.json();
-    return json.data;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    // Handle plain string responses like "Not Found"
+    if (!text || text.trim() === '' || text.trim() === '"Not Found"' || text.trim() === 'Not Found') {
+        return [];
+    }
+    let json;
+    try {
+        json = JSON.parse(text);
+    } catch (e) {
+        console.warn('Non-JSON response from', url, ':', text.substring(0, 100));
+        return [];
+    }
+    // Unwrap {error, message, data} envelope
+    if (json && typeof json === 'object' && 'data' in json) {
+        return json.data;
+    }
+    return json;
+}
+
+function stripTitleDigits(title) {
+    if (!title) return '';
+    return title.replace(/^\d+/, '').trim();
 }
 
 async function loadAllData() {
     try {
-        const [houseBios, senateBios, houseComm, senateComm, houseOff, senateOff] = await Promise.all([
+        // Fetch all data in parallel - wrap each in try/catch so one failure doesn't block all
+        const results = await Promise.allSettled([
             fetchJSON(`${API}/house/bios`),
             fetchJSON(`${API}/senate/bios`),
             fetchJSON(`${API}/house/committees`),
@@ -895,22 +917,32 @@ async function loadAllData() {
             fetchJSON(`${API}/senate/officers`)
         ]);
 
-        houseCommittees = houseComm || [];
-        senateCommittees = senateComm || [];
-        houseOfficers = houseOff || [];
-        senateOfficers = senateOff || [];
+        const getValue = (r) => r.status === 'fulfilled' && Array.isArray(r.value) ? r.value : [];
 
-        const houseMembers = (houseBios || []).map(m => enrichMember(m, 'H'));
-        const senateMembers = (senateBios || []).map(m => enrichMember(m, 'S'));
+        const houseBios = getValue(results[0]);
+        const senateBios = getValue(results[1]);
+        houseCommittees = getValue(results[2]);
+        senateCommittees = getValue(results[3]);
+        houseOfficers = getValue(results[4]);
+        senateOfficers = getValue(results[5]);
+
+        if (houseBios.length === 0 && senateBios.length === 0) {
+            throw new Error('No member data returned from API');
+        }
+
+        const houseMembers = houseBios.map(m => enrichMember(m, 'H'));
+        const senateMembers = senateBios.map(m => enrichMember(m, 'S'));
         allMembers = [...houseMembers, ...senateMembers];
 
-        // Attach committee data to members
+        // Attach committee and officer data to members
         attachCommitteeData();
+        attachOfficerData();
 
         document.getElementById('loadingOverlay').style.display = 'none';
         document.getElementById('view-overview').classList.add('active');
         renderAll();
     } catch (err) {
+        console.error('Load error:', err);
         document.getElementById('loadingOverlay').innerHTML =
             `<div style="color:var(--red);font-size:1rem;text-align:center;">
                 <div style="font-size:1.5rem;margin-bottom:12px;">Error Loading Data</div>
@@ -921,24 +953,37 @@ async function loadAllData() {
 }
 
 function enrichMember(m, chamber) {
-    const tenure = extractTenure(m.BIOGRAPHY || '', m.PREVIOUS_SERVICE_DATE);
+    const bio = m.BIOGRAPHY || '';
+    const tenure = extractTenure(bio);
+    const plainBio = bio.replace(/<[^>]+>/g, ' ').replace(/&[^;]+;/g, ' ');
+
+    // Detect re-elected status from biography text (no dedicated API field)
+    const reElected = tenure > 2 || /re-?elected|returned to|consecutive term|served since/i.test(plainBio);
+
+    // Detect cross-chamber service from biography text
+    const crossChamber = /served in the (house|senate)|former (house|senate|representative|senator)|cross.?chamber|both chambers/i.test(plainBio)
+        || (chamber === 'S' && /house of representatives/i.test(plainBio))
+        || (chamber === 'H' && /\bsenate\b/i.test(plainBio) && /served|elected|member/i.test(plainBio));
+
     return {
         ...m,
         chamber,
         fullName: `${m.TITLE || ''} ${m.FIRST || ''} ${m.LAST || ''}`.trim(),
-        displayName: `${m.FIRST || ''} ${m.LAST || ''}`.trim(),
+        displayName: (m.NAME_FULL || `${m.FIRST || ''} ${m.LAST || ''}`).trim(),
         tenure,
-        reElected: m.RE_ELECTED === true || m.RE_ELECTED === 'true',
-        crossChamber: m.OTHER_CHAMBER_SERVICE === true || m.OTHER_CHAMBER_SERVICE === 'true',
+        reElected,
+        crossChamber,
         committees: [],
         chairmanships: [],
-        education: extractEducation(m.BIOGRAPHY || ''),
-        sponsorCode: m.PERM_SPONSOR_CODE || ''
+        officerTitle: '', // will be populated from officers data
+        education: extractEducation(bio),
+        sponsorCode: m.PERM_SPONSOR_CODE || '',
+        memberKey: m.MEMBER_KEY || ''
     };
 }
 
-function extractTenure(bio, previousDate) {
-    // Try to extract years from biography text
+function extractTenure(bio) {
+    // Try to extract years of service from biography HTML text
     const plainBio = bio.replace(/<[^>]+>/g, ' ').replace(/&[^;]+;/g, ' ');
 
     // Look for patterns like "serving since 2003", "elected in 2003", "Member since 2003"
@@ -962,22 +1007,33 @@ function extractTenure(bio, previousDate) {
         return parseInt(termMatch[1]) * 2; // approximate 2 years per term
     }
 
-    // Use PREVIOUS_SERVICE_DATE if available
-    if (previousDate) {
-        const pd = new Date(previousDate);
-        if (!isNaN(pd.getTime())) {
-            return Math.floor((new Date() - pd) / (365.25 * 24 * 60 * 60 * 1000));
+    // Look for "House/Senate since YYYY" patterns common in SC bios
+    const chamberSince = plainBio.match(/(?:House|Senate)\s+(?:since|from)\s+(\d{4})/i);
+    if (chamberSince) {
+        const year = parseInt(chamberSince[1]);
+        if (year > 1950 && year <= new Date().getFullYear()) {
+            return new Date().getFullYear() - year;
         }
     }
 
-    // Look for any year that could be first elected
+    // Look for any year that could be first elected - use context clues
+    // Match years near service-related words
+    const serviceYearMatch = plainBio.match(/(?:first\s+)?(?:elected|appointed|began|started|entered|sworn)\s+(?:in\s+)?(\d{4})/i);
+    if (serviceYearMatch) {
+        const year = parseInt(serviceYearMatch[1]);
+        if (year > 1950 && year <= new Date().getFullYear()) {
+            return new Date().getFullYear() - year;
+        }
+    }
+
+    // Fallback: look for any year that could be first elected
     const yearMatches = plainBio.match(/\b(19[6-9]\d|20[0-2]\d)\b/g);
     if (yearMatches) {
         const years = yearMatches.map(Number).filter(y => y >= 1960 && y <= new Date().getFullYear());
         if (years.length > 0) {
             const earliest = Math.min(...years);
             // Only use if it seems like a service date (not birth date - skip very early ones)
-            if (earliest >= 1970) {
+            if (earliest >= 1975) {
                 return new Date().getFullYear() - earliest;
             }
         }
@@ -1036,27 +1092,76 @@ function extractEducation(bio) {
 
 function attachCommitteeData() {
     const allCommittees = [
-        ...houseCommittees.map(c => ({ ...c, chamber: 'H' })),
-        ...senateCommittees.map(c => ({ ...c, chamber: 'S' }))
+        ...houseCommittees.map(c => ({ ...c, _chamber: 'H' })),
+        ...senateCommittees.map(c => ({ ...c, _chamber: 'S' }))
     ];
+
+    // Build a lookup by sponsor code for faster matching
+    const memberBySponsor = {};
+    const memberByKey = {};
+    for (const m of allMembers) {
+        if (m.sponsorCode) memberBySponsor[m.sponsorCode] = m;
+        if (m.memberKey) memberByKey[m.memberKey] = m;
+    }
 
     for (const comm of allCommittees) {
         const members = comm.members || [];
         for (const cm of members) {
+            // Match committee member to bio member via sponsor code or member key
             const sponsorCode = cm.PERM_SPONSOR_CODE || cm.SPONSOR_CODE || '';
-            const member = allMembers.find(m => m.sponsorCode && m.sponsorCode === sponsorCode);
+            const memberKey = cm.MEMBER_KEY || '';
+            const member = (sponsorCode && memberBySponsor[sponsorCode])
+                        || (memberKey && memberByKey[memberKey])
+                        || null;
+
             if (member) {
+                const role = cm.COMM_OFFICE || 'Member';
                 const commInfo = {
                     name: comm.COMMITTEE_NAME || comm.NAME || 'Unknown Committee',
-                    role: cm.COMM_OFFICE || 'Member',
+                    role: role,
                     seniority: cm.SENIORITY || 0,
-                    chamber: comm.chamber
+                    chamber: comm._chamber
                 };
                 member.committees.push(commInfo);
-                if (commInfo.role && commInfo.role.toLowerCase().includes('chairman')) {
+                // Track chairmanships (Chairman, Vice Chairman, etc.)
+                if (role && role.toLowerCase().includes('chairman')) {
                     member.chairmanships.push(commInfo);
                 }
             }
+        }
+    }
+}
+
+function attachOfficerData() {
+    // Build lookups for matching officers to members
+    const memberByKey = {};
+    const memberByName = {};
+    for (const m of allMembers) {
+        if (m.memberKey) memberByKey[m.memberKey] = m;
+        const nameKey = m.displayName.toLowerCase().trim();
+        if (nameKey) memberByName[nameKey] = m;
+    }
+
+    const allOfficersList = [
+        ...(houseOfficers || []).map(o => ({ ...o, _chamber: 'H' })),
+        ...(senateOfficers || []).map(o => ({ ...o, _chamber: 'S' }))
+    ];
+
+    for (const o of allOfficersList) {
+        const rawTitle = o.TITLE || o.OFFICE || '';
+        const cleanTitle = stripTitleDigits(rawTitle);
+        if (!cleanTitle) continue;
+
+        // Match by MEMBER_KEY first, then by name
+        const key = o.MEMBER_KEY || '';
+        const name = (o.MEMBER_NAME || o.NAME || `${o.FIRST_NAME || o.FIRST || ''} ${o.LAST_NAME || o.LAST || ''}`.trim()).toLowerCase();
+
+        const member = (key && memberByKey[key])
+                     || (name && memberByName[name])
+                     || null;
+
+        if (member) {
+            member.officerTitle = cleanTitle;
         }
     }
 }
@@ -1084,6 +1189,7 @@ function renderOverview() {
     const chairs = allMembers.filter(m => m.chairmanships.length > 0);
     const freshmen = allMembers.filter(m => !m.reElected);
     const crossChamber = allMembers.filter(m => m.crossChamber);
+    const officers = allMembers.filter(m => m.officerTitle);
 
     document.getElementById('overviewStats').innerHTML = `
         <div class="stat-card"><div class="stat-value">${allMembers.length}</div><div class="stat-label">Total Members</div></div>
@@ -1093,6 +1199,7 @@ function renderOverview() {
         <div class="stat-card"><div class="stat-value">${maxTenure}</div><div class="stat-label">Max Tenure (yrs)</div></div>
         <div class="stat-card"><div class="stat-value">${chairs.length}</div><div class="stat-label">Committee Chairs</div></div>
         <div class="stat-card"><div class="stat-value">${freshmen.length}</div><div class="stat-label">Freshmen</div></div>
+        <div class="stat-card"><div class="stat-value">${officers.length}</div><div class="stat-label">Officers</div></div>
         <div class="stat-card"><div class="stat-value">${crossChamber.length}</div><div class="stat-label">Cross-Chamber</div></div>
     `;
 
@@ -1171,6 +1278,7 @@ function renderMemberGrid() {
         if (m.reElected) badges += `<span class="mc-badge veteran">Veteran</span>`;
         else badges += `<span class="mc-badge freshman">Freshman</span>`;
         if (m.chairmanships.length > 0) badges += `<span class="mc-badge chair">Chair</span>`;
+        if (m.officerTitle) badges += `<span class="mc-badge" style="background:#f0fdf4;color:#065f46;border:1px solid #bbf7d0;">${m.officerTitle}</span>`;
         if (m.crossChamber) badges += `<span class="mc-badge cross-chamber">Cross-Chamber</span>`;
 
         return `<div class="member-card" onclick="showMemberModal('${m.sponsorCode}')">
@@ -1271,18 +1379,12 @@ function renderCommitteeLeadership() {
 
 // ---- POWER PLAYERS ----
 function renderPowerPlayers() {
-    let powerPlayers = allMembers.filter(m => m.chairmanships.length > 0 && m.tenure >= 5);
+    let powerPlayers = allMembers.filter(m => m.chairmanships.length > 0 || m.officerTitle);
     powerPlayers.sort((a, b) => {
-        const scoreA = a.tenure * 2 + a.chairmanships.length * 10;
-        const scoreB = b.tenure * 2 + b.chairmanships.length * 10;
+        const scoreA = a.tenure * 2 + a.chairmanships.length * 10 + (a.officerTitle ? 15 : 0);
+        const scoreB = b.tenure * 2 + b.chairmanships.length * 10 + (b.officerTitle ? 15 : 0);
         return scoreB - scoreA;
     });
-
-    // If strict criteria yields no results, loosen it
-    if (powerPlayers.length === 0) {
-        powerPlayers = allMembers.filter(m => m.chairmanships.length > 0);
-        powerPlayers.sort((a, b) => b.tenure - a.tenure);
-    }
 
     document.getElementById('powerGrid').innerHTML = powerPlayers.length === 0
         ? '<div style="color:var(--text-muted);padding:20px;">No power players identified.</div>'
@@ -1290,10 +1392,11 @@ function renderPowerPlayers() {
             const chairNames = m.chairmanships.map(c => c.name).join(', ');
             return `<div class="power-card" onclick="showMemberModal('${m.sponsorCode}')">
                 <div class="pp-name">${m.displayName}</div>
-                <div class="pp-title">${m.chamber === 'H' ? 'House' : 'Senate'} | ${m.PARTY || ''} | Dist. ${m.DISTRICT_NUMBER || '?'}</div>
-                <div class="pp-committees">Chairs: ${chairNames}</div>
+                <div class="pp-title">${m.chamber === 'H' ? 'House' : 'Senate'} | ${m.PARTY || ''} | Dist. ${m.DISTRICT_NUMBER || '?'}${m.officerTitle ? ' | ' + m.officerTitle : ''}</div>
+                ${chairNames ? `<div class="pp-committees">Chairs: ${chairNames}</div>` : ''}
                 <span class="pp-stat">${m.tenure} years tenure</span>
-                <span class="pp-stat">${m.chairmanships.length} chairmanship${m.chairmanships.length !== 1 ? 's' : ''}</span>
+                ${m.chairmanships.length > 0 ? `<span class="pp-stat">${m.chairmanships.length} chairmanship${m.chairmanships.length !== 1 ? 's' : ''}</span>` : ''}
+                ${m.officerTitle ? `<span class="pp-stat">${m.officerTitle}</span>` : ''}
             </div>`;
         }).join('');
 }
@@ -1373,9 +1476,10 @@ function renderPartyComparison() {
         const chairs = members.filter(m => m.chairmanships.length > 0).length;
         const freshmen = members.filter(m => !m.reElected).length;
         const crossC = members.filter(m => m.crossChamber).length;
+        const officerCount = members.filter(m => m.officerTitle).length;
         const houseCount = members.filter(m => m.chamber === 'H').length;
         const senateCount = members.filter(m => m.chamber === 'S').length;
-        return { total: members.length, avg, max, chairs, freshmen, crossC, houseCount, senateCount };
+        return { total: members.length, avg, max, chairs, freshmen, crossC, officerCount, houseCount, senateCount };
     };
 
     const rStats = calcStats(reps);
@@ -1530,6 +1634,7 @@ function showMemberModal(sponsorCode) {
                 <div class="detail-item"><div class="dl">Occupation</div><div class="dv">${m.OCCUPATION || 'N/A'}</div></div>
                 <div class="detail-item"><div class="dl">Re-Elected</div><div class="dv">${m.reElected ? 'Yes' : 'No'}</div></div>
                 <div class="detail-item"><div class="dl">Cross-Chamber Service</div><div class="dv">${m.crossChamber ? 'Yes' : 'No'}</div></div>
+                ${m.officerTitle ? `<div class="detail-item"><div class="dl">Officer Title</div><div class="dv">${m.officerTitle}</div></div>` : ''}
                 <div class="detail-item"><div class="dl">Email</div><div class="dv">${m.E_MAIL ? `<a href="mailto:${m.E_MAIL}">${m.E_MAIL}</a>` : 'N/A'}</div></div>
             </div>
         </div>
@@ -1619,7 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ---- EXPORT ----
 function exportCSV() {
-    const headers = ['Name', 'Chamber', 'Party', 'District', 'County', 'Tenure', 'Occupation', 'Re-Elected', 'Cross-Chamber', 'Committees', 'Email'];
+    const headers = ['Name', 'Chamber', 'Party', 'District', 'County', 'Tenure', 'Occupation', 'Re-Elected', 'Cross-Chamber', 'Officer Title', 'Committees', 'Email'];
     const rows = allMembers.map(m => [
         m.displayName,
         m.chamber === 'H' ? 'House' : 'Senate',
@@ -1630,6 +1735,7 @@ function exportCSV() {
         (m.OCCUPATION || '').replace(/,/g, ';'),
         m.reElected ? 'Yes' : 'No',
         m.crossChamber ? 'Yes' : 'No',
+        m.officerTitle || '',
         m.committees.map(c => c.name).join('; '),
         m.E_MAIL || ''
     ]);

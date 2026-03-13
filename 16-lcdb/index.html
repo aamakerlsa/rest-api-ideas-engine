@@ -601,7 +601,6 @@
 
     const API = 'https://rest.scstatehouse.gov';
     let sessionData = []; // from /session-billcount
-    let sessionsInfo = []; // from /sessions
 
     // ── Helpers ──
     function fmt(n) { return n != null ? n.toLocaleString() : '--'; }
@@ -627,10 +626,19 @@
     }
 
     async function apiFetch(path) {
-        const resp = await fetch(API + path);
-        if (!resp.ok) throw new Error(`API error ${resp.status} for ${path}`);
-        const json = await resp.json();
-        return json.data;
+        const resp = await fetch(API + path, { headers: { Accept: 'application/json' } });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' for ' + path);
+        const text = await resp.text();
+        if (!text || text === '"Not Found"' || text === 'Not Found') return null;
+        try {
+            const json = JSON.parse(text);
+            // ALL responses are wrapped: {error, message, data} - unwrap
+            if (json && json.hasOwnProperty('data')) return json.data;
+            return json;
+        } catch (e) {
+            console.warn('Non-JSON response for ' + path + ':', text.substring(0, 100));
+            return null;
+        }
     }
 
     // ── Tab switching ──
@@ -650,7 +658,7 @@
             apiFetch('/currentsession').then(d => {
                 if (d) {
                     const s = Array.isArray(d) ? d[0] : d;
-                    document.getElementById('currentSessionInfo').textContent = 'Current Session: ' + (s.SESS_NUMBER || s.SESSION || JSON.stringify(s));
+                    document.getElementById('currentSessionInfo').textContent = 'Current Session: ' + (s.SESS_NUMBER || '');
                 }
             }).catch(() => {
                 document.getElementById('currentSessionInfo').textContent = '';
@@ -663,11 +671,11 @@
             }
 
             sessionData = billData.map(s => ({
-                session: s.SESS_NUMBER || s.SESSION_NUMBER || s.SESSIONUMBER,
-                bills: s.BILL_COUNT || s.BILLCOUNT || 0,
-                firstDate: s.FIRST_DATE || s.FIRSTDATE || null,
-                lastDate: s.LAST_DATE || s.LASTDATE || null,
-            })).sort((a, b) => a.session - b.session);
+                session: Number(s.SESS_NUMBER),
+                bills: Number(s.BILL_COUNT) || 0,
+                firstDate: s.FIRST_DATE || null,
+                lastDate: s.LAST_DATE || null,
+            })).filter(s => !isNaN(s.session)).sort((a, b) => a.session - b.session);
 
             // Compute derived fields
             sessionData.forEach(s => {
@@ -1058,38 +1066,26 @@
     // ── Chamber Balance ──
     async function loadChamberData() {
         try {
-            const chamberStats = await apiFetch('/website/chamberstats');
+            // Load chamber stats and bios in parallel
+            const [chamberStats, houseBios, senateBios] = await Promise.all([
+                apiFetch('/website/chamberstats').catch(() => null),
+                apiFetch('/house/bios').catch(() => null),
+                apiFetch('/senate/bios').catch(() => null)
+            ]);
+
             let html = '';
 
-            if (chamberStats) {
-                // chamberStats may have HOUSE and SENATE data
-                const statsArr = Array.isArray(chamberStats) ? chamberStats : [chamberStats];
+            // Prefer bios for richer member-level data
+            if (houseBios && Array.isArray(houseBios) && houseBios.length > 0) {
+                html += renderChamberFromBios('House of Representatives', houseBios);
+            }
+            if (senateBios && Array.isArray(senateBios) && senateBios.length > 0) {
+                html += renderChamberFromBios('Senate', senateBios);
+            }
 
-                // Also try to get bios for richer data
-                let houseBios = null, senateBios = null;
-                try {
-                    [houseBios, senateBios] = await Promise.all([
-                        apiFetch('/house/bios'),
-                        apiFetch('/senate/bios')
-                    ]);
-                } catch(e) { /* continue with chamberStats only */ }
-
-                // Render chamber stats
-                if (houseBios && Array.isArray(houseBios)) {
-                    html += renderChamberSection('House of Representatives', houseBios);
-                }
-                if (senateBios && Array.isArray(senateBios)) {
-                    html += renderChamberSection('Senate', senateBios);
-                }
-
-                // If bios didn't work, show raw stats
-                if (!html && statsArr.length > 0) {
-                    html = '<div style="font-size:var(--text-sm);color:var(--lsa-gray-600);">';
-                    statsArr.forEach(stat => {
-                        html += '<pre style="background:var(--lsa-gray-100);padding:12px;border-radius:6px;margin-bottom:12px;overflow-x:auto;font-size:var(--text-xs);">' + JSON.stringify(stat, null, 2) + '</pre>';
-                    });
-                    html += '</div>';
-                }
+            // If bios failed, fall back to chamberStats aggregate data
+            if (!html && chamberStats) {
+                html = renderChamberFromStats(chamberStats);
             }
 
             document.getElementById('chamberContent').innerHTML = html || '<div class="error-msg">No chamber data available.</div>';
@@ -1098,21 +1094,64 @@
         }
     }
 
-    function renderChamberSection(title, bios) {
+    // Render chamber composition from /website/chamberstats (lowercase field names)
+    function renderChamberFromStats(stats) {
+        const hR = parseInt(stats.currenthouserepublicans) || 0;
+        const hD = parseInt(stats.currenthousedemocrats) || 0;
+        const sR = parseInt(stats.currentsenaterepublicans) || 0;
+        const sD = parseInt(stats.currentsenatedemocrats) || 0;
+
+        let html = '';
+        html += renderChamberBar('House of Representatives', hR, hD);
+        html += renderChamberBar('Senate', sR, sD);
+        return html;
+    }
+
+    function renderChamberBar(title, rCount, dCount) {
+        const total = rCount + dCount;
+        if (total === 0) return '';
+        const oCount = 0;
+        const rPct = (rCount / total * 100);
+        const dPct = (dCount / total * 100);
+
+        let html = '<div style="margin-bottom:24px;">';
+        html += '<h4 style="font-family:var(--font-heading-alt);font-size:var(--text-base);color:var(--lsa-primary);margin-bottom:12px;">' + title + ' (' + total + ' members)</h4>';
+        html += '<div class="chamber-bar">';
+        if (rPct > 0) html += '<div class="rep-seg" style="width:' + rPct + '%">R: ' + rCount + '</div>';
+        if (dPct > 0) html += '<div class="dem-seg" style="width:' + dPct + '%">D: ' + dCount + '</div>';
+        html += '</div>';
+
+        html += '<div style="margin-top:12px;font-size:var(--text-sm);">';
+        html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--lsa-gray-100);">';
+        html += '<span style="color:var(--lsa-gray-600);">Republican</span>';
+        html += '<span style="font-weight:600;">' + rCount + ' (' + rPct.toFixed(1) + '%)</span>';
+        html += '</div>';
+        html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--lsa-gray-100);">';
+        html += '<span style="color:var(--lsa-gray-600);">Democrat</span>';
+        html += '<span style="font-weight:600;">' + dCount + ' (' + dPct.toFixed(1) + '%)</span>';
+        html += '</div>';
+        html += '</div></div>';
+        return html;
+    }
+
+    // Render chamber composition from bios (PARTY field uses "R", "D", "I")
+    function renderChamberFromBios(title, bios) {
         const parties = {};
         bios.forEach(b => {
-            const p = b.PARTY || b.Party || 'Unknown';
+            const p = (b.PARTY || '').trim() || 'Unknown';
             parties[p] = (parties[p] || 0) + 1;
         });
 
         const total = bios.length;
-        const rCount = parties['Republican'] || parties['R'] || 0;
-        const dCount = parties['Democrat'] || parties['Democratic'] || parties['D'] || 0;
+        const rCount = parties['R'] || 0;
+        const dCount = parties['D'] || 0;
         const oCount = total - rCount - dCount;
 
         const rPct = total > 0 ? (rCount / total * 100) : 0;
         const dPct = total > 0 ? (dCount / total * 100) : 0;
         const oPct = total > 0 ? (oCount / total * 100) : 0;
+
+        const partyLabels = { 'R': 'Republican', 'D': 'Democrat', 'I': 'Independent' };
 
         let html = '<div style="margin-bottom:24px;">';
         html += '<h4 style="font-family:var(--font-heading-alt);font-size:var(--text-base);color:var(--lsa-primary);margin-bottom:12px;">' + title + ' (' + total + ' members)</h4>';
@@ -1126,8 +1165,9 @@
         html += '<div style="margin-top:12px;font-size:var(--text-sm);">';
         Object.keys(parties).sort().forEach(p => {
             const pct = (parties[p] / total * 100).toFixed(1);
+            const label = partyLabels[p] || p;
             html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--lsa-gray-100);">';
-            html += '<span style="color:var(--lsa-gray-600);">' + p + '</span>';
+            html += '<span style="color:var(--lsa-gray-600);">' + label + '</span>';
             html += '<span style="font-weight:600;">' + parties[p] + ' (' + pct + '%)</span>';
             html += '</div>';
         });
@@ -1153,10 +1193,9 @@
             if (result.status === 'fulfilled' && result.value.data) {
                 const { label, data } = result.value;
                 const votes = Array.isArray(data) ? data : [];
-                html += renderVoteCard(label, votes);
-            } else {
-                const ep = result.status === 'rejected' ? { label: 'Unknown' } :
-                    result.value || { label: 'Unknown' };
+                if (votes.length > 0) {
+                    html += renderVoteCard(label, votes);
+                }
             }
         });
 
@@ -1165,35 +1204,48 @@
 
     function renderVoteCard(label, votes) {
         const totalVotes = votes.length;
-        let ayeCount = 0, nayCount = 0, otherCount = 0;
+        let totalYeas = 0, totalNays = 0, approvedCount = 0;
 
         votes.forEach(v => {
-            // Try to count aye/nay from vote records
-            const aye = v.AYES || v.AYE || v.ayes || 0;
-            const nay = v.NAYS || v.NAY || v.nays || 0;
-            if (typeof aye === 'number') ayeCount += aye;
-            if (typeof nay === 'number') nayCount += nay;
+            // APPROVED field: "1" = approved, "0" = not
+            if (v.APPROVED === '1') approvedCount++;
+
+            // Parse CHOICES array for YEAS/NAYS
+            let yeas = 0, nays = 0;
+            if (Array.isArray(v.CHOICES) && v.CHOICES.length > 0) {
+                const choice = v.CHOICES[0];
+                yeas = Number(choice.YEAS) || 0;
+                nays = Number(choice.NAYS) || 0;
+            }
+            totalYeas += yeas;
+            totalNays += nays;
         });
 
-        const approvalRate = (ayeCount + nayCount > 0) ? ((ayeCount / (ayeCount + nayCount)) * 100).toFixed(1) : null;
+        const approvalRate = totalVotes > 0 ? ((approvedCount / totalVotes) * 100).toFixed(1) : null;
 
         let html = '<div class="vote-card">';
         html += '<h4>' + label + '</h4>';
         html += '<div class="vote-stat-row"><span>Total Vote Records</span><span style="font-weight:600">' + fmt(totalVotes) + '</span></div>';
-        if (ayeCount > 0 || nayCount > 0) {
-            html += '<div class="vote-stat-row"><span>Total Ayes</span><span style="font-weight:600;color:var(--lsa-bottle-green)">' + fmt(ayeCount) + '</span></div>';
-            html += '<div class="vote-stat-row"><span>Total Nays</span><span style="font-weight:600;color:var(--lsa-ruby-red)">' + fmt(nayCount) + '</span></div>';
-            if (approvalRate) {
-                html += '<div class="vote-stat-row"><span>Approval Rate</span><span style="font-weight:600">' + approvalRate + '%</span></div>';
-            }
+        html += '<div class="vote-stat-row"><span>Approved</span><span style="font-weight:600;color:var(--lsa-bottle-green)">' + fmt(approvedCount) + '</span></div>';
+        if (totalYeas > 0 || totalNays > 0) {
+            html += '<div class="vote-stat-row"><span>Total Yeas</span><span style="font-weight:600;color:var(--lsa-bottle-green)">' + fmt(totalYeas) + '</span></div>';
+            html += '<div class="vote-stat-row"><span>Total Nays</span><span style="font-weight:600;color:var(--lsa-ruby-red)">' + fmt(totalNays) + '</span></div>';
+        }
+        if (approvalRate) {
+            html += '<div class="vote-stat-row"><span>Approval Rate</span><span style="font-weight:600">' + approvalRate + '%</span></div>';
         }
 
-        // Show a sparkline of vote counts if we have enough records
+        // Show a sparkline of yea counts if we have enough records
         if (totalVotes > 2) {
             const sampleSize = Math.min(totalVotes, 30);
-            const sample = votes.slice(0, sampleSize).map(v => v.AYES || v.AYE || v.ayes || 0);
+            const sample = votes.slice(0, sampleSize).map(v => {
+                if (Array.isArray(v.CHOICES) && v.CHOICES.length > 0) {
+                    return Number(v.CHOICES[0].YEAS) || 0;
+                }
+                return 0;
+            });
             if (sample.some(v => v > 0)) {
-                html += '<div style="margin-top:12px;"><span style="font-size:var(--text-xs);color:var(--lsa-gray-400);">Aye votes trend:</span> ' + sparklineSVG(sample, 120, 28, '#0C6E52') + '</div>';
+                html += '<div style="margin-top:12px;"><span style="font-size:var(--text-xs);color:var(--lsa-gray-400);">Yea votes trend:</span> ' + sparklineSVG(sample, 120, 28, '#0C6E52') + '</div>';
             }
         }
 

@@ -918,11 +918,19 @@ const state = {
 async function fetchAPI(url) {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const json = await resp.json();
-    if (json && typeof json === 'object' && 'data' in json) {
-        return json.data;
+    const text = await resp.text();
+    // Handle plain string "Not Found" responses
+    if (text === '"Not Found"' || text === 'Not Found') return null;
+    try {
+        const json = JSON.parse(text);
+        // Unwrap API envelope: {error, message, data}
+        if (json && typeof json === 'object' && 'data' in json) {
+            return json.data;
+        }
+        return json;
+    } catch (e) {
+        return null;
     }
-    return json;
 }
 
 function $(id) { return document.getElementById(id); }
@@ -949,24 +957,46 @@ function getHour(votetime) {
     return -1;
 }
 
-function getChoiceData(vote) {
-    // Get first choice set (usually only one)
-    if (Array.isArray(vote.CHOICES) && vote.CHOICES.length > 0) {
-        return vote.CHOICES[0];
-    }
-    return null;
+// Get all sponsors from ALL choices in a vote
+function getAllSponsors(vote) {
+    if (!Array.isArray(vote.CHOICES)) return [];
+    const sponsors = [];
+    vote.CHOICES.forEach(choice => {
+        if (Array.isArray(choice.SPONSORS)) {
+            choice.SPONSORS.forEach(sp => sponsors.push(sp));
+        }
+    });
+    return sponsors;
 }
 
 function getStats(vote) {
-    const choice = getChoiceData(vote);
-    if (!choice) return { yeas: 0, nays: 0, nv: 0, ea: 0 };
-    const stats = choice.STATS || {};
-    return {
-        yeas: parseInt(stats.Yeas) || parseInt(choice.YEAS) || 0,
-        nays: parseInt(stats.Nays) || parseInt(choice.NAYS) || 0,
-        nv: parseInt(stats['N/V']) || 0,
-        ea: parseInt(stats['Exc. Abs.']) || 0
-    };
+    if (!Array.isArray(vote.CHOICES)) return { yeas: 0, nays: 0, nv: 0, ea: 0 };
+    // Sum YEAS/NAYS from choice-level fields, or count sponsors by HOWVOTED
+    let yeas = 0, nays = 0, nv = 0, ea = 0;
+    // Try choice-level YEAS/NAYS first (from the first choice that has them)
+    const firstChoice = vote.CHOICES[0];
+    if (firstChoice && (firstChoice.YEAS !== undefined || firstChoice.NAYS !== undefined)) {
+        yeas = parseInt(firstChoice.YEAS) || 0;
+        nays = parseInt(firstChoice.NAYS) || 0;
+        // For NV and EA, count from sponsors
+        const allSp = getAllSponsors(vote);
+        allSp.forEach(sp => {
+            const how = (sp.HOWVOTED || '').toUpperCase();
+            if (how === 'E') ea++;
+            else if (how !== 'Y' && how !== 'N') nv++;
+        });
+    } else {
+        // Fallback: count from sponsors
+        const allSp = getAllSponsors(vote);
+        allSp.forEach(sp => {
+            const how = (sp.HOWVOTED || '').toUpperCase();
+            if (how === 'Y') yeas++;
+            else if (how === 'N') nays++;
+            else if (how === 'E') ea++;
+            else nv++;
+        });
+    }
+    return { yeas, nays, nv, ea };
 }
 
 function getMargin(vote) {
@@ -996,11 +1026,16 @@ function getMotionCategory(motion) {
 }
 
 function getPartyBreakdown(vote) {
-    const choice = getChoiceData(vote);
-    if (!choice || !Array.isArray(choice.SPONSORS)) return null;
+    const allSp = getAllSponsors(vote);
+    if (allSp.length === 0) return null;
     const breakdown = { R: { Y: 0, N: 0, NV: 0, EA: 0, total: 0 }, D: { Y: 0, N: 0, NV: 0, EA: 0, total: 0 }, I: { Y: 0, N: 0, NV: 0, EA: 0, total: 0 } };
-    choice.SPONSORS.forEach(sp => {
-        const bio = state.bios[sp.PERM_SPONSOR_CODE];
+    // Deduplicate by PERM_SPONSOR_CODE (a sponsor may appear in multiple choices)
+    const seen = new Set();
+    allSp.forEach(sp => {
+        const code = sp.PERM_SPONSOR_CODE;
+        if (!code || seen.has(code)) return;
+        seen.add(code);
+        const bio = state.bios[code];
         const party = bio ? (bio.PARTY || '').charAt(0).toUpperCase() : 'I';
         const p = breakdown[party] || breakdown.I;
         const how = (sp.HOWVOTED || '').toUpperCase();
@@ -1037,31 +1072,30 @@ async function loadSessions() {
         const data = await fetchAPI(`${API}/votesessions`);
         const sel = $('sessionSelect');
         const sessions = Array.isArray(data) ? data : [];
-        // Sort descending
+        // Sort descending by SESS_NUMBER
         sessions.sort((a, b) => {
-            const aNum = parseInt(a.SESS_NUMBER || a.SESSION || a) || 0;
-            const bNum = parseInt(b.SESS_NUMBER || b.SESSION || b) || 0;
+            const aNum = parseInt(a.SESS_NUMBER) || 0;
+            const bNum = parseInt(b.SESS_NUMBER) || 0;
             return bNum - aNum;
         });
         sessions.forEach(s => {
-            const num = s.SESS_NUMBER || s.SESSION || s;
+            const num = s.SESS_NUMBER;
+            if (!num) return;
             const opt = document.createElement('option');
             opt.value = num;
-            opt.textContent = `Session ${num}`;
+            const dateRange = s.SESS_START_DATE ? ` (${s.SESS_START_DATE}${s.SESS_END_DATE ? ' - ' + s.SESS_END_DATE : ''})` : '';
+            opt.textContent = `Session ${num}${dateRange}`;
             if (parseInt(num) === state.session) opt.selected = true;
             sel.appendChild(opt);
         });
-        // If no sessions loaded, add defaults 119-126
-        if (sel.options.length === 0) {
-            for (let i = 126; i >= 119; i--) {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.textContent = `Session ${i}`;
-                if (i === state.session) opt.selected = true;
-                sel.appendChild(opt);
-            }
+        // If sessions loaded, set state to first available if current not found
+        if (sel.options.length > 0 && !sel.value) {
+            state.session = parseInt(sel.options[0].value);
+            sel.options[0].selected = true;
         }
     } catch (e) {
+        console.warn('Failed to load sessions:', e);
+        // Fallback: add default sessions
         const sel = $('sessionSelect');
         for (let i = 126; i >= 119; i--) {
             const opt = document.createElement('option');
@@ -1276,12 +1310,16 @@ window.openVoteDetail = function(idx, fromFiltered) {
     if (!vote) return;
     const st = getStats(vote);
     const passed = isPassed(vote);
-    const choice = getChoiceData(vote);
+    const allSp = getAllSponsors(vote);
     const bd = getPartyBreakdown(vote);
+    // Get result text from first choice that has it
+    const resultText = (Array.isArray(vote.CHOICES) && vote.CHOICES.length > 0 && vote.CHOICES[0].RESULTTEXT)
+        ? vote.CHOICES[0].RESULTTEXT
+        : (passed ? 'Approved' : 'Not Approved');
 
     let html = `
         <h2>${vote.BILL_NUMBER || `Vote #${vote.VOTE_NUMBER || ''}`}</h2>
-        <div class="modal-subtitle">${vote.MOTION || 'Vote'} | ${formatTime(vote.VOTETIME) || ''} | ${choice?.RESULTTEXT || (passed ? 'Approved' : 'Not Approved')}</div>
+        <div class="modal-subtitle">${vote.MOTION || 'Vote'} | ${formatTime(vote.VOTETIME) || ''} | ${resultText}</div>
 
         <div class="modal-stats">
             <div class="modal-stat"><div class="val" style="color:var(--green)">${st.yeas}</div><div class="lbl">Yeas</div></div>
@@ -1313,11 +1351,22 @@ window.openVoteDetail = function(idx, fromFiltered) {
         </div>`;
     }
 
-    // Sponsor table
-    if (choice && Array.isArray(choice.SPONSORS) && choice.SPONSORS.length > 0) {
-        const sponsors = [...choice.SPONSORS].sort((a, b) => {
-            const aName = (a.FULL_NAME || a.LAST || '').toLowerCase();
-            const bName = (b.FULL_NAME || b.LAST || '').toLowerCase();
+    // Sponsor table - deduplicate across all choices
+    if (allSp.length > 0) {
+        const seen = new Set();
+        const dedupedSponsors = [];
+        allSp.forEach(sp => {
+            const code = sp.PERM_SPONSOR_CODE;
+            if (code && !seen.has(code)) {
+                seen.add(code);
+                dedupedSponsors.push(sp);
+            }
+        });
+        const sponsors = dedupedSponsors.sort((a, b) => {
+            const bio_a = state.bios[a.PERM_SPONSOR_CODE];
+            const bio_b = state.bios[b.PERM_SPONSOR_CODE];
+            const aName = (a.FULL_NAME || `${bio_a?.FIRST || ''} ${bio_a?.LAST || ''}`.trim() || '').toLowerCase();
+            const bName = (b.FULL_NAME || `${bio_b?.FIRST || ''} ${bio_b?.LAST || ''}`.trim() || '').toLowerCase();
             return aName.localeCompare(bName);
         });
         html += `<table class="sponsor-table">
@@ -1590,14 +1639,16 @@ function renderAbsence() {
         return;
     }
 
-    // Tally NV and EA per member
+    // Tally NV and EA per member across all choices
     const members = {};
     votes.forEach(v => {
-        const choice = getChoiceData(v);
-        if (!choice || !Array.isArray(choice.SPONSORS)) return;
-        choice.SPONSORS.forEach(sp => {
+        const allSp = getAllSponsors(v);
+        // Deduplicate per vote so a member isn't double-counted within a single vote
+        const seenInVote = new Set();
+        allSp.forEach(sp => {
             const code = sp.PERM_SPONSOR_CODE;
-            if (!code) return;
+            if (!code || seenInVote.has(code)) return;
+            seenInVote.add(code);
             if (!members[code]) {
                 const bio = state.bios[code];
                 members[code] = {

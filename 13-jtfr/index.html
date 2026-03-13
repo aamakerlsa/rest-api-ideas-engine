@@ -651,7 +651,7 @@
             <div class="year-control" id="yearControl">
                 <label>Year:</label>
                 <input type="range" class="year-slider" id="yearSlider" min="1986" max="2026" value="2026">
-                <span class="year-display" id="yearDisplay">2026</span>
+                <span class="year-display" id="yearDisplay">--</span>
             </div>
             <div class="search-wrap">
                 <span class="search-icon">&#128269;</span>
@@ -749,7 +749,7 @@
     const state = {
         tab: 'journals',
         chamber: 'both',
-        year: 2026,
+        year: new Date().getFullYear(),
         search: '',
         // Caches
         cache: {},
@@ -771,11 +771,12 @@
     };
 
     // ── Year ranges per tab ──
+    const CURRENT_YEAR = new Date().getFullYear();
     const yearRanges = {
-        journals: { min: 1986, max: 2026 },
-        calendars: { min: 2003, max: 2026 },
-        intros: { min: 2001, max: 2026 },
-        transcripts: { min: 2000, max: 2026 }
+        journals: { min: 1986, max: CURRENT_YEAR },
+        calendars: { min: 2003, max: CURRENT_YEAR },
+        intros: { min: 2001, max: CURRENT_YEAR },
+        transcripts: { min: 2000, max: CURRENT_YEAR }
     };
 
     // ── DOM refs ──
@@ -803,13 +804,24 @@
     };
 
     // ── Utility: API fetch ──
+    // All API responses are wrapped in {error, message, data} envelope.
+    // Some endpoints (e.g. /meetings/transcripts) return plain string "Not Found" instead of JSON.
     async function apiFetch(endpoint) {
         const cacheKey = endpoint;
-        if (state.cache[cacheKey]) return state.cache[cacheKey];
+        if (cacheKey in state.cache) return state.cache[cacheKey];
         const resp = await fetch(BASE + endpoint);
         if (!resp.ok) throw new Error(`API error ${resp.status}: ${endpoint}`);
-        const json = await resp.json();
-        const data = json.data;
+        const text = await resp.text();
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (e) {
+            // Non-JSON response (e.g. "Not Found") - return null
+            state.cache[cacheKey] = null;
+            return null;
+        }
+        // Unwrap the {error, message, data} envelope
+        const data = (parsed && typeof parsed === 'object' && 'data' in parsed) ? parsed.data : parsed;
         state.cache[cacheKey] = data;
         return data;
     }
@@ -853,9 +865,11 @@
 
     // ── Determine display title ──
     function getDocTitle(item, type) {
-        // Try many common field names
-        return item.title || item.Title || item.description || item.Description
-            || item.name || item.Name || item.journalDate || item.JournalDate
+        // Journal items have "doc" field (e.g. "House Journal - January 14, 2025")
+        // Calendar/intro items may have various field names
+        return item.doc || item.title || item.Title || item.description || item.Description
+            || item.name || item.Name || item.displaydate || item.DisplayDate
+            || item.journalDate || item.JournalDate
             || item.calendarDate || item.CalendarDate || item.date || item.Date
             || item.meetingDate || item.MeetingDate || item.committee || item.Committee
             || (type + ' Document');
@@ -863,7 +877,10 @@
 
     // ── Determine display date ──
     function getDocDate(item) {
-        const raw = item.date || item.Date || item.journalDate || item.JournalDate
+        // Journal items use "displaydate" for human-readable and "sortdate" for sorting
+        const raw = item.displaydate || item.DisplayDate
+            || item.sortdate || item.SortDate
+            || item.date || item.Date || item.journalDate || item.JournalDate
             || item.calendarDate || item.CalendarDate || item.meetingDate || item.MeetingDate
             || item.startTime || item.StartTime || '';
         if (!raw) return '';
@@ -875,7 +892,10 @@
     }
 
     function getDocDateRaw(item) {
-        return item.date || item.Date || item.journalDate || item.JournalDate
+        // Prefer sortdate for sorting (ISO format), fall back to displaydate
+        return item.sortdate || item.SortDate
+            || item.displaydate || item.DisplayDate
+            || item.date || item.Date || item.journalDate || item.JournalDate
             || item.calendarDate || item.CalendarDate || item.meetingDate || item.MeetingDate
             || item.startTime || item.StartTime || '';
     }
@@ -932,15 +952,17 @@
         renderLoading(els.docGrid);
         const endpoints = getEndpoints();
         const typeLabel = { journals: 'Journals', calendars: 'Calendars', intros: 'Introductions', transcripts: 'Transcripts' };
-        els.listingTitle.childNodes[0].textContent = typeLabel[state.tab] + (state.tab !== 'transcripts' ? ` (${state.year})` : '') + ' ';
+        els.listingTitle.textContent = typeLabel[state.tab] + (state.tab !== 'transcripts' ? ` (${state.year})` : '');
 
         try {
             const results = await Promise.allSettled(endpoints.map(ep => apiFetch(ep.url)));
             let allDocs = [];
 
             results.forEach((result, i) => {
-                if (result.status === 'fulfilled' && result.value) {
-                    const items = Array.isArray(result.value) ? result.value : [result.value];
+                if (result.status === 'fulfilled' && result.value != null) {
+                    const val = result.value;
+                    // Some endpoints return objects with nested arrays (e.g. journaldata)
+                    const items = Array.isArray(val) ? val : [];
                     items.forEach(item => {
                         allDocs.push({ ...item, _chamber: endpoints[i].chamber, _type: endpoints[i].type });
                     });
@@ -959,7 +981,10 @@
             state.currentDocs = allDocs;
 
             if (allDocs.length === 0) {
-                renderEmpty(els.docGrid, 'No documents found for this selection.');
+                const msg = state.tab === 'transcripts'
+                    ? 'No transcripts available at this time.'
+                    : 'No documents found for this selection.';
+                renderEmpty(els.docGrid, msg);
                 return;
             }
 
@@ -971,13 +996,17 @@
     }
 
     // ── Load stats (index endpoints) ──
+    // Uses current year endpoints to get document counts.
+    // /meetings/transcripts returns "Not Found" (non-JSON) so apiFetch returns null.
     async function loadStats() {
+        const currentYear = new Date().getFullYear();
         const statEndpoints = [
-            { url: '/house/journals', key: 'houseJournals', el: els.statHouseJournals },
-            { url: '/senate/journals', key: 'senateJournals', el: els.statSenateJournals },
-            { url: '/house/calendars', key: 'houseCalendars', el: els.statHouseCalendars },
-            { url: '/senate/calendars', key: 'senateCalendars', el: els.statSenateCalendars },
-            { url: '/house/intros', key: 'houseIntros', el: els.statIntros },
+            { url: `/house/journals/${currentYear}`, key: 'houseJournals', el: els.statHouseJournals },
+            { url: `/senate/journals/${currentYear}`, key: 'senateJournals', el: els.statSenateJournals },
+            { url: `/house/calendars/${currentYear}`, key: 'houseCalendars', el: els.statHouseCalendars },
+            { url: `/senate/calendars/${currentYear}`, key: 'senateCalendars', el: els.statSenateCalendars },
+            { url: `/house/intros/${currentYear}`, key: 'houseIntros', el: null },
+            { url: `/senate/intros/${currentYear}`, key: 'senateIntros', el: null },
             { url: '/meetings/transcripts', key: 'transcripts', el: els.statTranscripts }
         ];
 
@@ -985,30 +1014,30 @@
 
         results.forEach((result, i) => {
             const ep = statEndpoints[i];
-            if (result.status === 'fulfilled' && result.value) {
+            if (result.status === 'fulfilled' && result.value != null) {
                 const data = result.value;
                 const count = Array.isArray(data) ? data.length : 0;
                 state.stats[ep.key] = count;
-                ep.el.textContent = count.toLocaleString();
+                if (ep.el) ep.el.textContent = count.toLocaleString();
             } else {
-                ep.el.textContent = '--';
+                state.stats[ep.key] = 0;
+                if (ep.el) {
+                    // For transcripts, show a friendly "N/A" since endpoint returns "Not Found"
+                    ep.el.textContent = ep.key === 'transcripts' ? 'N/A' : '--';
+                }
             }
         });
 
-        // Combine intros count
-        try {
-            const senateIntros = await apiFetch('/senate/intros');
-            const senateCount = Array.isArray(senateIntros) ? senateIntros.length : 0;
-            const houseCount = state.stats.houseIntros;
-            els.statIntros.textContent = (houseCount + senateCount).toLocaleString();
-        } catch {}
+        // Combine intros count (house + senate)
+        const totalIntros = (state.stats.houseIntros || 0) + (state.stats.senateIntros || 0);
+        els.statIntros.textContent = totalIntros.toLocaleString();
     }
 
     // ── Load recent documents ──
     async function loadRecentDocs() {
         renderLoading(els.recentDocs);
         try {
-            const currentYear = 2026;
+            const currentYear = CURRENT_YEAR;
             const fetches = [
                 apiFetch(`/house/journals/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'House', _type: 'journals' }))).catch(() => []),
                 apiFetch(`/senate/journals/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'Senate', _type: 'journals' }))).catch(() => []),
@@ -1048,7 +1077,7 @@
     // ── Load timeline ──
     async function loadTimeline() {
         try {
-            const currentYear = 2026;
+            const currentYear = CURRENT_YEAR;
             const fetches = [
                 apiFetch(`/house/journals/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'House', _type: 'journals' }))).catch(() => []),
                 apiFetch(`/senate/journals/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'Senate', _type: 'journals' }))).catch(() => []),
@@ -1102,72 +1131,38 @@
             const range = yearRanges[tab] || yearRanges.journals;
 
             if (tab === 'transcripts') {
-                // Single data set for transcripts
-                const data = await apiFetch('/meetings/transcripts');
-                const items = Array.isArray(data) ? data : [];
-                const yearCounts = {};
-                items.forEach(item => {
-                    const raw = getDocDateRaw(item);
-                    if (raw) {
-                        const y = new Date(raw).getFullYear();
-                        if (!isNaN(y)) yearCounts[y] = (yearCounts[y] || 0) + 1;
-                    }
-                });
-                const years = Object.keys(yearCounts).sort();
-                const maxVal = Math.max(...Object.values(yearCounts), 1);
-                let html = '';
-                years.forEach(y => {
-                    const h = Math.max(2, (yearCounts[y] / maxVal) * 160);
-                    html += `<div class="chart-bar-group"><div class="chart-bar house" style="height:${h}px" title="${y}: ${yearCounts[y]}"></div><div class="chart-bar-label">${y}</div></div>`;
-                });
-                els.chartBars.innerHTML = html || '<div class="empty-state" style="width:100%"><p>No chart data.</p></div>';
+                // /meetings/transcripts returns "Not Found" (non-JSON), so no chart data available
+                els.chartBars.innerHTML = '<div class="empty-state" style="width:100%"><p>No transcript chart data available.</p></div>';
                 return;
             }
 
-            // For journals/calendars/intros: fetch index to get available years, then batch fetch
+            // For journals/calendars/intros: fetch recent years and count docs per year
             const pathMap = { journals: 'journals', calendars: 'calendars', intros: 'intros' };
             const path = pathMap[tab];
 
-            // Fetch index for both chambers to get year list
-            const [houseIndex, senateIndex] = await Promise.allSettled([
-                apiFetch(`/house/${path}`),
-                apiFetch(`/senate/${path}`)
+            // Sample last 10 years for the chart to avoid excessive API calls
+            const currentYear = new Date().getFullYear();
+            const chartStartYear = Math.max(range.min, currentYear - 9);
+            const yearList = [];
+            for (let y = chartStartYear; y <= Math.min(range.max, currentYear); y++) yearList.push(y);
+
+            // Fetch all years for both chambers
+            const houseFetches = yearList.map(y =>
+                apiFetch(`/house/${path}/${y}`).then(d => ({ year: y, count: Array.isArray(d) ? d.length : 0 })).catch(() => ({ year: y, count: 0 }))
+            );
+            const senateFetches = yearList.map(y =>
+                apiFetch(`/senate/${path}/${y}`).then(d => ({ year: y, count: Array.isArray(d) ? d.length : 0 })).catch(() => ({ year: y, count: 0 }))
+            );
+
+            const [houseResults, senateResults] = await Promise.all([
+                Promise.all(houseFetches),
+                Promise.all(senateFetches)
             ]);
 
-            const houseYears = (houseIndex.status === 'fulfilled' && Array.isArray(houseIndex.value)) ? houseIndex.value : [];
-            const senateYears = (senateIndex.status === 'fulfilled' && Array.isArray(senateIndex.value)) ? senateIndex.value : [];
-
-            // Collect all unique years from the index data
-            const allYearSet = new Set();
-            const extractYear = (item) => {
-                const y = item.year || item.Year || item.sessionYear || item.SessionYear;
-                if (y) allYearSet.add(Number(y));
-            };
-            houseYears.forEach(extractYear);
-            senateYears.forEach(extractYear);
-
-            // If no years extracted from index, use range
-            if (allYearSet.size === 0) {
-                for (let y = range.min; y <= range.max; y++) allYearSet.add(y);
-            }
-
-            const yearList = [...allYearSet].sort((a, b) => a - b);
-
-            // For chart, we use the index counts if available, otherwise sample some years
-            // Try to use the count from index items (they may have a count field)
             const houseCounts = {};
             const senateCounts = {};
-
-            houseYears.forEach(item => {
-                const y = item.year || item.Year || item.sessionYear || item.SessionYear;
-                const c = item.count || item.Count || item.total || item.Total || 1;
-                if (y) houseCounts[Number(y)] = c;
-            });
-            senateYears.forEach(item => {
-                const y = item.year || item.Year || item.sessionYear || item.SessionYear;
-                const c = item.count || item.Count || item.total || item.Total || 1;
-                if (y) senateCounts[Number(y)] = c;
-            });
+            houseResults.forEach(r => { houseCounts[r.year] = r.count; });
+            senateResults.forEach(r => { senateCounts[r.year] = r.count; });
 
             const maxVal = Math.max(
                 ...Object.values(houseCounts),

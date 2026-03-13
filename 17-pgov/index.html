@@ -837,8 +837,21 @@ async function apiFetch(endpoint) {
     if (cache[endpoint]) return cache[endpoint];
     const res = await fetch(`${API}${endpoint}`);
     if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
-    const json = await res.json();
-    const data = json.data !== undefined ? json.data : json;
+    const text = await res.text();
+    // Some endpoints return plain string "Not Found" instead of JSON
+    if (text === '"Not Found"' || text === 'Not Found') {
+        cache[endpoint] = null;
+        return null;
+    }
+    let json;
+    try {
+        json = JSON.parse(text);
+    } catch (e) {
+        cache[endpoint] = null;
+        return null;
+    }
+    // All API responses are wrapped in {error, message, data} envelope
+    const data = (json && typeof json === 'object' && 'data' in json) ? json.data : json;
     cache[endpoint] = data;
     return data;
 }
@@ -999,23 +1012,43 @@ async function loadOverview() {
 // ---- Fetch all members ----
 async function ensureMembers() {
     if (allHouseMembers.length === 0) {
-        allHouseMembers = await apiFetch('/house/bios');
-        if (!Array.isArray(allHouseMembers)) allHouseMembers = [];
+        try {
+            const data = await apiFetch('/house/bios');
+            allHouseMembers = Array.isArray(data) ? data : [];
+        } catch (e) {
+            console.error('Failed to load house bios:', e);
+            allHouseMembers = [];
+        }
     }
     if (allSenateMembers.length === 0) {
-        allSenateMembers = await apiFetch('/senate/bios');
-        if (!Array.isArray(allSenateMembers)) allSenateMembers = [];
+        try {
+            const data = await apiFetch('/senate/bios');
+            allSenateMembers = Array.isArray(data) ? data : [];
+        } catch (e) {
+            console.error('Failed to load senate bios:', e);
+            allSenateMembers = [];
+        }
     }
 }
 
 async function ensureCommittees() {
     if (houseCommittees.length === 0) {
-        houseCommittees = await apiFetch('/house/committees');
-        if (!Array.isArray(houseCommittees)) houseCommittees = [];
+        try {
+            const data = await apiFetch('/house/committees');
+            houseCommittees = Array.isArray(data) ? data : [];
+        } catch (e) {
+            console.error('Failed to load house committees:', e);
+            houseCommittees = [];
+        }
     }
     if (senateCommittees.length === 0) {
-        senateCommittees = await apiFetch('/senate/committees');
-        if (!Array.isArray(senateCommittees)) senateCommittees = [];
+        try {
+            const data = await apiFetch('/senate/committees');
+            senateCommittees = Array.isArray(data) ? data : [];
+        } catch (e) {
+            console.error('Failed to load senate committees:', e);
+            senateCommittees = [];
+        }
     }
 }
 
@@ -1023,14 +1056,14 @@ async function ensureCommittees() {
 function buildMemberLookup() {
     const lookup = {};
     allHouseMembers.forEach(m => {
-        const code = m.PERM_SPONSOR_CODE || m.perm_sponsor_code;
-        const party = m.PARTY || m.party || '';
-        if (code) lookup[code] = { party, name: m.FIRST_NAME + ' ' + m.LAST_NAME, chamber: 'House' };
+        const code = m.PERM_SPONSOR_CODE || '';
+        const party = m.PARTY || '';
+        if (code) lookup[code] = { party, name: ((m.FIRST || '') + ' ' + (m.LAST || '')).trim(), chamber: 'House' };
     });
     allSenateMembers.forEach(m => {
-        const code = m.PERM_SPONSOR_CODE || m.perm_sponsor_code;
-        const party = m.PARTY || m.party || '';
-        if (code) lookup[code] = { party, name: m.FIRST_NAME + ' ' + m.LAST_NAME, chamber: 'Senate' };
+        const code = m.PERM_SPONSOR_CODE || '';
+        const party = m.PARTY || '';
+        if (code) lookup[code] = { party, name: ((m.FIRST || '') + ' ' + (m.LAST || '')).trim(), chamber: 'Senate' };
     });
     return lookup;
 }
@@ -1038,17 +1071,20 @@ function buildMemberLookup() {
 // ---- Helper: find chairs from committees ----
 function extractChairs(committees, chamber) {
     const chairs = [];
+    const memberLookup = buildMemberLookup();
     committees.forEach(comm => {
-        const commName = comm.COMMITTEE_NAME || comm.committee_name || 'Unknown';
+        const commName = comm.COMMITTEE_NAME || 'Unknown';
         const members = comm.members || [];
         members.forEach(m => {
-            const office = (m.COMM_OFFICE || m.comm_office || '').toLowerCase();
+            const office = (m.COMM_OFFICE || '').toLowerCase();
             if (office.includes('chairman') || office.includes('chair')) {
+                const code = m.PERM_SPONSOR_CODE || '';
+                const lookedUp = code ? memberLookup[code] : null;
                 chairs.push({
                     committee: commName,
-                    name: (m.FIRST_NAME || m.first_name || '') + ' ' + (m.LAST_NAME || m.last_name || ''),
-                    party: m.PARTY || m.party || '',
-                    office: m.COMM_OFFICE || m.comm_office || '',
+                    name: ((m.FIRST || '') + ' ' + (m.LAST || '')).trim(),
+                    party: lookedUp ? lookedUp.party : '',
+                    office: m.COMM_OFFICE || '',
                     chamber: chamber
                 });
             }
@@ -1067,14 +1103,11 @@ async function loadLeadership() {
         const senateChairs = extractChairs(senateCommittees, 'Senate');
         const allChairs = [...houseChairs, ...senateChairs];
 
-        // Determine party from member bios if not on committee data
-        const memberLookup = buildMemberLookup();
-
-        // Resolve parties where missing
+        // Resolve any remaining missing parties by name match
+        const memberLookupForLeadership = buildMemberLookup();
         allChairs.forEach(ch => {
             if (!ch.party) {
-                // try matching by name in lookup
-                const found = Object.values(memberLookup).find(m => m.name.trim().toLowerCase() === ch.name.trim().toLowerCase());
+                const found = Object.values(memberLookupForLeadership).find(m => m.name.trim().toLowerCase() === ch.name.trim().toLowerCase());
                 if (found) ch.party = found.party;
             }
         });
@@ -1155,18 +1188,16 @@ async function loadCommittees() {
         function getCommitteeChairParty(comm) {
             const members = comm.members || [];
             for (const m of members) {
-                const office = (m.COMM_OFFICE || m.comm_office || '').toLowerCase();
+                const office = (m.COMM_OFFICE || '').toLowerCase();
                 if (office.includes('chairman') && !office.includes('vice')) {
-                    let party = m.PARTY || m.party || '';
+                    const code = m.PERM_SPONSOR_CODE || '';
+                    let party = code && memberLookup[code] ? memberLookup[code].party : '';
+                    const name = ((m.FIRST || '') + ' ' + (m.LAST || '')).trim();
                     if (!party) {
-                        const name = ((m.FIRST_NAME || '') + ' ' + (m.LAST_NAME || '')).trim().toLowerCase();
-                        const found = Object.values(memberLookup).find(x => x.name.trim().toLowerCase() === name);
+                        const found = Object.values(memberLookup).find(x => x.name.trim().toLowerCase() === name.toLowerCase());
                         if (found) party = found.party;
                     }
-                    return {
-                        party: party,
-                        name: (m.FIRST_NAME || m.first_name || '') + ' ' + (m.LAST_NAME || m.last_name || '')
-                    };
+                    return { party, name };
                 }
             }
             return { party: '', name: 'N/A' };
@@ -1175,7 +1206,7 @@ async function loadCommittees() {
         function renderCommTable(comms, chamber) {
             const rows = comms.map(c => {
                 const chair = getCommitteeChairParty(c);
-                const commName = c.COMMITTEE_NAME || c.committee_name || 'Unknown';
+                const commName = c.COMMITTEE_NAME || 'Unknown';
                 const isR = (chair.party || '').toUpperCase().startsWith('R');
                 const isD = (chair.party || '').toUpperCase().startsWith('D');
                 return `<tr>
@@ -1222,8 +1253,8 @@ async function loadGeography() {
         const countyMap = {};
         const allMembers = [...allHouseMembers, ...allSenateMembers];
         allMembers.forEach(m => {
-            const county = (m.HOME_COUNTY || m.home_county || 'Unknown').trim();
-            const party = (m.PARTY || m.party || '').toUpperCase();
+            const county = (m.HOME_COUNTY || 'Unknown').trim();
+            const party = (m.PARTY || '').toUpperCase();
             if (!countyMap[county]) countyMap[county] = { r: 0, d: 0 };
             if (party.startsWith('R')) countyMap[county].r++;
             else if (party.startsWith('D')) countyMap[county].d++;
@@ -1271,7 +1302,7 @@ async function loadCaucus() {
             let members = [...allHouseMembers.map(m => ({...m, _chamber: 'House'})), ...allSenateMembers.map(m => ({...m, _chamber: 'Senate'}))];
 
             if (filterParty !== 'all') {
-                members = members.filter(m => (m.PARTY || m.party || '').toUpperCase().startsWith(filterParty));
+                members = members.filter(m => (m.PARTY || '').toUpperCase().startsWith(filterParty));
             }
             if (filterChamber !== 'all') {
                 members = members.filter(m => m._chamber === filterChamber);
@@ -1279,13 +1310,13 @@ async function loadCaucus() {
             if (filterSearch) {
                 const q = filterSearch.toLowerCase();
                 members = members.filter(m => {
-                    const name = ((m.FIRST_NAME || '') + ' ' + (m.LAST_NAME || '')).toLowerCase();
+                    const name = ((m.FIRST || '') + ' ' + (m.LAST || '')).toLowerCase();
                     const county = (m.HOME_COUNTY || '').toLowerCase();
                     return name.includes(q) || county.includes(q);
                 });
             }
 
-            members.sort((a, b) => ((a.LAST_NAME || '') + (a.FIRST_NAME || '')).localeCompare((b.LAST_NAME || '') + (b.FIRST_NAME || '')));
+            members.sort((a, b) => ((a.LAST || '') + (a.FIRST || '')).localeCompare((b.LAST || '') + (b.FIRST || '')));
 
             const countR = members.filter(m => (m.PARTY || '').toUpperCase().startsWith('R')).length;
             const countD = members.filter(m => (m.PARTY || '').toUpperCase().startsWith('D')).length;
@@ -1296,13 +1327,13 @@ async function loadCaucus() {
                 </div>
                 <div class="member-grid">
                     ${members.map(m => {
-                        const party = (m.PARTY || m.party || '').toUpperCase();
+                        const party = (m.PARTY || '').toUpperCase();
                         const isR = party.startsWith('R');
-                        const first = m.FIRST_NAME || m.first_name || '';
-                        const last = m.LAST_NAME || m.last_name || '';
+                        const first = m.FIRST || '';
+                        const last = m.LAST || '';
                         const initials = (first.charAt(0) + last.charAt(0)).toUpperCase();
-                        const district = m.DISTRICT_NUMBER || m.district_number || '';
-                        const county = m.HOME_COUNTY || m.home_county || '';
+                        const district = m.DISTRICT_NUMBER || '';
+                        const county = m.HOME_COUNTY || '';
                         return `<div class="member-card">
                             <div class="member-avatar ${isR ? 'member-avatar-r' : 'member-avatar-d'}">${initials}</div>
                             <div class="member-info">
@@ -1377,16 +1408,16 @@ async function loadCohesion() {
             const voteSlice = votes.slice(0, 50); // analyze up to 50 votes
 
             voteSlice.forEach(vote => {
-                const choices = vote.CHOICES || vote.choices || [];
+                const choices = vote.CHOICES || [];
                 const rVotes = {};
                 const dVotes = {};
 
                 choices.forEach(choice => {
-                    const howVoted = (choice.HOWVOTED || choice.howvoted || '').toUpperCase();
-                    if (howVoted !== 'AYE' && howVoted !== 'NAY') return;
-                    const sponsors = choice.SPONSORS || choice.sponsors || [];
+                    const sponsors = choice.SPONSORS || [];
                     sponsors.forEach(s => {
-                        const code = s.PERM_SPONSOR_CODE || s.perm_sponsor_code;
+                        const howVoted = (s.HOWVOTED || '').toUpperCase();
+                        if (howVoted !== 'AYE' && howVoted !== 'NAY') return;
+                        const code = s.PERM_SPONSOR_CODE || '';
                         const member = memberLookup[code];
                         if (!member) return;
                         const party = member.party.toUpperCase();
@@ -1407,8 +1438,8 @@ async function loadCohesion() {
 
                 if (rTotal > 0 || dTotal > 0) {
                     results.push({
-                        voteNum: vote.VOTE_NUMBER || vote.vote_number || '',
-                        billNo: vote.BILL_NUMBER || vote.bill_number || '',
+                        voteNum: vote.VOTE_NUMBER || '',
+                        billNo: vote.BILL_NUMBER || '',
                         rCohesion: rTotal > 0 ? (rMax / rTotal * 100) : 0,
                         dCohesion: dTotal > 0 ? (dMax / dTotal * 100) : 0,
                         rTotal,
@@ -1534,16 +1565,16 @@ async function loadCrossParty() {
             const memberStats = {}; // code -> { name, party, chamber, totalVotes, dissents }
 
             votes.forEach(vote => {
-                const choices = vote.CHOICES || vote.choices || [];
+                const choices = vote.CHOICES || [];
                 const partyVotes = { R: { AYE: 0, NAY: 0 }, D: { AYE: 0, NAY: 0 } };
                 const memberChoices = [];
 
                 choices.forEach(choice => {
-                    const howVoted = (choice.HOWVOTED || choice.howvoted || '').toUpperCase();
-                    if (howVoted !== 'AYE' && howVoted !== 'NAY') return;
-                    const sponsors = choice.SPONSORS || choice.sponsors || [];
+                    const sponsors = choice.SPONSORS || [];
                     sponsors.forEach(s => {
-                        const code = s.PERM_SPONSOR_CODE || s.perm_sponsor_code;
+                        const howVoted = (s.HOWVOTED || '').toUpperCase();
+                        if (howVoted !== 'AYE' && howVoted !== 'NAY') return;
+                        const code = s.PERM_SPONSOR_CODE || '';
                         const member = memberLookup[code];
                         if (!member) return;
                         const p = member.party.toUpperCase().charAt(0);
@@ -1622,25 +1653,38 @@ async function loadOfficers() {
         try { houseOfficers = await apiFetch('/house/officers'); if (!Array.isArray(houseOfficers)) houseOfficers = []; } catch(e) {}
         try { senateOfficers = await apiFetch('/senate/officers'); if (!Array.isArray(senateOfficers)) senateOfficers = []; } catch(e) {}
 
+        function stripTitlePrefix(title) {
+            // TITLE has prefix numbers like "01Speaker" - strip leading digits
+            return (title || '').replace(/^\d+/, '');
+        }
+
         function renderOfficers(officers, chamber) {
             if (officers.length === 0) return '<div style="color:var(--lsa-gray-400);padding:20px;text-align:center;">No officer data available.</div>';
 
             return officers.map(o => {
-                const first = o.FIRST_NAME || o.first_name || '';
-                const last = o.LAST_NAME || o.last_name || '';
-                const title = o.OFFICE || o.office || o.TITLE || o.title || '';
-                let party = o.PARTY || o.party || '';
+                // Officers endpoint returns MEMBER_KEY, MEMBER_NAME, TITLE
+                const name = o.MEMBER_NAME || o.NAME || '';
+                const rawTitle = o.TITLE || o.OFFICE || '';
+                const title = stripTitlePrefix(rawTitle);
+                // Try to find party via member lookup by MEMBER_KEY or by name match
+                let party = '';
+                const memberKey = o.MEMBER_KEY || '';
+                // Look up by matching name in member bios
                 if (!party) {
-                    const code = o.PERM_SPONSOR_CODE || o.perm_sponsor_code;
-                    if (code && memberLookup[code]) party = memberLookup[code].party;
+                    const nameLower = name.trim().toLowerCase();
+                    const found = Object.values(memberLookup).find(m => m.name.trim().toLowerCase() === nameLower);
+                    if (found) party = found.party;
                 }
                 const isR = (party || '').toUpperCase().startsWith('R');
-                const initials = (first.charAt(0) + last.charAt(0)).toUpperCase();
+                const nameParts = name.trim().split(/\s+/);
+                const initials = nameParts.length >= 2
+                    ? (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase()
+                    : (name.charAt(0) || '?').toUpperCase();
 
                 return `<div class="officer-card">
-                    <div class="officer-icon" style="background:${isR ? 'var(--rep-red)' : 'var(--dem-blue)'}">${initials}</div>
+                    <div class="officer-icon" style="background:${party ? (isR ? 'var(--rep-red)' : 'var(--dem-blue)') : 'var(--lsa-gray-400)'}">${initials}</div>
                     <div>
-                        <div class="officer-name">${first} ${last} <span class="party-badge ${isR ? 'party-badge-r' : 'party-badge-d'}" style="margin-left:8px;">${(party || '?').charAt(0).toUpperCase()}</span></div>
+                        <div class="officer-name">${name} ${party ? `<span class="party-badge ${isR ? 'party-badge-r' : 'party-badge-d'}" style="margin-left:8px;">${party.charAt(0).toUpperCase()}</span>` : ''}</div>
                         <div class="officer-title">${title}</div>
                     </div>
                 </div>`;
@@ -1696,8 +1740,8 @@ async function loadDashboard() {
         // Counties
         const countyMap = {};
         [...allHouseMembers, ...allSenateMembers].forEach(m => {
-            const county = (m.HOME_COUNTY || m.home_county || '').trim();
-            const party = (m.PARTY || m.party || '').toUpperCase();
+            const county = (m.HOME_COUNTY || '').trim();
+            const party = (m.PARTY || '').toUpperCase();
             if (!county) return;
             if (!countyMap[county]) countyMap[county] = { r: 0, d: 0 };
             if (party.startsWith('R')) countyMap[county].r++;

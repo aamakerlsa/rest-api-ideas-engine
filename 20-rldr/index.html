@@ -884,7 +884,7 @@
                 <div class="results-info" id="staffCount"></div>
                 <div class="table-wrapper">
                     <table class="directory-table" id="staffTable">
-                        <thead><tr><th>Name</th><th>Title</th><th>Chamber</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Biography / Role</th><th>Chamber</th></tr></thead>
                         <tbody id="staffTableBody"></tbody>
                     </table>
                 </div>
@@ -921,7 +921,7 @@
                 <div class="results-info" id="phoneCount"></div>
                 <div class="table-wrapper">
                     <table class="phone-table" id="phoneTable">
-                        <thead><tr><th>Name</th><th>Office / Title</th><th>Phone</th><th>Chamber</th></tr></thead>
+                        <thead><tr><th>Location Key</th><th>Location</th><th>Phone</th><th>Chamber</th></tr></thead>
                         <tbody id="phoneTableBody"></tbody>
                     </table>
                 </div>
@@ -953,23 +953,36 @@ const BASE = 'https://rest.scstatehouse.gov';
 // Data stores
 let houseRules = [];
 let senateRules = [];
+let houseRulesDocURL = '';
+let senateRulesDocURL = '';
 let houseOfficers = [];
 let senateOfficers = [];
-let houseNonmembers = [];
-let senateNonmembers = [];
-let housePhones = [];
-let senatePhones = [];
+let allNonmembers = [];
+let allPhones = [];
 let houseCommittees = [];
 let senateCommittees = [];
-let constitutionArticleIII = [];
+let constitutionArticleIII = null;
 let currentRulesChamber = 'house';
 
 // ==================== API ====================
 async function apiFetch(endpoint) {
     const res = await fetch(BASE + endpoint);
     if (!res.ok) throw new Error(`API error ${res.status} for ${endpoint}`);
-    const json = await res.json();
-    return json.data;
+    const text = await res.text();
+    // Some endpoints return plain string "Not Found" instead of JSON
+    if (text === '"Not Found"' || text === 'Not Found') return null;
+    try {
+        const json = JSON.parse(text);
+        // All API responses are wrapped in {error, message, data} envelope
+        return json.data;
+    } catch (e) {
+        return null;
+    }
+}
+
+function stripTitleDigits(title) {
+    if (!title) return '';
+    return title.replace(/^\d+/, '');
 }
 
 function esc(str) {
@@ -982,46 +995,52 @@ function esc(str) {
 // ==================== INIT ====================
 async function init() {
     try {
-        const results = await Promise.all([
-            apiFetch('/house/rules'),
-            apiFetch('/senate/rules'),
-            apiFetch('/house/officers'),
-            apiFetch('/senate/officers'),
-            apiFetch('/house/nonmembers'),
-            apiFetch('/senate/nonmembers'),
-            apiFetch('/house/telephonelist'),
-            apiFetch('/senate/telephonelist'),
-            apiFetch('/house/committees'),
-            apiFetch('/senate/committees'),
-            apiFetch('/constitution/article_iii')
+        const results = await Promise.allSettled([
+            apiFetch('/house/rules'),           // 0
+            apiFetch('/senate/rules'),          // 1
+            apiFetch('/house/officers'),        // 2
+            apiFetch('/senate/officers'),       // 3
+            apiFetch('/nonmembers'),            // 4 - single endpoint, returns all
+            apiFetch('/telephonelist'),          // 5 - single endpoint, returns all
+            apiFetch('/house/committees'),      // 6
+            apiFetch('/senate/committees'),     // 7
+            apiFetch('/constitution/article_iii') // 8
         ]);
 
-        // Rules come as an object with a Rules array, or may be an array directly
-        const houseRulesData = results[0];
-        const senateRulesData = results[1];
-        houseRules = Array.isArray(houseRulesData) ? houseRulesData : (houseRulesData.Rules || []);
-        senateRules = Array.isArray(senateRulesData) ? senateRulesData : (senateRulesData.Rules || []);
+        function getVal(r) { return r.status === 'fulfilled' ? r.value : null; }
 
-        houseOfficers = Array.isArray(results[2]) ? results[2] : [];
-        senateOfficers = Array.isArray(results[3]) ? results[3] : [];
-        houseNonmembers = Array.isArray(results[4]) ? results[4] : [];
-        senateNonmembers = Array.isArray(results[5]) ? results[5] : [];
-        housePhones = Array.isArray(results[6]) ? results[6] : [];
-        senatePhones = Array.isArray(results[7]) ? results[7] : [];
-        houseCommittees = Array.isArray(results[8]) ? results[8] : [];
-        senateCommittees = Array.isArray(results[9]) ? results[9] : [];
-
-        // Constitution may be object with Sections or array
-        const constData = results[10];
-        if (Array.isArray(constData)) {
-            constitutionArticleIII = constData;
-        } else if (constData && constData.Sections) {
-            constitutionArticleIII = constData.Sections;
-        } else if (constData && constData.sections) {
-            constitutionArticleIII = constData.sections;
-        } else {
-            constitutionArticleIII = constData ? [constData] : [];
+        // Rules: response is {Rules: [...], document: "..."} object
+        const houseRulesData = getVal(results[0]);
+        const senateRulesData = getVal(results[1]);
+        if (houseRulesData && houseRulesData.Rules) {
+            houseRules = houseRulesData.Rules;
+            houseRulesDocURL = houseRulesData.document || '';
+        } else if (Array.isArray(houseRulesData)) {
+            houseRules = houseRulesData;
         }
+        if (senateRulesData && senateRulesData.Rules) {
+            senateRules = senateRulesData.Rules;
+            senateRulesDocURL = senateRulesData.document || '';
+        } else if (Array.isArray(senateRulesData)) {
+            senateRules = senateRulesData;
+        }
+
+        // Officers: array with MEMBER_KEY, MEMBER_NAME, TITLE
+        houseOfficers = Array.isArray(getVal(results[2])) ? getVal(results[2]) : [];
+        senateOfficers = Array.isArray(getVal(results[3])) ? getVal(results[3]) : [];
+
+        // Non-members: single endpoint returns array with NAME_FULL, CHAMBER, BIOGRAPHY, etc.
+        allNonmembers = Array.isArray(getVal(results[4])) ? getVal(results[4]) : [];
+
+        // Phone directory: single endpoint returns array with CHAMBER, LOCATION_KEY, TELEPHONE_NUMBER, LOCATION
+        allPhones = Array.isArray(getVal(results[5])) ? getVal(results[5]) : [];
+
+        // Committees
+        houseCommittees = Array.isArray(getVal(results[6])) ? getVal(results[6]) : [];
+        senateCommittees = Array.isArray(getVal(results[7])) ? getVal(results[7]) : [];
+
+        // Constitution: returns object with CONSTITUTION_KEY, CONSTITUTION_TITLE, CONSTITUTION_TEXT
+        constitutionArticleIII = getVal(results[8]);
 
         updateStats();
         renderRules();
@@ -1048,7 +1067,7 @@ function updateStats() {
     document.getElementById('statHouseRules').textContent = houseRules.length;
     document.getElementById('statSenateRules').textContent = senateRules.length;
     document.getElementById('statOfficers').textContent = houseOfficers.length + senateOfficers.length;
-    document.getElementById('statStaff').textContent = houseNonmembers.length + senateNonmembers.length;
+    document.getElementById('statStaff').textContent = allNonmembers.length;
 
     // Count chairs
     const chairs = extractChairs();
@@ -1111,6 +1130,7 @@ function getRuleContentHTML(content) {
 
 function renderRules() {
     const rules = currentRulesChamber === 'house' ? houseRules : senateRules;
+    const docURL = currentRulesChamber === 'house' ? houseRulesDocURL : senateRulesDocURL;
     const container = document.getElementById('rulesContainer');
 
     if (!rules || rules.length === 0) {
@@ -1118,10 +1138,16 @@ function renderRules() {
         return;
     }
 
-    container.innerHTML = rules.map((rule, idx) => {
-        const id = rule.Id || rule.id || rule.RuleNumber || `${idx + 1}`;
-        const title = rule.Title || rule.title || rule.Name || 'Untitled';
-        const contentHTML = getRuleContentHTML(rule.Content || rule.content);
+    let html = '';
+    if (docURL) {
+        html += `<div style="margin-bottom:var(--space-4);"><a href="${esc(docURL)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);background:var(--lsa-gold);color:var(--lsa-primary);border-radius:var(--radius-default);font-family:var(--font-primary);font-weight:var(--font-semibold);font-size:var(--text-sm);text-decoration:none;">&#128196; Download Full Rules Document (PDF)</a></div>`;
+    }
+
+    html += rules.map((rule, idx) => {
+        // Rule items may have various field names; try common ones
+        const id = rule.Id || rule.id || rule.RuleNumber || rule.RULE_NUMBER || rule.Number || `${idx + 1}`;
+        const title = rule.Title || rule.title || rule.Name || rule.TITLE || rule.RULE_TITLE || 'Untitled';
+        const contentHTML = getRuleContentHTML(rule.Content || rule.content || rule.TEXT || rule.Text || rule.RULE_TEXT);
         return `
             <div class="rule-item" id="rule-${idx}">
                 <div class="rule-header" onclick="toggleRule(${idx})">
@@ -1134,6 +1160,8 @@ function renderRules() {
                 <div class="rule-content">${contentHTML}</div>
             </div>`;
     }).join('');
+
+    container.innerHTML = html;
 }
 
 function toggleRule(idx) {
@@ -1163,8 +1191,8 @@ function performRuleSearch() {
     ];
 
     const matches = allRules.filter(r => {
-        const title = (r.Title || r.title || r.Name || '').toLowerCase();
-        const text = getRuleContentText(r.Content || r.content).toLowerCase();
+        const title = (r.Title || r.title || r.Name || r.TITLE || r.RULE_TITLE || '').toLowerCase();
+        const text = getRuleContentText(r.Content || r.content || r.TEXT || r.Text || r.RULE_TEXT).toLowerCase();
         return title.includes(query) || text.includes(query);
     });
 
@@ -1176,9 +1204,9 @@ function performRuleSearch() {
     }
 
     resultsContainer.innerHTML = matches.map((rule, idx) => {
-        const id = rule.Id || rule.id || rule.RuleNumber || '';
-        const title = rule.Title || rule.title || rule.Name || 'Untitled';
-        const text = getRuleContentText(rule.Content || rule.content);
+        const id = rule.Id || rule.id || rule.RuleNumber || rule.RULE_NUMBER || rule.Number || '';
+        const title = rule.Title || rule.title || rule.Name || rule.TITLE || rule.RULE_TITLE || 'Untitled';
+        const text = getRuleContentText(rule.Content || rule.content || rule.TEXT || rule.Text || rule.RULE_TEXT);
         const highlighted = highlightText(text, query);
         const titleHighlighted = highlightText(title, query);
 
@@ -1221,11 +1249,13 @@ function renderOfficers() {
     }
 
     grid.innerHTML = officers.map(o => {
-        // Try common field names for officer data
-        const name = o.NAME || o.Name || o.name || `${o.FIRST || o.FirstName || ''} ${o.LAST || o.LastName || ''}`.trim() || 'Unknown';
-        const title = o.TITLE || o.Title || o.title || o.OFFICE || o.Office || o.Position || o.position || '';
+        // Officers API returns MEMBER_KEY, MEMBER_NAME, TITLE
+        const name = o.MEMBER_NAME || o.NAME || o.Name || 'Unknown';
+        // TITLE has leading digits like "01Speaker of the House" - strip them
+        const rawTitle = o.TITLE || o.Title || '';
+        const title = stripTitleDigits(rawTitle);
         const chamber = o._chamber;
-        const initials = name.split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase();
+        const initials = name.split(' ').filter(n => n).map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
         return `
             <div class="officer-card">
@@ -1255,9 +1285,11 @@ function renderLeadership() {
 
         const categorized = { top: [], senior: [], officers: [] };
         officers.forEach(o => {
-            const title = (o.TITLE || o.Title || o.title || o.OFFICE || o.Office || o.Position || '').toLowerCase();
-            const name = o.NAME || o.Name || o.name || `${o.FIRST || o.FirstName || ''} ${o.LAST || o.LastName || ''}`.trim() || 'Unknown';
-            const entry = { name, title: o.TITLE || o.Title || o.title || o.OFFICE || o.Office || o.Position || '' };
+            const rawTitle = o.TITLE || o.Title || '';
+            const cleanTitle = stripTitleDigits(rawTitle);
+            const title = cleanTitle.toLowerCase();
+            const name = o.MEMBER_NAME || o.NAME || o.Name || 'Unknown';
+            const entry = { name, title: cleanTitle };
 
             if (leadershipKeywords.top.some(k => title.includes(k))) {
                 categorized.top.push(entry);
@@ -1309,19 +1341,22 @@ function renderStaff() {
     const query = (document.getElementById('staffSearchInput').value || '').toLowerCase();
     const chamberFilter = document.getElementById('staffChamberFilter').value;
 
-    let staff = [];
-    if (chamberFilter === 'all' || chamberFilter === 'house') {
-        staff = staff.concat(houseNonmembers.map(s => ({ ...s, _chamber: 'House' })));
-    }
-    if (chamberFilter === 'all' || chamberFilter === 'senate') {
-        staff = staff.concat(senateNonmembers.map(s => ({ ...s, _chamber: 'Senate' })));
+    // allNonmembers has NAME_FULL, CHAMBER, BIOGRAPHY, etc.
+    let staff = allNonmembers.slice();
+
+    if (chamberFilter !== 'all') {
+        const chamberCode = chamberFilter === 'house' ? 'H' : 'S';
+        staff = staff.filter(s => {
+            const ch = (s.CHAMBER || '').toUpperCase();
+            return ch === chamberCode || ch === chamberFilter.toUpperCase();
+        });
     }
 
     if (query) {
         staff = staff.filter(s => {
-            const name = (s.NAME || s.Name || s.name || `${s.FIRST || ''} ${s.LAST || ''}`.trim()).toLowerCase();
-            const title = (s.TITLE || s.Title || s.title || s.OFFICE || '').toLowerCase();
-            return name.includes(query) || title.includes(query);
+            const name = (s.NAME_FULL || s.NAME || '').toLowerCase();
+            const bio = (s.BIOGRAPHY || '').toLowerCase();
+            return name.includes(query) || bio.includes(query);
         });
     }
 
@@ -1334,12 +1369,14 @@ function renderStaff() {
     }
 
     tbody.innerHTML = staff.map(s => {
-        const name = s.NAME || s.Name || s.name || `${s.FIRST || ''} ${s.LAST || ''}`.trim() || 'Unknown';
-        const title = s.TITLE || s.Title || s.title || s.OFFICE || s.Office || '';
+        const name = s.NAME_FULL || s.NAME || 'Unknown';
+        const chamber = (s.CHAMBER || '').toUpperCase();
+        const chamberLabel = chamber === 'H' ? 'House' : chamber === 'S' ? 'Senate' : (s.CHAMBER || 'Unknown');
+        const bio = s.BIOGRAPHY || '';
         return `<tr>
             <td>${esc(name)}</td>
-            <td>${esc(title)}</td>
-            <td><span class="officer-chamber-badge ${s._chamber === 'House' ? 'chamber-house' : 'chamber-senate'}">${s._chamber}</span></td>
+            <td>${esc(bio)}</td>
+            <td><span class="officer-chamber-badge ${chamberLabel === 'House' ? 'chamber-house' : 'chamber-senate'}">${chamberLabel}</span></td>
         </tr>`;
     }).join('');
 }
@@ -1408,20 +1445,23 @@ function renderPhones() {
     const query = (document.getElementById('phoneSearchInput').value || '').toLowerCase();
     const chamberFilter = document.getElementById('phoneChamberFilter').value;
 
-    let phones = [];
-    if (chamberFilter === 'all' || chamberFilter === 'house') {
-        phones = phones.concat(housePhones.map(p => ({ ...p, _chamber: 'House' })));
-    }
-    if (chamberFilter === 'all' || chamberFilter === 'senate') {
-        phones = phones.concat(senatePhones.map(p => ({ ...p, _chamber: 'Senate' })));
+    // allPhones has CHAMBER, LOCATION_KEY, TELEPHONE_NUMBER, LOCATION
+    let phones = allPhones.slice();
+
+    if (chamberFilter !== 'all') {
+        const chamberCode = chamberFilter === 'house' ? 'H' : 'S';
+        phones = phones.filter(p => {
+            const ch = (p.CHAMBER || '').toUpperCase();
+            return ch === chamberCode || ch === chamberFilter.toUpperCase();
+        });
     }
 
     if (query) {
         phones = phones.filter(p => {
-            const name = (p.NAME || p.Name || p.name || `${p.FIRST || ''} ${p.LAST || ''}`.trim()).toLowerCase();
-            const office = (p.TITLE || p.Title || p.OFFICE || p.Office || p.DEPARTMENT || '').toLowerCase();
-            const phone = (p.PHONE || p.Phone || p.phone || p.TELEPHONE || '').toLowerCase();
-            return name.includes(query) || office.includes(query) || phone.includes(query);
+            const location = (p.LOCATION || '').toLowerCase();
+            const phone = (p.TELEPHONE_NUMBER || '').toLowerCase();
+            const locKey = (p.LOCATION_KEY || '').toLowerCase();
+            return location.includes(query) || phone.includes(query) || locKey.includes(query);
         });
     }
 
@@ -1434,14 +1474,16 @@ function renderPhones() {
     }
 
     tbody.innerHTML = phones.map(p => {
-        const name = p.NAME || p.Name || p.name || `${p.FIRST || ''} ${p.LAST || ''}`.trim() || '';
-        const office = p.TITLE || p.Title || p.OFFICE || p.Office || p.DEPARTMENT || p.Department || '';
-        const phone = p.PHONE || p.Phone || p.phone || p.TELEPHONE || p.Telephone || '';
+        const location = p.LOCATION || '';
+        const phone = p.TELEPHONE_NUMBER || '';
+        const chamber = (p.CHAMBER || '').toUpperCase();
+        const chamberLabel = chamber === 'H' ? 'House' : chamber === 'S' ? 'Senate' : (p.CHAMBER || 'Unknown');
+        const locKey = p.LOCATION_KEY || '';
         return `<tr>
-            <td>${esc(name)}</td>
-            <td>${esc(office)}</td>
+            <td>${esc(locKey)}</td>
+            <td>${esc(location)}</td>
             <td>${esc(phone)}</td>
-            <td><span class="officer-chamber-badge ${p._chamber === 'House' ? 'chamber-house' : 'chamber-senate'}">${p._chamber}</span></td>
+            <td><span class="officer-chamber-badge ${chamberLabel === 'House' ? 'chamber-house' : 'chamber-senate'}">${chamberLabel}</span></td>
         </tr>`;
     }).join('');
 }
@@ -1450,50 +1492,50 @@ function renderPhones() {
 function renderConstitution() {
     const container = document.getElementById('constitutionContainer');
 
-    if (!constitutionArticleIII || constitutionArticleIII.length === 0) {
+    if (!constitutionArticleIII) {
         container.innerHTML = '<div class="loading-container"><div class="loading-text">No constitutional data available.</div></div>';
         return;
     }
 
-    // Handle different structures
-    if (Array.isArray(constitutionArticleIII)) {
-        container.innerHTML = constitutionArticleIII.map((section, idx) => {
-            const sectionNum = section.SectionNumber || section.Section || section.Number || section.Id || section.id || (idx + 1);
-            const title = section.Title || section.title || section.Name || section.name || section.TITLE || '';
-            const content = section.Content || section.content || section.Text || section.text || section.CONTENT || '';
+    // API returns object with CONSTITUTION_KEY, CONSTITUTION_TITLE, CONSTITUTION_TEXT
+    // or possibly an array of such objects
+    const sections = Array.isArray(constitutionArticleIII) ? constitutionArticleIII : [constitutionArticleIII];
 
-            let contentHTML = '';
-            if (typeof content === 'string') {
-                contentHTML = `<p>${content}</p>`;
-            } else if (Array.isArray(content)) {
-                contentHTML = content.map(seg => {
-                    if (typeof seg === 'string') return seg;
-                    if (seg && typeof seg === 'object') {
-                        let text = seg.Text || seg.text || seg.Value || seg.value || seg.content || '';
-                        if (seg.Bold || seg.bold) text = `<strong>${text}</strong>`;
-                        if (seg.Italic || seg.italic) text = `<em>${text}</em>`;
-                        return text;
-                    }
-                    return '';
-                }).join('');
-            }
-
-            return `
-                <div class="constitution-section" id="const-${idx}">
-                    <div class="constitution-header" onclick="document.getElementById('const-${idx}').classList.toggle('expanded')">
-                        <span class="constitution-title">Section ${sectionNum}${title ? ': ' + esc(title) : ''}</span>
-                        <span class="rule-chevron">&#9660;</span>
-                    </div>
-                    <div class="constitution-body">${contentHTML || '<p><em>Content not available</em></p>'}</div>
-                </div>`;
-        }).join('');
-    } else {
-        // Single object - render as-is
-        const content = constitutionArticleIII.Content || constitutionArticleIII.content || constitutionArticleIII.Text || JSON.stringify(constitutionArticleIII);
-        container.innerHTML = `<div class="constitution-section expanded">
-            <div class="constitution-body"><p>${content}</p></div>
-        </div>`;
+    if (sections.length === 0) {
+        container.innerHTML = '<div class="loading-container"><div class="loading-text">No constitutional data available.</div></div>';
+        return;
     }
+
+    container.innerHTML = sections.map((section, idx) => {
+        const key = section.CONSTITUTION_KEY || section.Key || section.Id || (idx + 1);
+        const title = section.CONSTITUTION_TITLE || section.Title || section.TITLE || '';
+        const text = section.CONSTITUTION_TEXT || section.Text || section.TEXT || section.Content || '';
+
+        let contentHTML = '';
+        if (typeof text === 'string') {
+            contentHTML = `<div>${text}</div>`;
+        } else if (Array.isArray(text)) {
+            contentHTML = text.map(seg => {
+                if (typeof seg === 'string') return seg;
+                if (seg && typeof seg === 'object') {
+                    let t = seg.Text || seg.text || seg.Value || '';
+                    if (seg.Bold || seg.bold) t = `<strong>${t}</strong>`;
+                    if (seg.Italic || seg.italic) t = `<em>${t}</em>`;
+                    return t;
+                }
+                return '';
+            }).join('');
+        }
+
+        return `
+            <div class="constitution-section" id="const-${idx}">
+                <div class="constitution-header" onclick="document.getElementById('const-${idx}').classList.toggle('expanded')">
+                    <span class="constitution-title">${esc(String(key))}${title ? ': ' + esc(title) : ''}</span>
+                    <span class="rule-chevron">&#9660;</span>
+                </div>
+                <div class="constitution-body">${contentHTML || '<p><em>Content not available</em></p>'}</div>
+            </div>`;
+    }).join('');
 }
 
 // ==================== QUICK REFERENCE ====================
@@ -1503,8 +1545,8 @@ function renderQuickRef() {
     // Extract key rule information by searching for common topics
     function findRuleByKeyword(rules, keywords) {
         for (const rule of rules) {
-            const title = (rule.Title || rule.title || rule.Name || '').toLowerCase();
-            const content = getRuleContentText(rule.Content || rule.content).toLowerCase();
+            const title = (rule.Title || rule.title || rule.Name || rule.TITLE || rule.RULE_TITLE || '').toLowerCase();
+            const content = getRuleContentText(rule.Content || rule.content || rule.TEXT || rule.Text || rule.RULE_TEXT).toLowerCase();
             if (keywords.some(k => title.includes(k) || content.includes(k))) {
                 return rule;
             }
@@ -1523,8 +1565,8 @@ function renderQuickRef() {
 
     function ruleRef(rule) {
         if (!rule) return 'N/A';
-        const id = rule.Id || rule.id || rule.RuleNumber || '';
-        const title = rule.Title || rule.title || rule.Name || '';
+        const id = rule.Id || rule.id || rule.RuleNumber || rule.RULE_NUMBER || rule.Number || '';
+        const title = rule.Title || rule.title || rule.Name || rule.TITLE || rule.RULE_TITLE || '';
         return `Rule ${id}: ${title}`;
     }
 

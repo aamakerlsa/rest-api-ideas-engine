@@ -807,9 +807,10 @@
             await loadSessions();
             const curRes = await fetchJSON('/currentsession');
             if (curRes) {
-                currentSession = curRes;
+                const curSession = Array.isArray(curRes) ? curRes[0] : curRes;
+                currentSession = curSession;
                 const sel = $('session-select');
-                sel.value = currentSession.SESSIONID || currentSession;
+                sel.value = curSession.SESS_NUMBER || curSession.SESSIONID || curSession;
             }
             await loadAllData();
         } catch(e) {
@@ -832,14 +833,17 @@
         const sel = $('session-select');
         sel.innerHTML = '';
         sessions.forEach(s => {
+            const id = s.SESS_NUMBER || s.SESSIONID || s.ID || s;
             const opt = document.createElement('option');
-            const id = s.SESSIONID || s.ID || s;
             opt.value = id;
-            opt.textContent = s.DESCRIPTION || s.SESSIONNAME || `Session ${id}`;
+            const label = s.SESS_START_DATE && s.SESS_END_DATE
+                ? `Session ${id} (${s.SESS_START_DATE}-${s.SESS_END_DATE})`
+                : s.DESCRIPTION || s.SESSIONNAME || `Session ${id}`;
+            opt.textContent = label;
             sel.appendChild(opt);
         });
         sel.addEventListener('change', () => {
-            currentSession = sessions.find(s => String(s.SESSIONID || s.ID || s) === sel.value) || sel.value;
+            currentSession = sessions.find(s => String(s.SESS_NUMBER || s.SESSIONID || s.ID || s) === sel.value) || sel.value;
             loadAllData();
         });
         $('chamber-select').addEventListener('change', () => rebuildUI());
@@ -946,11 +950,13 @@
                             const dt = parseDate(act.ACTION_DATE || act.ACTIONDATE);
                             if (!dt) continue;
                             if (!activityMap[dt]) activityMap[dt] = { bills: [], votes: [], meetings: [] };
+                            const actionChamber = act.ACTION_CHAMBER || act.CHAMBER || '';
+                            const mappedChamber = actionChamber === 'H' ? 'house' : actionChamber === 'S' ? 'senate' : actionChamber.toLowerCase();
                             activityMap[dt].bills.push({
                                 BILLNUMBER: bill.BILLNUMBER || bill.BILL_NUMBER,
                                 BILLTITLE: bill.BILLTITLE || bill.TITLE || '',
-                                ACTION: act.DESCRIPTION || act.ACTION_DESCRIPTION || act.ACTION || 'Action',
-                                _chamber: (act.CHAMBER || '').toLowerCase() || guessChamber(bill)
+                                ACTION: act.ACTION || act.DESCRIPTION || act.ACTION_DESCRIPTION || 'Action',
+                                _chamber: mappedChamber || guessChamber(bill)
                             });
                         }
                     }
@@ -979,7 +985,17 @@
     function parseDate(val) {
         if (!val) return null;
         try {
-            const d = new Date(val);
+            // Handle "MM/DD/YYYY" format (e.g. MEETINGDATE: "04/14/2026")
+            const slashMatch = String(val).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (slashMatch) {
+                return `${slashMatch[3]}-${slashMatch[1].padStart(2,'0')}-${slashMatch[2].padStart(2,'0')}`;
+            }
+            // Handle "YYYY-MM-DD HH:MM:SS" format - replace space with T for reliable parsing
+            let normalized = String(val);
+            if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(normalized)) {
+                normalized = normalized.replace(' ', 'T');
+            }
+            const d = new Date(normalized);
             if (isNaN(d.getTime())) return null;
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -1050,12 +1066,13 @@
             $('heatmap-area').innerHTML = '<p class="detail-empty">No activity data available.</p>';
             return;
         }
-        const year = parseInt(dates[0].substring(0, 4));
-        $('heatmap-year-badge').textContent = year;
+        const firstYear = parseInt(dates[0].substring(0, 4));
+        const lastYear = parseInt(dates[dates.length - 1].substring(0, 4));
+        $('heatmap-year-badge').textContent = firstYear === lastYear ? String(firstYear) : `${firstYear}-${lastYear}`;
 
-        // Build full year starting from Jan 1
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31);
+        // Full range from Jan 1 of first year to Dec 31 of last year
+        const startDate = new Date(firstYear, 0, 1);
+        const endDate = new Date(lastYear, 11, 31);
 
         // Compute max for levels
         let maxCount = 0;
@@ -1069,7 +1086,6 @@
 
         // Month labels
         const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        let monthLabelHtml = '<div class="heatmap-month-labels">';
 
         // Build weeks
         let weeksHtml = '<div class="heatmap-container">';
@@ -1092,7 +1108,7 @@
             weekHtml += '<div class="heatmap-cell heatmap-empty"></div>';
         }
 
-        let lastMonth = -1;
+        let lastMonthKey = '';
         let weekIdx = 0;
         const monthPositions = [];
 
@@ -1102,13 +1118,14 @@
             const d = current.getDate();
             const dow = current.getDay();
             const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const monthKey = `${y}-${m}`;
 
-            if (m !== lastMonth) {
-                monthPositions.push({ month: m, weekIdx });
-                lastMonth = m;
+            if (monthKey !== lastMonthKey) {
+                monthPositions.push({ month: m, year: y, weekIdx });
+                lastMonthKey = monthKey;
             }
 
-            if (dow === 0 && !(m === 0 && d === 1)) {
+            if (dow === 0 && !(y === firstYear && m === 0 && d === 1)) {
                 weekHtml += '</div><div class="heatmap-week">';
                 weekIdx++;
             }
@@ -1129,24 +1146,15 @@
 
         // Build month label row
         const weekWidth = 17; // 14px cell + 3px gap
-        monthLabelHtml = '<div class="heatmap-month-labels" style="padding-left:30px">';
-        for (const mp of monthPositions) {
-            const left = mp.weekIdx * weekWidth;
-            monthLabelHtml += `<span class="heatmap-month-label" style="position:relative;left:0">${monthNames[mp.month]}</span>`;
-        }
-        monthLabelHtml += '</div>';
-
-        // We'll position month labels by inserting spacer elements
         let monthRow = '<div style="display:flex;gap:3px;padding-left:30px;margin-bottom:4px;">';
         let prevWeek = 0;
         for (const mp of monthPositions) {
             const gapWeeks = mp.weekIdx - prevWeek;
             if (gapWeeks > 0 && prevWeek > 0) {
                 monthRow += `<span style="width:${gapWeeks * weekWidth - 30}px"></span>`;
-            } else if (prevWeek > 0) {
-                // no gap
             }
-            monthRow += `<span class="heatmap-month-label" style="min-width:${Math.max(30, 0)}px;font-size:10px;color:var(--lsa-gray-500)">${monthNames[mp.month]}</span>`;
+            const label = firstYear !== lastYear ? `${monthNames[mp.month]} ${mp.year}` : monthNames[mp.month];
+            monthRow += `<span class="heatmap-month-label" style="min-width:30px;font-size:10px;color:var(--lsa-gray-500)">${label}</span>`;
             prevWeek = mp.weekIdx + 2;
         }
         monthRow += '</div>';
@@ -1223,7 +1231,8 @@
             html += `<div class="detail-section"><h5>Votes (${a.votes.length})</h5>`;
             const shown = a.votes.slice(0, 15);
             for (const v of shown) {
-                html += `<div class="detail-item"><span class="bill-number">${v.BILLNUMBER || v.BILL_NUMBER || 'Vote'}</span> <span class="action-text">${escHtml(v.DESCRIPTION || v.MOTION || v.RESULT || '')}</span></div>`;
+                const approved = v.APPROVED === '1' ? ' [Approved]' : v.APPROVED === '0' ? ' [Failed]' : '';
+                html += `<div class="detail-item"><span class="bill-number">${v.BILL_NUMBER || v.BILLNUMBER || 'Vote'}</span> <span class="action-text">${escHtml(v.MOTION || v.DESCRIPTION || v.RESULT || '')}${approved}</span></div>`;
             }
             if (a.votes.length > 15) html += `<div class="detail-item" style="text-align:center;color:var(--lsa-gray-400)">...and ${a.votes.length - 15} more</div>`;
             html += '</div>';
@@ -1387,7 +1396,8 @@
             $('mini-calendars').innerHTML = '<p class="detail-empty">No data.</p>';
             return;
         }
-        const year = parseInt(dates[0].substring(0, 4));
+        const firstYear = parseInt(dates[0].substring(0, 4));
+        const lastYear = parseInt(dates[dates.length - 1].substring(0, 4));
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
@@ -1402,26 +1412,29 @@
         const dayHeaders = ['S','M','T','W','T','F','S'];
         let html = '';
 
-        for (let m = 0; m < 12; m++) {
-            html += `<div class="mini-month"><div class="mini-month-title">${monthNames[m]}</div><div class="mini-month-grid">`;
-            for (const dh of dayHeaders) {
-                html += `<div class="day-header">${dh}</div>`;
+        for (let year = firstYear; year <= lastYear; year++) {
+            for (let m = 0; m < 12; m++) {
+                const titleLabel = firstYear !== lastYear ? `${monthNames[m]} ${year}` : monthNames[m];
+                html += `<div class="mini-month"><div class="mini-month-title">${titleLabel}</div><div class="mini-month-grid">`;
+                for (const dh of dayHeaders) {
+                    html += `<div class="day-header">${dh}</div>`;
+                }
+                const firstDay = new Date(year, m, 1).getDay();
+                const daysInMonth = new Date(year, m + 1, 0).getDate();
+                for (let i = 0; i < firstDay; i++) {
+                    html += '<div class="mini-day" style="cursor:default"></div>';
+                }
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateStr = `${year}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const count = getActivityCount(dateStr);
+                    const intensity = maxCount === 0 ? 0 : count === 0 ? 0 : Math.min(1, count / maxCount);
+                    const bg = count === 0 ? 'var(--lsa-gray-200)' : `rgba(var(--lsa-primary-rgb), ${0.15 + intensity * 0.85})`;
+                    const color = intensity > 0.5 ? 'var(--lsa-white)' : 'var(--lsa-gray-600)';
+                    const todayCls = dateStr === todayStr ? ' today-mini' : '';
+                    html += `<div class="mini-day${todayCls}" style="background:${bg};color:${color}" data-date="${dateStr}" onclick="window.__bcalSelectDay('${dateStr}')" title="${dateStr}: ${count}">${d}</div>`;
+                }
+                html += '</div></div>';
             }
-            const firstDay = new Date(year, m, 1).getDay();
-            const daysInMonth = new Date(year, m + 1, 0).getDate();
-            for (let i = 0; i < firstDay; i++) {
-                html += '<div class="mini-day" style="cursor:default"></div>';
-            }
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateStr = `${year}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const count = getActivityCount(dateStr);
-                const intensity = maxCount === 0 ? 0 : count === 0 ? 0 : Math.min(1, count / maxCount);
-                const bg = count === 0 ? 'var(--lsa-gray-200)' : `rgba(var(--lsa-primary-rgb), ${0.15 + intensity * 0.85})`;
-                const color = intensity > 0.5 ? 'var(--lsa-white)' : 'var(--lsa-gray-600)';
-                const todayCls = dateStr === todayStr ? ' today-mini' : '';
-                html += `<div class="mini-day${todayCls}" style="background:${bg};color:${color}" data-date="${dateStr}" onclick="window.__bcalSelectDay('${dateStr}')" title="${dateStr}: ${count}">${d}</div>`;
-            }
-            html += '</div></div>';
         }
 
         $('mini-calendars').innerHTML = html;
