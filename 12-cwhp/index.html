@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CWHP - Committee Workload &amp; Health Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Droid+Serif:wght@400;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/lsa-styles.css">
+    <style>
+        body {
+            background-color: var(--lsa-gray-100);
+            min-height: 100vh;
+        }
+
+        /* Navbar overrides */
+        .app-navbar {
+            background-color: var(--lsa-primary);
+            padding: var(--space-3) var(--space-6);
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: var(--z-sticky);
+        }
+        .app-navbar .navbar-brand {
+            color: var(--lsa-white);
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-lg);
+            gap: var(--space-3);
+        }
+        .app-navbar .navbar-brand img {
+            height: 36px;
+            width: auto;
+        }
+        .app-navbar .nav-back {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: var(--text-sm);
+            font-family: var(--font-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            transition: color var(--transition-fast);
+        }
+        .app-navbar .nav-back:hover {
+            color: var(--lsa-white);
+        }
+        .brand-tagline {
+            font-size: var(--text-xs);
+            color: var(--lsa-gold);
+            font-family: var(--font-primary);
+            font-weight: var(--font-normal);
+            font-style: italic;
+        }
+
+        /* Hero banner */
+        .hero-banner {
+            background: linear-gradient(135deg, var(--lsa-primary) 0%, var(--lsa-queen-blue) 100%);
+            color: var(--lsa-white);
+            padding: var(--space-8) var(--space-6);
+            text-align: center;
+        }
+        .hero-banner h1 {
+            color: var(--lsa-white);
+            font-family: var(--font-display);
+            font-size: var(--text-3xl);
+            margin-bottom: var(--space-2);
+        }
+        .hero-banner p {
+            color: rgba(255,255,255,0.8);
+            font-size: var(--text-lg);
+            margin-bottom: 0;
+        }
+
+        /* Main container */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-6);
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-16);
+            gap: var(--space-4);
+        }
+        .loading-overlay p {
+            color: var(--lsa-gray-500);
+            font-size: var(--text-sm);
+        }
+
+        /* KPI row */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+        .kpi-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-5);
+            text-align: center;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .kpi-value {
+            font-family: var(--font-display);
+            font-size: var(--text-4xl);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+            line-height: 1;
+            margin-bottom: var(--space-1);
+        }
+        .kpi-label {
+            font-family: var(--font-primary);
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+        }
+        .kpi-sub {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-400);
+            margin-top: var(--space-1);
+        }
+
+        /* Section headers */
+        .section-header {
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-xl);
+            color: var(--lsa-primary);
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-2);
+            border-bottom: 2px solid var(--lsa-gold);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        /* Chamber tabs */
+        .chamber-tabs {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-6);
+        }
+        .chamber-tab {
+            padding: var(--space-2) var(--space-6);
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            font-family: var(--font-heading-alt);
+            font-weight: var(--font-semibold);
+            font-size: var(--text-sm);
+            transition: all var(--transition-fast);
+            border: 2px solid transparent;
+            background: var(--lsa-white);
+            color: var(--lsa-gray-600);
+            box-shadow: var(--shadow-sm);
+        }
+        .chamber-tab:hover {
+            color: var(--lsa-primary);
+            box-shadow: var(--shadow-default);
+        }
+        .chamber-tab.active {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            box-shadow: var(--shadow-md);
+        }
+        .chamber-tab.active-senate {
+            background: var(--lsa-queen-blue);
+            color: var(--lsa-white);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Chamber comparison */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+        .comparison-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+        .comparison-header {
+            padding: var(--space-3) var(--space-5);
+            font-family: var(--font-heading-alt);
+            font-weight: var(--font-bold);
+            font-size: var(--text-base);
+            color: var(--lsa-white);
+        }
+        .comparison-header.house { background: var(--lsa-primary); }
+        .comparison-header.senate { background: var(--lsa-queen-blue); }
+        .comparison-body {
+            padding: var(--space-4) var(--space-5);
+        }
+        .comparison-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-2) 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+            font-size: var(--text-sm);
+        }
+        .comparison-stat:last-child { border-bottom: none; }
+        .comparison-stat-label { color: var(--lsa-gray-600); }
+        .comparison-stat-value { font-weight: var(--font-bold); color: var(--lsa-primary); }
+
+        /* Committee grid */
+        .committee-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+        .committee-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .committee-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        .committee-card-header {
+            padding: var(--space-3) var(--space-4);
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: var(--space-2);
+        }
+        .committee-card-header.senate-header {
+            background: var(--lsa-queen-blue);
+        }
+        .committee-card-name {
+            font-family: var(--font-heading-alt);
+            font-weight: var(--font-bold);
+            font-size: var(--text-sm);
+            line-height: var(--leading-snug);
+        }
+        .committee-card-body {
+            padding: var(--space-4);
+        }
+        .committee-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+        }
+        .committee-meta-item {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+        }
+        .committee-meta-item strong {
+            display: block;
+            color: var(--lsa-gray-700);
+            font-size: var(--text-sm);
+        }
+        .committee-stats {
+            display: flex;
+            gap: var(--space-3);
+            padding-top: var(--space-3);
+            border-top: 1px solid var(--lsa-gray-100);
+        }
+        .committee-stat {
+            text-align: center;
+            flex: 1;
+        }
+        .committee-stat-num {
+            font-family: var(--font-display);
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+            line-height: 1;
+        }
+        .committee-stat-label {
+            font-size: 0.65rem;
+            color: var(--lsa-gray-400);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+        }
+
+        /* Charts area */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+        .chart-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-5);
+        }
+        .chart-title {
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-base);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+            margin-bottom: var(--space-4);
+        }
+
+        /* Bar chart */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        .bar-label {
+            width: 160px;
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-600);
+            text-align: right;
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bar-track {
+            flex: 1;
+            height: 22px;
+            background: var(--lsa-gray-100);
+            border-radius: var(--radius-default);
+            overflow: hidden;
+            position: relative;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: var(--radius-default);
+            transition: width 0.6s ease;
+            display: flex;
+            align-items: center;
+            padding-left: var(--space-2);
+            font-size: var(--text-xs);
+            font-weight: var(--font-bold);
+            color: var(--lsa-white);
+            min-width: fit-content;
+        }
+        .bar-fill.house-bar { background: var(--lsa-primary); }
+        .bar-fill.senate-bar { background: var(--lsa-queen-blue); }
+        .bar-fill.gold-bar { background: var(--lsa-gold); color: var(--lsa-primary); }
+        .bar-value {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            width: 30px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        /* Overloaded members alert */
+        .overloaded-section {
+            margin-bottom: var(--space-6);
+        }
+        .overloaded-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: var(--space-3);
+        }
+        .overloaded-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-4);
+            border-left: 4px solid var(--lsa-gold);
+        }
+        .overloaded-name {
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+            margin-bottom: var(--space-1);
+        }
+        .overloaded-count {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            margin-bottom: var(--space-2);
+        }
+        .overloaded-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .overloaded-list li {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-600);
+            padding: 2px 0;
+            margin-bottom: 0;
+        }
+
+        /* Ranking table */
+        .ranking-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-2) 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+            margin-bottom: 0;
+        }
+        .ranking-item:last-child { border-bottom: none; }
+        .ranking-rank {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-full);
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            font-size: var(--text-xs);
+            font-weight: var(--font-bold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .ranking-rank.gold { background: var(--lsa-gold); color: var(--lsa-primary); }
+        .ranking-rank.silver { background: var(--lsa-gray-400); color: var(--lsa-white); }
+        .ranking-rank.bronze { background: #cd7f32; color: var(--lsa-white); }
+        .ranking-name {
+            flex: 1;
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-700);
+        }
+        .ranking-value {
+            font-weight: var(--font-bold);
+            font-size: var(--text-sm);
+            color: var(--lsa-primary);
+        }
+
+        /* Detail panel (modal) */
+        .detail-backdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: var(--z-modal-backdrop);
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-default);
+        }
+        .detail-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .detail-panel {
+            position: fixed;
+            top: 0;
+            right: -500px;
+            width: 500px;
+            max-width: 90vw;
+            height: 100%;
+            background: var(--lsa-white);
+            box-shadow: var(--shadow-2xl);
+            z-index: var(--z-modal);
+            transition: right var(--transition-slow);
+            overflow-y: auto;
+        }
+        .detail-panel.active {
+            right: 0;
+        }
+        .detail-header {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            padding: var(--space-5) var(--space-6);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .detail-header.senate-detail { background: var(--lsa-queen-blue); }
+        .detail-header h3 {
+            color: var(--lsa-white);
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-lg);
+            margin-bottom: var(--space-1);
+        }
+        .detail-close {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.8);
+            font-size: var(--text-2xl);
+            cursor: pointer;
+            line-height: 1;
+            padding: var(--space-1);
+        }
+        .detail-close:hover { color: var(--lsa-white); }
+        .detail-body {
+            padding: var(--space-6);
+        }
+        .detail-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3);
+            margin-bottom: var(--space-5);
+        }
+        .detail-info-item {
+            font-size: var(--text-sm);
+        }
+        .detail-info-item label {
+            display: block;
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-400);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            margin-bottom: 2px;
+        }
+        .detail-info-item span {
+            font-weight: var(--font-semibold);
+            color: var(--lsa-gray-700);
+        }
+        .detail-members-title {
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-base);
+            color: var(--lsa-primary);
+            margin-bottom: var(--space-3);
+            padding-bottom: var(--space-2);
+            border-bottom: 2px solid var(--lsa-gold);
+        }
+        .member-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-default);
+            margin-bottom: var(--space-1);
+            transition: background var(--transition-fast);
+        }
+        .member-row:hover {
+            background: var(--lsa-gray-100);
+        }
+        .member-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            font-size: var(--text-xs);
+            font-weight: var(--font-bold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .member-info { flex: 1; }
+        .member-name {
+            font-weight: var(--font-semibold);
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-700);
+        }
+        .member-meta {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-400);
+        }
+
+        /* Meeting history in detail panel */
+        .meeting-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .meeting-item {
+            padding: var(--space-2) 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-600);
+            margin-bottom: 0;
+        }
+        .meeting-item:last-child { border-bottom: none; }
+        .meeting-date {
+            font-weight: var(--font-semibold);
+            color: var(--lsa-gray-700);
+        }
+
+        /* Error state */
+        .error-state {
+            text-align: center;
+            padding: var(--space-8);
+            color: var(--lsa-ruby-red);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .charts-row { grid-template-columns: 1fr; }
+            .comparison-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .committee-grid { grid-template-columns: 1fr; }
+            .hero-banner h1 { font-size: var(--text-2xl); }
+            .main-content { padding: var(--space-4); }
+            .bar-label { width: 100px; }
+            .overloaded-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .kpi-row { grid-template-columns: 1fr; }
+            .chamber-tabs { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="app-navbar navbar">
+    <div class="navbar-brand">
+        <img src="../assets/images/LSA_seal.png" alt="LSA Seal">
+        <div>
+            <div>CWHP</div>
+            <div class="brand-tagline">Committee Workload &amp; Health Profile</div>
+        </div>
+    </div>
+    <a href="../index.html" class="nav-back">
+        <span>&#8592;</span> Back to Apps
+    </a>
+</nav>
+
+<!-- Hero -->
+<div class="hero-banner">
+    <h1>Committee Workload &amp; Health Profile</h1>
+    <p>Measure what matters in committee performance.</p>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+    <!-- Loading State -->
+    <div id="loadingState" class="loading-overlay">
+        <div class="spinner spinner-lg"></div>
+        <p>Loading committee data from the SC Statehouse API...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="error-state" style="display:none;">
+        <h3>Error Loading Data</h3>
+        <p id="errorMessage"></p>
+        <button class="btn btn-primary" onclick="loadAllData()" style="margin-top:var(--space-4);">Retry</button>
+    </div>
+
+    <!-- Dashboard (hidden until loaded) -->
+    <div id="dashboard" style="display:none;">
+
+        <!-- KPIs -->
+        <div class="kpi-row" id="kpiRow"></div>
+
+        <!-- Chamber Comparison -->
+        <h2 class="section-header">&#9878; Chamber Comparison</h2>
+        <div class="comparison-grid" id="comparisonGrid"></div>
+
+        <!-- Chamber Tabs -->
+        <div class="chamber-tabs" id="chamberTabs">
+            <button class="chamber-tab active" data-chamber="all" onclick="filterChamber('all')">All Committees</button>
+            <button class="chamber-tab" data-chamber="house" onclick="filterChamber('house')">House</button>
+            <button class="chamber-tab" data-chamber="senate" onclick="filterChamber('senate')">Senate</button>
+        </div>
+
+        <!-- Committee Scorecard Grid -->
+        <h2 class="section-header">&#127970; Committee Scorecard</h2>
+        <div class="committee-grid" id="committeeGrid"></div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+            <!-- Bill Workload -->
+            <div class="chart-card">
+                <div class="chart-title">Bills Referred per Committee</div>
+                <div id="billWorkloadChart" class="bar-chart"></div>
+            </div>
+            <!-- Committee Size -->
+            <div class="chart-card">
+                <div class="chart-title">Committee Size (Member Count)</div>
+                <div id="committeeSizeChart" class="bar-chart"></div>
+            </div>
+        </div>
+
+        <div class="charts-row">
+            <!-- Meeting Frequency Ranking -->
+            <div class="chart-card">
+                <div class="chart-title">Meeting Frequency Ranking</div>
+                <ol class="ranking-list" id="meetingRanking"></ol>
+            </div>
+            <!-- Member Load -->
+            <div class="chart-card">
+                <div class="chart-title">Member Load Analysis (Committees per Member)</div>
+                <div id="memberLoadChart" class="bar-chart"></div>
+            </div>
+        </div>
+
+        <!-- Overloaded Members Alert -->
+        <div class="overloaded-section" id="overloadedSection">
+            <div class="alert alert-warning" style="margin-bottom: var(--space-4);">
+                <div class="alert-title">&#9888; Overloaded Members</div>
+                Members serving on 3 or more committees are highlighted below.
+            </div>
+            <div class="overloaded-grid" id="overloadedGrid"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-backdrop" id="detailBackdrop" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel">
+    <div class="detail-header" id="detailHeader">
+        <div>
+            <h3 id="detailTitle">Committee Name</h3>
+            <span class="brand-tagline" id="detailChamber"></span>
+        </div>
+        <button class="detail-close" onclick="closeDetail()">&times;</button>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+</div>
+
+<script>
+const BASE = 'https://rest.scstatehouse.gov';
+
+// Global data stores
+let houseCommittees = [];
+let senateCommittees = [];
+let houseMeetings = [];
+let senateMeetings = [];
+let houseBios = [];
+let senateBios = [];
+let allBills = [];
+let currentFilter = 'all';
+
+// ====================== DATA LOADING ======================
+async function apiFetch(endpoint) {
+    const res = await fetch(BASE + endpoint);
+    if (!res.ok) throw new Error(`API error ${res.status} for ${endpoint}`);
+    const json = await res.json();
+    return json.data;
+}
+
+async function loadBills() {
+    const promises = [];
+    // House bills: 1-30
+    for (let i = 1; i <= 30; i++) {
+        promises.push(apiFetch(`/bills/126/${i}`).catch(() => null));
+    }
+    // Senate bills: 3001-3030
+    for (let i = 3001; i <= 3030; i++) {
+        promises.push(apiFetch(`/bills/126/${i}`).catch(() => null));
+    }
+    const results = await Promise.all(promises);
+    return results.filter(b => b != null);
+}
+
+async function loadAllData() {
+    document.getElementById('loadingState').style.display = 'flex';
+    document.getElementById('errorState').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'none';
+
+    try {
+        const [hc, sc, hm, sm, hb, sb, bills] = await Promise.all([
+            apiFetch('/house/committees'),
+            apiFetch('/senate/committees'),
+            apiFetch('/house/meetings-all'),
+            apiFetch('/senate/meetings-all'),
+            apiFetch('/house/bios'),
+            apiFetch('/senate/bios'),
+            loadBills()
+        ]);
+
+        houseCommittees = Array.isArray(hc) ? hc : [];
+        senateCommittees = Array.isArray(sc) ? sc : [];
+        houseMeetings = Array.isArray(hm) ? hm : [];
+        senateMeetings = Array.isArray(sm) ? sm : [];
+        houseBios = Array.isArray(hb) ? hb : [];
+        senateBios = Array.isArray(sb) ? sb : [];
+        allBills = Array.isArray(bills) ? bills : [];
+
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        renderDashboard();
+    } catch (err) {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorMessage').textContent = err.message;
+    }
+}
+
+// ====================== HELPERS ======================
+function getMeetingsForCommittee(committeeName, chamber) {
+    const meetings = chamber === 'house' ? houseMeetings : senateMeetings;
+    return meetings.filter(m => {
+        const mn = (m.COMMITTEENAME || '').trim().toUpperCase();
+        const cn = (committeeName || '').trim().toUpperCase();
+        return mn === cn || mn.includes(cn) || cn.includes(mn);
+    });
+}
+
+function getBillsForCommittee(committeeName) {
+    return allBills.filter(b => {
+        const ic = (b.IN_COMMITTEE || '').trim().toUpperCase();
+        const cn = (committeeName || '').trim().toUpperCase();
+        return ic === cn || ic.includes(cn) || cn.includes(ic);
+    });
+}
+
+function getMemberCommitteeCount() {
+    const memberMap = {};
+    function processCommittees(committees, chamber) {
+        committees.forEach(c => {
+            const members = c.members || [];
+            members.forEach(m => {
+                const key = `${(m.FIRST || '').trim()} ${(m.LAST || '').trim()}`.trim();
+                if (!key) return;
+                if (!memberMap[key]) {
+                    memberMap[key] = { name: key, code: m.PERM_SPONSOR_CODE, chamber, committees: [] };
+                }
+                memberMap[key].committees.push(c.COMMITTEE_NAME || 'Unknown');
+            });
+        });
+    }
+    processCommittees(houseCommittees, 'House');
+    processCommittees(senateCommittees, 'Senate');
+    return memberMap;
+}
+
+function truncate(str, len) {
+    if (!str) return '';
+    return str.length > len ? str.substring(0, len) + '...' : str;
+}
+
+// ====================== RENDERING ======================
+function renderDashboard() {
+    renderKPIs();
+    renderChamberComparison();
+    renderCommitteeGrid();
+    renderBillWorkloadChart();
+    renderCommitteeSizeChart();
+    renderMeetingRanking();
+    renderMemberLoadChart();
+    renderOverloadedMembers();
+}
+
+function renderKPIs() {
+    const totalCommittees = houseCommittees.length + senateCommittees.length;
+    const allComms = [...houseCommittees, ...senateCommittees];
+    const totalMembers = allComms.reduce((sum, c) => sum + (c.members || []).length, 0);
+    const avgMembers = totalCommittees > 0 ? (totalMembers / totalCommittees).toFixed(1) : 0;
+    const totalMeetings = houseMeetings.length + senateMeetings.length;
+
+    // Find busiest committee
+    let busiest = { name: 'N/A', count: 0 };
+    allComms.forEach(c => {
+        const chamber = houseCommittees.includes(c) ? 'house' : 'senate';
+        const mCount = getMeetingsForCommittee(c.COMMITTEE_NAME, chamber).length;
+        if (mCount > busiest.count) {
+            busiest = { name: c.COMMITTEE_NAME, count: mCount };
+        }
+    });
+
+    document.getElementById('kpiRow').innerHTML = `
+        <div class="kpi-card">
+            <div class="kpi-value">${totalCommittees}</div>
+            <div class="kpi-label">Total Committees</div>
+            <div class="kpi-sub">${houseCommittees.length} House / ${senateCommittees.length} Senate</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">${avgMembers}</div>
+            <div class="kpi-label">Avg Members/Committee</div>
+            <div class="kpi-sub">${totalMembers} total memberships</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">${totalMeetings}</div>
+            <div class="kpi-label">Total Meetings</div>
+            <div class="kpi-sub">${houseMeetings.length} House / ${senateMeetings.length} Senate</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value" style="font-size: var(--text-xl);">${truncate(busiest.name, 25)}</div>
+            <div class="kpi-label">Busiest Committee</div>
+            <div class="kpi-sub">${busiest.count} meetings</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">${allBills.length}</div>
+            <div class="kpi-label">Bills Tracked</div>
+            <div class="kpi-sub">Session 126</div>
+        </div>
+    `;
+}
+
+function renderChamberComparison() {
+    function chamberStats(committees, meetings, label) {
+        const totalMembers = committees.reduce((s, c) => s + (c.members || []).length, 0);
+        const avgMembers = committees.length > 0 ? (totalMembers / committees.length).toFixed(1) : 0;
+        const largestComm = committees.reduce((best, c) => (c.members || []).length > (best.members || []).length ? c : best, committees[0] || { COMMITTEE_NAME: 'N/A', members: [] });
+        return `
+            <div class="comparison-stat">
+                <span class="comparison-stat-label">Committees</span>
+                <span class="comparison-stat-value">${committees.length}</span>
+            </div>
+            <div class="comparison-stat">
+                <span class="comparison-stat-label">Total Meetings</span>
+                <span class="comparison-stat-value">${meetings.length}</span>
+            </div>
+            <div class="comparison-stat">
+                <span class="comparison-stat-label">Avg Members/Committee</span>
+                <span class="comparison-stat-value">${avgMembers}</span>
+            </div>
+            <div class="comparison-stat">
+                <span class="comparison-stat-label">Total Memberships</span>
+                <span class="comparison-stat-value">${totalMembers}</span>
+            </div>
+            <div class="comparison-stat">
+                <span class="comparison-stat-label">Largest Committee</span>
+                <span class="comparison-stat-value">${truncate((largestComm.COMMITTEE_NAME || 'N/A'), 22)}</span>
+            </div>
+        `;
+    }
+
+    document.getElementById('comparisonGrid').innerHTML = `
+        <div class="comparison-card">
+            <div class="comparison-header house">House</div>
+            <div class="comparison-body">${chamberStats(houseCommittees, houseMeetings, 'House')}</div>
+        </div>
+        <div class="comparison-card">
+            <div class="comparison-header senate">Senate</div>
+            <div class="comparison-body">${chamberStats(senateCommittees, senateMeetings, 'Senate')}</div>
+        </div>
+    `;
+}
+
+function renderCommitteeGrid() {
+    let committees = [];
+    if (currentFilter === 'all' || currentFilter === 'house') {
+        houseCommittees.forEach(c => committees.push({ ...c, _chamber: 'house' }));
+    }
+    if (currentFilter === 'all' || currentFilter === 'senate') {
+        senateCommittees.forEach(c => committees.push({ ...c, _chamber: 'senate' }));
+    }
+
+    const grid = document.getElementById('committeeGrid');
+    grid.innerHTML = committees.map((c, idx) => {
+        const members = c.members || [];
+        const meetCount = getMeetingsForCommittee(c.COMMITTEE_NAME, c._chamber).length;
+        const billCount = getBillsForCommittee(c.COMMITTEE_NAME).length;
+        const headerClass = c._chamber === 'senate' ? 'committee-card-header senate-header' : 'committee-card-header';
+        const chamberLabel = c._chamber === 'house' ? 'House' : 'Senate';
+
+        return `
+            <div class="committee-card" onclick="openDetail('${c._chamber}', ${idx})">
+                <div class="${headerClass}">
+                    <div class="committee-card-name">${c.COMMITTEE_NAME || 'Unknown'}</div>
+                    <span class="badge badge-gold" style="font-size:0.6rem;">${chamberLabel}</span>
+                </div>
+                <div class="committee-card-body">
+                    <div class="committee-meta">
+                        <div class="committee-meta-item">
+                            Room
+                            <strong>${c.ROOM_NUMBER || 'N/A'}</strong>
+                        </div>
+                        <div class="committee-meta-item">
+                            Phone
+                            <strong>${c.TELEPHONE_NUMBER || 'N/A'}</strong>
+                        </div>
+                    </div>
+                    <div class="committee-stats">
+                        <div class="committee-stat">
+                            <div class="committee-stat-num">${members.length}</div>
+                            <div class="committee-stat-label">Members</div>
+                        </div>
+                        <div class="committee-stat">
+                            <div class="committee-stat-num">${meetCount}</div>
+                            <div class="committee-stat-label">Meetings</div>
+                        </div>
+                        <div class="committee-stat">
+                            <div class="committee-stat-num">${billCount}</div>
+                            <div class="committee-stat-label">Bills</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderBillWorkloadChart() {
+    const allComms = [
+        ...houseCommittees.map(c => ({ ...c, _chamber: 'house' })),
+        ...senateCommittees.map(c => ({ ...c, _chamber: 'senate' }))
+    ];
+    const data = allComms.map(c => ({
+        name: c.COMMITTEE_NAME,
+        chamber: c._chamber,
+        count: getBillsForCommittee(c.COMMITTEE_NAME).length
+    })).filter(d => d.count > 0).sort((a, b) => b.count - a.count).slice(0, 15);
+
+    const max = Math.max(...data.map(d => d.count), 1);
+
+    document.getElementById('billWorkloadChart').innerHTML = data.length === 0
+        ? '<p style="color:var(--lsa-gray-400);font-size:var(--text-sm);">No bill-committee matches found in sampled bills.</p>'
+        : data.map(d => `
+            <div class="bar-row">
+                <div class="bar-label" title="${d.name}">${truncate(d.name, 22)}</div>
+                <div class="bar-track">
+                    <div class="bar-fill ${d.chamber === 'house' ? 'house-bar' : 'senate-bar'}" style="width:${(d.count / max * 100)}%;">${d.count}</div>
+                </div>
+            </div>
+        `).join('');
+}
+
+function renderCommitteeSizeChart() {
+    const allComms = [
+        ...houseCommittees.map(c => ({ ...c, _chamber: 'house' })),
+        ...senateCommittees.map(c => ({ ...c, _chamber: 'senate' }))
+    ];
+    const data = allComms.map(c => ({
+        name: c.COMMITTEE_NAME,
+        chamber: c._chamber,
+        count: (c.members || []).length
+    })).sort((a, b) => b.count - a.count);
+
+    const max = Math.max(...data.map(d => d.count), 1);
+
+    document.getElementById('committeeSizeChart').innerHTML = data.map(d => `
+        <div class="bar-row">
+            <div class="bar-label" title="${d.name}">${truncate(d.name, 22)}</div>
+            <div class="bar-track">
+                <div class="bar-fill ${d.chamber === 'house' ? 'house-bar' : 'senate-bar'}" style="width:${(d.count / max * 100)}%;">${d.count}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderMeetingRanking() {
+    const allComms = [
+        ...houseCommittees.map(c => ({ ...c, _chamber: 'house' })),
+        ...senateCommittees.map(c => ({ ...c, _chamber: 'senate' }))
+    ];
+    const data = allComms.map(c => ({
+        name: c.COMMITTEE_NAME,
+        chamber: c._chamber,
+        count: getMeetingsForCommittee(c.COMMITTEE_NAME, c._chamber).length
+    })).sort((a, b) => b.count - a.count).slice(0, 15);
+
+    document.getElementById('meetingRanking').innerHTML = data.map((d, i) => {
+        let rankClass = '';
+        if (i === 0) rankClass = 'gold';
+        else if (i === 1) rankClass = 'silver';
+        else if (i === 2) rankClass = 'bronze';
+        return `
+            <li class="ranking-item">
+                <span class="ranking-rank ${rankClass}">${i + 1}</span>
+                <span class="ranking-name">${d.name} <span class="badge badge-${d.chamber === 'house' ? 'primary' : 'info'}" style="font-size:0.55rem;">${d.chamber === 'house' ? 'H' : 'S'}</span></span>
+                <span class="ranking-value">${d.count} mtgs</span>
+            </li>
+        `;
+    }).join('');
+}
+
+function renderMemberLoadChart() {
+    const memberMap = getMemberCommitteeCount();
+    const members = Object.values(memberMap).sort((a, b) => b.committees.length - a.committees.length).slice(0, 20);
+    const max = Math.max(...members.map(m => m.committees.length), 1);
+
+    document.getElementById('memberLoadChart').innerHTML = members.map(m => `
+        <div class="bar-row">
+            <div class="bar-label" title="${m.name}">${truncate(m.name, 22)}</div>
+            <div class="bar-track">
+                <div class="bar-fill ${m.committees.length >= 3 ? 'gold-bar' : 'house-bar'}" style="width:${(m.committees.length / max * 100)}%;">${m.committees.length}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderOverloadedMembers() {
+    const memberMap = getMemberCommitteeCount();
+    const overloaded = Object.values(memberMap).filter(m => m.committees.length >= 3).sort((a, b) => b.committees.length - a.committees.length);
+
+    const section = document.getElementById('overloadedSection');
+    if (overloaded.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+
+    document.getElementById('overloadedGrid').innerHTML = overloaded.map(m => `
+        <div class="overloaded-card">
+            <div class="overloaded-name">${m.name}</div>
+            <div class="overloaded-count">
+                <span class="badge badge-warning">${m.committees.length} committees</span>
+                <span style="margin-left:4px;" class="badge badge-secondary">${m.chamber}</span>
+            </div>
+            <ul class="overloaded-list">
+                ${m.committees.map(c => `<li>&#8226; ${c}</li>`).join('')}
+            </ul>
+        </div>
+    `).join('');
+}
+
+// ====================== INTERACTIONS ======================
+function filterChamber(chamber) {
+    currentFilter = chamber;
+    document.querySelectorAll('.chamber-tab').forEach(t => {
+        t.classList.remove('active', 'active-senate');
+        if (t.dataset.chamber === chamber) {
+            if (chamber === 'senate') t.classList.add('active-senate');
+            else t.classList.add('active');
+        }
+    });
+    renderCommitteeGrid();
+}
+
+function openDetail(chamber, idx) {
+    const committees = chamber === 'house' ? houseCommittees : senateCommittees;
+    // When filtering "all", the idx may span both arrays. We need to recalculate.
+    let targetCommittee;
+    if (currentFilter === 'all') {
+        const combined = [
+            ...houseCommittees.map(c => ({ ...c, _chamber: 'house' })),
+            ...senateCommittees.map(c => ({ ...c, _chamber: 'senate' }))
+        ];
+        targetCommittee = combined[idx];
+        chamber = targetCommittee._chamber;
+    } else {
+        targetCommittee = committees[idx];
+    }
+
+    if (!targetCommittee) return;
+
+    const header = document.getElementById('detailHeader');
+    header.className = chamber === 'senate' ? 'detail-header senate-detail' : 'detail-header';
+
+    document.getElementById('detailTitle').textContent = targetCommittee.COMMITTEE_NAME || 'Committee';
+    document.getElementById('detailChamber').textContent = chamber === 'house' ? 'House Committee' : 'Senate Committee';
+
+    const members = targetCommittee.members || [];
+    const meetings = getMeetingsForCommittee(targetCommittee.COMMITTEE_NAME, chamber);
+    const bills = getBillsForCommittee(targetCommittee.COMMITTEE_NAME);
+
+    let membersHTML = members.map(m => {
+        const initials = ((m.FIRST || '')[0] || '') + ((m.LAST || '')[0] || '');
+        const role = m.COMM_OFFICE || '';
+        const seniority = m.SENIORITY || '';
+        return `
+            <div class="member-row">
+                <div class="member-avatar">${initials}</div>
+                <div class="member-info">
+                    <div class="member-name">${m.FIRST || ''} ${m.LAST || ''} ${role ? '<span class="badge badge-gold" style="font-size:0.55rem;">' + role + '</span>' : ''}</div>
+                    <div class="member-meta">Code: ${m.PERM_SPONSOR_CODE || 'N/A'}${seniority ? ' | Seniority: ' + seniority : ''}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    let meetingsHTML = '';
+    if (meetings.length > 0) {
+        const sorted = [...meetings].sort((a, b) => {
+            const da = a.MEETING_DATE || a.MEETINGDATE || '';
+            const db = b.MEETING_DATE || b.MEETINGDATE || '';
+            return db.localeCompare(da);
+        });
+        meetingsHTML = `
+            <div class="detail-members-title" style="margin-top:var(--space-5);">Meeting History (${meetings.length})</div>
+            <ul class="meeting-list">
+                ${sorted.slice(0, 30).map(m => {
+                    const date = m.MEETING_DATE || m.MEETINGDATE || m.DATE || 'Unknown date';
+                    const time = m.MEETING_TIME || m.MEETINGTIME || m.TIME || '';
+                    const note = m.NOTE || m.NOTES || m.MEETING_NOTE || '';
+                    return `<li class="meeting-item"><span class="meeting-date">${date}</span>${time ? ' at ' + time : ''}${note ? ' - ' + note : ''}</li>`;
+                }).join('')}
+                ${sorted.length > 30 ? `<li class="meeting-item" style="color:var(--lsa-gray-400);font-style:italic;">...and ${sorted.length - 30} more</li>` : ''}
+            </ul>
+        `;
+    }
+
+    document.getElementById('detailBody').innerHTML = `
+        <div class="detail-info-grid">
+            <div class="detail-info-item">
+                <label>Room</label>
+                <span>${targetCommittee.ROOM_NUMBER || 'N/A'}</span>
+            </div>
+            <div class="detail-info-item">
+                <label>Phone</label>
+                <span>${targetCommittee.TELEPHONE_NUMBER || 'N/A'}</span>
+            </div>
+            <div class="detail-info-item">
+                <label>Building</label>
+                <span>${targetCommittee.BUILDING || 'N/A'}</span>
+            </div>
+            <div class="detail-info-item">
+                <label>Address</label>
+                <span>${targetCommittee.ADDRESS || 'N/A'}</span>
+            </div>
+            <div class="detail-info-item">
+                <label>Members</label>
+                <span>${members.length}</span>
+            </div>
+            <div class="detail-info-item">
+                <label>Meetings</label>
+                <span>${meetings.length}</span>
+            </div>
+            <div class="detail-info-item">
+                <label>Bills in Committee</label>
+                <span>${bills.length}</span>
+            </div>
+        </div>
+        <div class="detail-members-title">Members (${members.length})</div>
+        ${membersHTML || '<p style="color:var(--lsa-gray-400);font-size:var(--text-sm);">No members found.</p>'}
+        ${meetingsHTML}
+    `;
+
+    document.getElementById('detailBackdrop').classList.add('active');
+    document.getElementById('detailPanel').classList.add('active');
+}
+
+function closeDetail() {
+    document.getElementById('detailBackdrop').classList.remove('active');
+    document.getElementById('detailPanel').classList.remove('active');
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDetail();
+});
+
+// ====================== INIT ======================
+loadAllData();
+</script>
+</body>
+</html>
