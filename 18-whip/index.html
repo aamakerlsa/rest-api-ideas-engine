@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHIP - Whip Count &amp; Vote Prediction Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Droid+Serif:wght@400;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/lsa-styles.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--lsa-gray-100);
+            color: var(--lsa-gray-700);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Top navigation bar */
+        .top-bar {
+            background: #0a1e3d;
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar a {
+            color: var(--lsa-gold);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .top-bar a:hover { color: #e8d48b; }
+        .top-bar .session-info {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.8rem;
+        }
+
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, var(--lsa-primary) 0%, var(--lsa-queen-blue) 100%);
+            color: var(--lsa-white);
+            padding: 28px 24px 22px;
+            text-align: center;
+        }
+        .logo-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        .logo-row img {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+        }
+        .app-header h1 {
+            font-family: var(--font-display);
+            font-size: var(--text-3xl);
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+        .app-header .tagline {
+            font-family: var(--font-primary);
+            font-size: var(--text-sm);
+            opacity: 0.85;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        .app-header .subtitle {
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-base);
+            font-weight: 400;
+            margin-top: 2px;
+            opacity: 0.9;
+        }
+
+        /* Main layout */
+        .app-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Controls row */
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            background: var(--lsa-white);
+            padding: 16px 20px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 200px;
+        }
+        .control-group label {
+            font-size: var(--text-xs);
+            font-weight: var(--font-semibold);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            color: var(--lsa-gray-500);
+        }
+        .control-group select,
+        .control-group input {
+            padding: 8px 12px;
+            font-size: var(--text-sm);
+            border: 1px solid var(--lsa-gray-300);
+            border-radius: var(--radius-default);
+            font-family: var(--font-primary);
+            background: var(--lsa-white);
+            color: var(--lsa-gray-700);
+            transition: border-color var(--transition-fast);
+        }
+        .control-group select:focus,
+        .control-group input:focus {
+            border-color: var(--lsa-primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(var(--lsa-primary-rgb), 0.1);
+        }
+        .control-actions {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        /* Dashboard stats row */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+        }
+        .stat-card h3 {
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            color: var(--lsa-gray-500);
+            margin-bottom: 12px;
+        }
+
+        /* Tally bar */
+        .tally-row {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .tally-item {
+            text-align: center;
+        }
+        .tally-number {
+            font-family: var(--font-display);
+            font-size: var(--text-3xl);
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .tally-label {
+            font-size: var(--text-xs);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            color: var(--lsa-gray-500);
+        }
+        .tally-yea { color: var(--lsa-bottle-green); }
+        .tally-nay { color: var(--lsa-ruby-red); }
+        .tally-undecided { color: var(--lsa-gray-400); }
+        .tally-absent { color: #b8860b; }
+
+        /* Progress bar for majority */
+        .majority-bar-wrapper {
+            margin-top: 16px;
+        }
+        .majority-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            margin-bottom: 4px;
+        }
+        .majority-bar {
+            height: 24px;
+            background: var(--lsa-gray-200);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            position: relative;
+        }
+        .majority-bar-fill {
+            height: 100%;
+            display: flex;
+            transition: width 0.4s ease;
+        }
+        .bar-yea {
+            background: var(--lsa-bottle-green);
+            height: 100%;
+            transition: width 0.4s ease;
+        }
+        .bar-nay {
+            background: var(--lsa-ruby-red);
+            height: 100%;
+            transition: width 0.4s ease;
+        }
+        .bar-absent {
+            background: #b8860b;
+            height: 100%;
+            transition: width 0.4s ease;
+        }
+        .bar-undecided {
+            background: var(--lsa-gray-300);
+            height: 100%;
+            transition: width 0.4s ease;
+        }
+        .majority-line {
+            position: absolute;
+            top: -4px;
+            bottom: -4px;
+            width: 3px;
+            background: var(--lsa-primary);
+            z-index: 2;
+            transition: left 0.4s ease;
+        }
+        .majority-line::after {
+            content: attr(data-label);
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--lsa-primary);
+            white-space: nowrap;
+        }
+
+        /* Party breakdown */
+        .party-breakdown {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .party-box {
+            padding: 10px 14px;
+            border-radius: var(--radius-default);
+            font-size: var(--text-sm);
+        }
+        .party-box.rep {
+            background: rgba(var(--lsa-ruby-red-rgb), 0.08);
+        }
+        .party-box.dem {
+            background: rgba(var(--lsa-queen-blue-rgb), 0.08);
+        }
+        .party-box strong {
+            display: block;
+            font-size: var(--text-xs);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            margin-bottom: 4px;
+        }
+        .party-box .counts {
+            display: flex;
+            gap: 12px;
+            font-size: var(--text-sm);
+        }
+
+        /* Swing votes */
+        .swing-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .swing-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: var(--text-sm);
+            border-bottom: 1px solid var(--lsa-gray-100);
+        }
+        .swing-item:last-child { border-bottom: none; }
+        .swing-pct {
+            font-weight: 600;
+            font-size: var(--text-xs);
+            color: var(--lsa-gold);
+        }
+
+        /* Scenarios panel */
+        .scenarios-panel {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .scenarios-panel h3 {
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            color: var(--lsa-gray-500);
+            margin-bottom: 12px;
+        }
+        .scenario-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .scenario-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--lsa-gray-100);
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .scenario-chip:hover {
+            background: rgba(var(--lsa-primary-rgb), 0.1);
+        }
+        .scenario-chip.active {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+        }
+        .scenario-chip .remove-scenario {
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        .scenario-chip .remove-scenario:hover { opacity: 1; }
+
+        /* Comparison table */
+        .comparison-table {
+            width: 100%;
+            margin-top: 12px;
+            border-collapse: collapse;
+            font-size: var(--text-sm);
+        }
+        .comparison-table th,
+        .comparison-table td {
+            padding: 6px 12px;
+            text-align: center;
+        }
+        .comparison-table th {
+            background: var(--lsa-gray-100);
+            font-weight: 600;
+            font-size: var(--text-xs);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+        }
+        .comparison-table td {
+            border-bottom: 1px solid var(--lsa-gray-100);
+        }
+
+        /* Member grid */
+        .member-grid-section {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .member-grid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .member-grid-header h2 {
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-lg);
+            font-weight: 700;
+            color: var(--lsa-primary);
+        }
+        .member-grid-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 5px 14px;
+            font-size: var(--text-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+            border: none;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            background: var(--lsa-gray-100);
+            color: var(--lsa-gray-600);
+        }
+        .filter-btn:hover { background: var(--lsa-gray-200); }
+        .filter-btn.active { background: var(--lsa-primary); color: var(--lsa-white); }
+
+        .member-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+            gap: 10px;
+        }
+
+        .member-card {
+            padding: 12px;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            position: relative;
+            text-align: center;
+            user-select: none;
+        }
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .member-card.vote-yea {
+            background: rgba(12, 110, 82, 0.1);
+            box-shadow: inset 0 0 0 2px var(--lsa-bottle-green);
+        }
+        .member-card.vote-nay {
+            background: rgba(150, 27, 30, 0.1);
+            box-shadow: inset 0 0 0 2px var(--lsa-ruby-red);
+        }
+        .member-card.vote-undecided {
+            background: var(--lsa-gray-100);
+            box-shadow: inset 0 0 0 2px var(--lsa-gray-300);
+        }
+        .member-card.vote-absent {
+            background: rgba(184, 134, 11, 0.08);
+            box-shadow: inset 0 0 0 2px #b8860b;
+        }
+
+        .member-name {
+            font-weight: 600;
+            font-size: var(--text-sm);
+            margin-bottom: 2px;
+            color: var(--lsa-gray-800);
+        }
+        .member-district {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            margin-bottom: 6px;
+        }
+        .member-party-badge {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: var(--radius-full);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .badge-r { background: rgba(var(--lsa-ruby-red-rgb), 0.15); color: var(--lsa-ruby-red); }
+        .badge-d { background: rgba(var(--lsa-queen-blue-rgb), 0.15); color: var(--lsa-queen-blue); }
+        .badge-i { background: rgba(var(--lsa-gold-rgb), 0.2); color: #8a7020; }
+
+        .member-stats {
+            font-size: 10px;
+            color: var(--lsa-gray-500);
+            line-height: 1.4;
+        }
+        .member-stats .stat-yea { color: var(--lsa-bottle-green); font-weight: 600; }
+        .member-stats .stat-nay { color: var(--lsa-ruby-red); font-weight: 600; }
+
+        .vote-label {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 6px;
+            border-radius: var(--radius-full);
+        }
+        .vote-label.yea-label { background: var(--lsa-bottle-green); color: white; }
+        .vote-label.nay-label { background: var(--lsa-ruby-red); color: white; }
+        .vote-label.absent-label { background: #b8860b; color: white; }
+        .vote-label.undecided-label { background: var(--lsa-gray-400); color: white; }
+
+        /* Historical results panel */
+        .historical-panel {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .historical-panel h3 {
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            color: var(--lsa-gray-500);
+            margin-bottom: 12px;
+        }
+        .historical-vote-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+            font-size: var(--text-sm);
+        }
+        .historical-vote-row:last-child { border-bottom: none; }
+        .hist-motion { font-weight: 500; flex: 1; }
+        .hist-result {
+            padding: 2px 10px;
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: 600;
+        }
+        .hist-passed { background: rgba(12,110,82,0.12); color: var(--lsa-bottle-green); }
+        .hist-failed { background: rgba(150,27,30,0.12); color: var(--lsa-ruby-red); }
+        .hist-counts {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            margin-left: 12px;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        /* Loading spinner */
+        .loading-overlay {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 20px;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .loading-overlay .spinner {
+            width: 40px;
+            height: 40px;
+        }
+        .loading-text {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+        }
+
+        /* Empty/error state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--lsa-gray-400);
+        }
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-header { padding: 18px 16px 14px; }
+            .app-header h1 { font-size: var(--text-xl); }
+            .controls-bar { padding: 12px 14px; }
+            .control-group { min-width: 140px; }
+            .dashboard { grid-template-columns: 1fr; }
+            .member-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+            .tally-row { gap: 14px; }
+            .tally-number { font-size: var(--text-xl); }
+        }
+
+        /* Member detail modal */
+        .member-modal-body {
+            font-size: var(--text-sm);
+        }
+        .member-modal-body .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+        }
+        .member-modal-body .vote-history-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+        .member-modal-body .vote-history-item {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+            font-size: var(--text-xs);
+        }
+        .member-modal-body .vote-history-item:last-child { border-bottom: none; }
+
+        /* Search filter in grid header */
+        .search-input-sm {
+            padding: 5px 12px;
+            font-size: var(--text-sm);
+            border: 1px solid var(--lsa-gray-300);
+            border-radius: var(--radius-full);
+            width: 180px;
+            font-family: var(--font-primary);
+            transition: border-color var(--transition-fast);
+        }
+        .search-input-sm:focus {
+            border-color: var(--lsa-primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(var(--lsa-primary-rgb), 0.1);
+        }
+
+        .prediction-legend {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            margin-bottom: 12px;
+        }
+        .prediction-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .legend-dot.yea { background: var(--lsa-bottle-green); }
+        .legend-dot.nay { background: var(--lsa-ruby-red); }
+        .legend-dot.undecided { background: var(--lsa-gray-400); }
+        .legend-dot.absent { background: #b8860b; }
+    </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+    <a href="../index.html">&#8592; Ideas Engine Home</a>
+    <span class="session-info" id="session-info">Session 126 (2025-2026)</span>
+</div>
+
+<!-- Header -->
+<div class="app-header">
+    <div class="logo-row">
+        <img src="../assets/images/LSA_seal.png" alt="LSA Seal">
+        <h1>WHIP</h1>
+    </div>
+    <div class="subtitle">Whip Count &amp; Vote Prediction Simulator</div>
+    <div class="tagline">"Predict the floor before the vote is called."</div>
+</div>
+
+<!-- App container -->
+<div class="app-container">
+
+    <!-- Controls -->
+    <div class="controls-bar">
+        <div class="control-group" style="flex:2; min-width:280px;">
+            <label>Select Bill</label>
+            <select id="bill-select">
+                <option value="">-- Loading bills... --</option>
+            </select>
+        </div>
+        <div class="control-group" style="flex:0 0 auto; min-width: 130px;">
+            <label>Chamber</label>
+            <select id="chamber-select">
+                <option value="H">House</option>
+                <option value="S">Senate</option>
+            </select>
+        </div>
+        <div class="control-actions">
+            <button class="btn btn-primary btn-sm" id="btn-auto-predict" title="Auto-predict based on party and voting history">Auto-Predict</button>
+            <button class="btn btn-secondary btn-sm" id="btn-clear" title="Clear all predictions">Clear All</button>
+            <button class="btn btn-gold btn-sm" id="btn-save-scenario" title="Save current whip count as a scenario">Save Scenario</button>
+        </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading-state" class="loading-overlay">
+        <div class="spinner spinner-lg"></div>
+        <div class="loading-text">Loading legislative data...</div>
+    </div>
+
+    <!-- Main content (hidden until loaded) -->
+    <div id="main-content" style="display:none;">
+
+        <!-- Dashboard stats -->
+        <div class="dashboard">
+            <!-- Tally card -->
+            <div class="stat-card" style="grid-column: span 2;">
+                <h3>Predicted Vote Tally</h3>
+                <div class="tally-row">
+                    <div class="tally-item">
+                        <div class="tally-number tally-yea" id="tally-yea">0</div>
+                        <div class="tally-label">Likely Yea</div>
+                    </div>
+                    <div class="tally-item">
+                        <div class="tally-number tally-nay" id="tally-nay">0</div>
+                        <div class="tally-label">Likely Nay</div>
+                    </div>
+                    <div class="tally-item">
+                        <div class="tally-number tally-undecided" id="tally-undecided">0</div>
+                        <div class="tally-label">Undecided</div>
+                    </div>
+                    <div class="tally-item">
+                        <div class="tally-number tally-absent" id="tally-absent">0</div>
+                        <div class="tally-label">Absent</div>
+                    </div>
+                    <div style="margin-left:auto; text-align:right;">
+                        <div class="tally-label">Majority Needed</div>
+                        <div class="tally-number" id="tally-majority" style="color:var(--lsa-primary);">0</div>
+                    </div>
+                </div>
+                <div class="majority-bar-wrapper">
+                    <div class="majority-bar-label">
+                        <span>0 votes</span>
+                        <span id="total-members-label">0 total</span>
+                    </div>
+                    <div class="majority-bar">
+                        <div class="majority-bar-fill" id="majority-bar-fill">
+                            <div class="bar-yea" id="bar-yea"></div>
+                            <div class="bar-nay" id="bar-nay"></div>
+                            <div class="bar-absent" id="bar-absent"></div>
+                            <div class="bar-undecided" id="bar-undecided"></div>
+                        </div>
+                        <div class="majority-line" id="majority-line" data-label=""></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Party breakdown -->
+            <div class="stat-card">
+                <h3>Party Breakdown</h3>
+                <div class="party-breakdown">
+                    <div class="party-box rep">
+                        <strong>Republican</strong>
+                        <div class="counts" id="party-r-counts">
+                            <span style="color:var(--lsa-bottle-green)">Yea: 0</span>
+                            <span style="color:var(--lsa-ruby-red)">Nay: 0</span>
+                        </div>
+                        <div class="counts" style="margin-top:4px;" id="party-r-counts2">
+                            <span style="color:var(--lsa-gray-400)">Und: 0</span>
+                            <span style="color:#b8860b">Abs: 0</span>
+                        </div>
+                    </div>
+                    <div class="party-box dem">
+                        <strong>Democrat</strong>
+                        <div class="counts" id="party-d-counts">
+                            <span style="color:var(--lsa-bottle-green)">Yea: 0</span>
+                            <span style="color:var(--lsa-ruby-red)">Nay: 0</span>
+                        </div>
+                        <div class="counts" style="margin-top:4px;" id="party-d-counts2">
+                            <span style="color:var(--lsa-gray-400)">Und: 0</span>
+                            <span style="color:#b8860b">Abs: 0</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="prediction-verdict" style="margin-top:14px; text-align:center; font-weight:700; font-size:var(--text-base);"></div>
+            </div>
+
+            <!-- Swing votes -->
+            <div class="stat-card">
+                <h3>Swing Votes (Near 50/50)</h3>
+                <div class="swing-list" id="swing-list">
+                    <div class="empty-state" style="padding:20px;"><span style="color:var(--lsa-gray-400);">Load votes to identify swing members</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenarios -->
+        <div class="scenarios-panel" id="scenarios-panel" style="display:none;">
+            <h3>Saved Scenarios</h3>
+            <div class="scenario-chips" id="scenario-chips"></div>
+            <div id="comparison-container"></div>
+        </div>
+
+        <!-- Historical votes for selected bill -->
+        <div class="historical-panel" id="historical-panel" style="display:none;">
+            <h3>Historical Vote Results for This Bill</h3>
+            <div id="historical-votes"></div>
+        </div>
+
+        <!-- Member grid -->
+        <div class="member-grid-section">
+            <div class="member-grid-header">
+                <h2 id="grid-title">Chamber Members</h2>
+                <div class="member-grid-filters">
+                    <input type="text" class="search-input-sm" id="member-search" placeholder="Search members...">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="yea">Yea</button>
+                    <button class="filter-btn" data-filter="nay">Nay</button>
+                    <button class="filter-btn" data-filter="undecided">Undecided</button>
+                    <button class="filter-btn" data-filter="absent">Absent</button>
+                </div>
+            </div>
+            <div class="prediction-legend">
+                <span><span class="legend-dot yea"></span> Likely Yea</span>
+                <span><span class="legend-dot nay"></span> Likely Nay</span>
+                <span><span class="legend-dot undecided"></span> Undecided</span>
+                <span><span class="legend-dot absent"></span> Absent</span>
+                <span style="margin-left:auto; font-style:italic;">Click member to cycle prediction</span>
+            </div>
+            <div class="member-grid" id="member-grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Member detail modal -->
+<div class="modal-backdrop" id="modal-backdrop"></div>
+<div class="modal modal-lg" id="member-modal">
+    <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Member Details</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body member-modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+        <button class="btn btn-sm btn-success" id="modal-btn-yea">Set Likely Yea</button>
+        <button class="btn btn-sm btn-danger" id="modal-btn-nay">Set Likely Nay</button>
+        <button class="btn btn-sm btn-ghost" id="modal-btn-undecided">Set Undecided</button>
+        <button class="btn btn-sm" id="modal-btn-absent" style="background:#b8860b;color:white;border-color:#b8860b;">Set Absent</button>
+    </div>
+</div>
+
+<script>
+const API = 'https://rest.scstatehouse.gov';
+
+// ===== STATE =====
+let houseMembers = [];
+let senateMembers = [];
+let houseVotes = [];
+let senateVotes = [];
+let allBills = [];
+let memberVoteStats = {}; // code -> {yea, nay, total, yeaPct, nayPct}
+let memberVoteHistory = {}; // code -> [{billNumber, motion, howVoted, ...}]
+let predictions = {}; // code -> 'yea' | 'nay' | 'undecided' | 'absent'
+let scenarios = []; // [{name, predictions: {...}, chamber, billId}]
+let currentChamber = 'H';
+let currentBillId = null;
+let currentFilter = 'all';
+let searchText = '';
+let loadingVotes = false;
+
+// ===== FETCH HELPER =====
+async function fetchJSON(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json.data !== undefined ? json.data : json;
+}
+
+// ===== INIT =====
+async function init() {
+    try {
+        const [house, senate] = await Promise.all([
+            fetchJSON(`${API}/house/bios`),
+            fetchJSON(`${API}/senate/bios`)
+        ]);
+
+        houseMembers = (Array.isArray(house) ? house : []).map(m => ({ ...m, CHAMBER: 'H' }));
+        senateMembers = (Array.isArray(senate) ? senate : []).map(m => ({ ...m, CHAMBER: 'S' }));
+
+        await loadBills();
+        await loadVotes();
+
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+
+        renderMembers();
+        updateTally();
+    } catch (err) {
+        document.getElementById('loading-state').innerHTML =
+            `<div class="empty-state"><div class="icon">&#9888;</div><div>Failed to load data: ${err.message}</div></div>`;
+    }
+}
+
+// ===== LOAD BILLS =====
+async function loadBills() {
+    const houseBillIds = Array.from({ length: 20 }, (_, i) => i + 1);
+    const senateBillIds = Array.from({ length: 20 }, (_, i) => i + 3001);
+    const allIds = [...houseBillIds, ...senateBillIds];
+
+    const results = await Promise.allSettled(
+        allIds.map(id => fetchJSON(`${API}/bills/126/${id}`))
+    );
+
+    allBills = [];
+    results.forEach((r, i) => {
+        if (r.status === 'fulfilled' && r.value) {
+            const bill = Array.isArray(r.value) ? r.value[0] : r.value;
+            if (bill && bill.BILL_NUMBER) {
+                allBills.push(bill);
+            }
+        }
+    });
+
+    const select = document.getElementById('bill-select');
+    select.innerHTML = '<option value="">-- Select a Bill --</option>';
+    allBills.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.BILL_NUMBER;
+        const chamber = b.CHAMBER === 'S' ? 'S' : 'H';
+        const summary = (b.SUMMARY || b.TITLE || '').substring(0, 80);
+        opt.textContent = `${b.BILL_NUMBER} - ${summary}${summary.length >= 80 ? '...' : ''}`;
+        opt.dataset.chamber = chamber;
+        select.appendChild(opt);
+    });
+}
+
+// ===== LOAD VOTES =====
+async function loadVotes() {
+    if (loadingVotes) return;
+    loadingVotes = true;
+    try {
+        const [hv, sv] = await Promise.all([
+            fetchJSON(`${API}/vote/126/house`),
+            fetchJSON(`${API}/vote/126/senate`)
+        ]);
+        houseVotes = Array.isArray(hv) ? hv : [];
+        senateVotes = Array.isArray(sv) ? sv : [];
+        buildVoteStats();
+    } catch (err) {
+        console.error('Vote load error:', err);
+    }
+    loadingVotes = false;
+}
+
+// ===== BUILD VOTE STATS =====
+function howVotedToChoice(hv) {
+    if (!hv) return 'absent';
+    const h = hv.toUpperCase();
+    if (h === 'YEA' || h === 'AYE' || h === 'Y') return 'yea';
+    if (h === 'NAY' || h === 'NO' || h === 'N') return 'nay';
+    if (h === 'EXCUSED' || h === 'EXCUSED ABSENCE' || h === 'NOT VOTING' || h === 'MEDICAL') return 'absent';
+    return 'absent';
+}
+
+function buildVoteStats() {
+    memberVoteStats = {};
+    memberVoteHistory = {};
+
+    const votes = currentChamber === 'H' ? houseVotes : senateVotes;
+
+    votes.forEach(vote => {
+        if (!vote.CHOICES || !Array.isArray(vote.CHOICES)) return;
+        vote.CHOICES.forEach(choice => {
+            if (!choice.SPONSORS || !Array.isArray(choice.SPONSORS)) return;
+            choice.SPONSORS.forEach(sp => {
+                const code = sp.PERM_SPONSOR_CODE;
+                if (!code) return;
+
+                const how = howVotedToChoice(sp.HOWVOTED);
+
+                if (!memberVoteStats[code]) {
+                    memberVoteStats[code] = { yea: 0, nay: 0, absent: 0, total: 0 };
+                }
+                memberVoteStats[code].total++;
+                if (how === 'yea') memberVoteStats[code].yea++;
+                else if (how === 'nay') memberVoteStats[code].nay++;
+                else memberVoteStats[code].absent++;
+
+                if (!memberVoteHistory[code]) memberVoteHistory[code] = [];
+                memberVoteHistory[code].push({
+                    billNumber: vote.BILL_NUMBER || '',
+                    motion: vote.MOTION || '',
+                    howVoted: sp.HOWVOTED || '',
+                    choice: how,
+                    yeas: choice.YEAS,
+                    nays: choice.NAYS,
+                    result: choice.RESULTTEXT || '',
+                    approved: vote.APPROVED
+                });
+            });
+        });
+    });
+
+    // Compute percentages
+    Object.keys(memberVoteStats).forEach(code => {
+        const s = memberVoteStats[code];
+        const voted = s.yea + s.nay;
+        s.yeaPct = voted > 0 ? Math.round((s.yea / voted) * 100) : 0;
+        s.nayPct = voted > 0 ? Math.round((s.nay / voted) * 100) : 0;
+        s.swingScore = voted > 0 ? Math.abs(50 - s.yeaPct) : 999;
+    });
+
+    updateSwingVotes();
+}
+
+// ===== GET CURRENT MEMBERS =====
+function getCurrentMembers() {
+    return currentChamber === 'H' ? houseMembers : senateMembers;
+}
+
+// ===== RENDER MEMBERS =====
+function renderMembers() {
+    const members = getCurrentMembers();
+    const grid = document.getElementById('member-grid');
+
+    const chamberName = currentChamber === 'H' ? 'House' : 'Senate';
+    document.getElementById('grid-title').textContent = `${chamberName} Members (${members.length})`;
+
+    let filtered = members;
+
+    if (searchText) {
+        const s = searchText.toLowerCase();
+        filtered = filtered.filter(m => {
+            const hay = `${m.FIRST} ${m.LAST} ${m.HOME_COUNTY || ''} ${m.DISTRICT_NUMBER || ''}`.toLowerCase();
+            return hay.includes(s);
+        });
+    }
+
+    if (currentFilter !== 'all') {
+        filtered = filtered.filter(m => {
+            const pred = predictions[m.PERM_SPONSOR_CODE] || 'undecided';
+            return pred === currentFilter;
+        });
+    }
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">&#128269;</div><div>No members match the current filter</div></div>';
+        return;
+    }
+
+    grid.innerHTML = filtered.map(m => {
+        const code = m.PERM_SPONSOR_CODE || '';
+        const pred = predictions[code] || 'undecided';
+        const stats = memberVoteStats[code];
+        const partyClass = (m.PARTY || '').toLowerCase();
+
+        let statsHtml = '';
+        if (stats && stats.total > 0) {
+            statsHtml = `<span class="stat-yea">${stats.yeaPct}% Yea</span> &middot; <span class="stat-nay">${stats.nayPct}% Nay</span> &middot; ${stats.total} votes`;
+        } else {
+            statsHtml = 'No vote history';
+        }
+
+        let labelClass = '';
+        let labelText = '';
+        if (pred === 'yea') { labelClass = 'yea-label'; labelText = 'Yea'; }
+        else if (pred === 'nay') { labelClass = 'nay-label'; labelText = 'Nay'; }
+        else if (pred === 'absent') { labelClass = 'absent-label'; labelText = 'Absent'; }
+        else { labelClass = 'undecided-label'; labelText = 'Und'; }
+
+        return `<div class="member-card vote-${pred}" data-code="${code}" onclick="cyclePrediction('${code}')">
+            <span class="vote-label ${labelClass}">${labelText}</span>
+            <div class="member-party-badge badge-${partyClass}">${m.PARTY || '?'}</div>
+            <div class="member-name">${m.FIRST || ''} ${m.LAST || ''}</div>
+            <div class="member-district">Dist. ${m.DISTRICT_NUMBER || '?'} &middot; ${m.HOME_COUNTY || ''}</div>
+            <div class="member-stats">${statsHtml}</div>
+        </div>`;
+    }).join('');
+}
+
+// ===== CYCLE PREDICTION =====
+const predictionCycle = ['undecided', 'yea', 'nay', 'absent'];
+
+function cyclePrediction(code) {
+    const current = predictions[code] || 'undecided';
+    const idx = predictionCycle.indexOf(current);
+    const next = predictionCycle[(idx + 1) % predictionCycle.length];
+    predictions[code] = next;
+    renderMembers();
+    updateTally();
+}
+
+// ===== SET PREDICTION (from modal) =====
+function setPrediction(code, value) {
+    predictions[code] = value;
+    renderMembers();
+    updateTally();
+}
+
+// ===== UPDATE TALLY =====
+function updateTally() {
+    const members = getCurrentMembers();
+    let yea = 0, nay = 0, undecided = 0, absent = 0;
+    let rYea = 0, rNay = 0, rUnd = 0, rAbs = 0;
+    let dYea = 0, dNay = 0, dUnd = 0, dAbs = 0;
+
+    members.forEach(m => {
+        const pred = predictions[m.PERM_SPONSOR_CODE] || 'undecided';
+        const party = m.PARTY || '';
+
+        if (pred === 'yea') {
+            yea++;
+            if (party === 'R') rYea++; else if (party === 'D') dYea++;
+        } else if (pred === 'nay') {
+            nay++;
+            if (party === 'R') rNay++; else if (party === 'D') dNay++;
+        } else if (pred === 'absent') {
+            absent++;
+            if (party === 'R') rAbs++; else if (party === 'D') dAbs++;
+        } else {
+            undecided++;
+            if (party === 'R') rUnd++; else if (party === 'D') dUnd++;
+        }
+    });
+
+    const total = members.length;
+    const majority = Math.floor(total / 2) + 1;
+
+    document.getElementById('tally-yea').textContent = yea;
+    document.getElementById('tally-nay').textContent = nay;
+    document.getElementById('tally-undecided').textContent = undecided;
+    document.getElementById('tally-absent').textContent = absent;
+    document.getElementById('tally-majority').textContent = majority;
+    document.getElementById('total-members-label').textContent = `${total} total`;
+
+    // Progress bar
+    const pctYea = total > 0 ? (yea / total * 100) : 0;
+    const pctNay = total > 0 ? (nay / total * 100) : 0;
+    const pctAbsent = total > 0 ? (absent / total * 100) : 0;
+    const pctUnd = total > 0 ? (undecided / total * 100) : 0;
+
+    document.getElementById('bar-yea').style.width = pctYea + '%';
+    document.getElementById('bar-nay').style.width = pctNay + '%';
+    document.getElementById('bar-absent').style.width = pctAbsent + '%';
+    document.getElementById('bar-undecided').style.width = pctUnd + '%';
+
+    const majorityPct = total > 0 ? (majority / total * 100) : 50;
+    const ml = document.getElementById('majority-line');
+    ml.style.left = majorityPct + '%';
+    ml.dataset.label = `${majority} to pass`;
+
+    // Party breakdown
+    document.getElementById('party-r-counts').innerHTML =
+        `<span style="color:var(--lsa-bottle-green)">Yea: ${rYea}</span><span style="color:var(--lsa-ruby-red)">Nay: ${rNay}</span>`;
+    document.getElementById('party-r-counts2').innerHTML =
+        `<span style="color:var(--lsa-gray-400)">Und: ${rUnd}</span><span style="color:#b8860b">Abs: ${rAbs}</span>`;
+    document.getElementById('party-d-counts').innerHTML =
+        `<span style="color:var(--lsa-bottle-green)">Yea: ${dYea}</span><span style="color:var(--lsa-ruby-red)">Nay: ${dNay}</span>`;
+    document.getElementById('party-d-counts2').innerHTML =
+        `<span style="color:var(--lsa-gray-400)">Und: ${dUnd}</span><span style="color:#b8860b">Abs: ${dAbs}</span>`;
+
+    // Verdict
+    const verdict = document.getElementById('prediction-verdict');
+    if (yea >= majority) {
+        verdict.innerHTML = `<span style="color:var(--lsa-bottle-green)">PREDICTED: PASSES (${yea}-${nay})</span>`;
+    } else if (nay >= majority) {
+        verdict.innerHTML = `<span style="color:var(--lsa-ruby-red)">PREDICTED: FAILS (${yea}-${nay})</span>`;
+    } else {
+        verdict.innerHTML = `<span style="color:var(--lsa-gray-500)">TOO CLOSE TO CALL (${yea}-${nay}, ${undecided} undecided)</span>`;
+    }
+}
+
+// ===== AUTO-PREDICT =====
+function autoPredict() {
+    const members = getCurrentMembers();
+    predictions = {};
+
+    members.forEach(m => {
+        const code = m.PERM_SPONSOR_CODE;
+        if (!code) return;
+
+        const stats = memberVoteStats[code];
+
+        if (stats && stats.total > 0) {
+            const voted = stats.yea + stats.nay;
+            if (voted === 0) {
+                predictions[code] = 'absent';
+                return;
+            }
+            const yeaPct = (stats.yea / voted) * 100;
+            if (yeaPct >= 65) predictions[code] = 'yea';
+            else if (yeaPct <= 35) predictions[code] = 'nay';
+            else predictions[code] = 'undecided'; // swing territory
+        } else {
+            // No voting data: predict by party default (most bills pass)
+            predictions[code] = 'undecided';
+        }
+    });
+
+    renderMembers();
+    updateTally();
+}
+
+// ===== SWING VOTES =====
+function updateSwingVotes() {
+    const members = getCurrentMembers();
+    const swingData = [];
+
+    members.forEach(m => {
+        const code = m.PERM_SPONSOR_CODE;
+        const stats = memberVoteStats[code];
+        if (stats && stats.total >= 2) {
+            const voted = stats.yea + stats.nay;
+            if (voted > 0) {
+                swingData.push({
+                    name: `${m.FIRST} ${m.LAST}`,
+                    party: m.PARTY,
+                    yeaPct: stats.yeaPct,
+                    swingScore: stats.swingScore,
+                    code
+                });
+            }
+        }
+    });
+
+    swingData.sort((a, b) => a.swingScore - b.swingScore);
+    const top = swingData.slice(0, 15);
+
+    const list = document.getElementById('swing-list');
+    if (top.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--lsa-gray-400);">No swing data available</div>';
+        return;
+    }
+
+    list.innerHTML = top.map(s => {
+        const partyClass = s.party === 'R' ? 'badge-r' : s.party === 'D' ? 'badge-d' : 'badge-i';
+        return `<div class="swing-item">
+            <span><span class="member-party-badge ${partyClass}" style="margin-right:6px;">${s.party}</span>${s.name}</span>
+            <span class="swing-pct">${s.yeaPct}% Yea / ${100 - s.yeaPct}% Nay</span>
+        </div>`;
+    }).join('');
+}
+
+// ===== SAVE / LOAD SCENARIO =====
+function saveScenario() {
+    const name = prompt('Scenario name:', `Scenario ${scenarios.length + 1}`);
+    if (!name) return;
+
+    const members = getCurrentMembers();
+    let yea = 0, nay = 0, und = 0, abs = 0;
+    members.forEach(m => {
+        const p = predictions[m.PERM_SPONSOR_CODE] || 'undecided';
+        if (p === 'yea') yea++;
+        else if (p === 'nay') nay++;
+        else if (p === 'absent') abs++;
+        else und++;
+    });
+
+    scenarios.push({
+        name,
+        predictions: { ...predictions },
+        chamber: currentChamber,
+        billId: currentBillId,
+        yea, nay, undecided: und, absent: abs,
+        total: members.length
+    });
+
+    renderScenarios();
+}
+
+function loadScenario(idx) {
+    const s = scenarios[idx];
+    if (!s) return;
+    predictions = { ...s.predictions };
+    renderMembers();
+    updateTally();
+}
+
+function removeScenario(idx) {
+    scenarios.splice(idx, 1);
+    renderScenarios();
+}
+
+function renderScenarios() {
+    const panel = document.getElementById('scenarios-panel');
+    if (scenarios.length === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+    panel.style.display = 'block';
+
+    const chips = document.getElementById('scenario-chips');
+    chips.innerHTML = scenarios.map((s, i) => {
+        return `<span class="scenario-chip" onclick="loadScenario(${i})">
+            ${s.name} (${s.yea}Y-${s.nay}N)
+            <span class="remove-scenario" onclick="event.stopPropagation();removeScenario(${i})">&times;</span>
+        </span>`;
+    }).join('');
+
+    // Comparison table
+    const container = document.getElementById('comparison-container');
+    if (scenarios.length >= 2) {
+        let rows = `<tr><th>Scenario</th><th>Yea</th><th>Nay</th><th>Undecided</th><th>Absent</th><th>Outcome</th></tr>`;
+        scenarios.forEach(s => {
+            const majority = Math.floor(s.total / 2) + 1;
+            let outcome = 'Too close';
+            let oColor = 'var(--lsa-gray-500)';
+            if (s.yea >= majority) { outcome = 'Passes'; oColor = 'var(--lsa-bottle-green)'; }
+            else if (s.nay >= majority) { outcome = 'Fails'; oColor = 'var(--lsa-ruby-red)'; }
+            rows += `<tr>
+                <td style="text-align:left;font-weight:600;">${s.name}</td>
+                <td style="color:var(--lsa-bottle-green);font-weight:600;">${s.yea}</td>
+                <td style="color:var(--lsa-ruby-red);font-weight:600;">${s.nay}</td>
+                <td>${s.undecided}</td>
+                <td>${s.absent}</td>
+                <td style="color:${oColor};font-weight:700;">${outcome}</td>
+            </tr>`;
+        });
+        container.innerHTML = `<table class="comparison-table">${rows}</table>`;
+    } else {
+        container.innerHTML = '';
+    }
+}
+
+// ===== HISTORICAL VOTES FOR BILL =====
+function showHistoricalVotes(billNumber) {
+    const panel = document.getElementById('historical-panel');
+    const container = document.getElementById('historical-votes');
+
+    const allVotes = [...houseVotes, ...senateVotes];
+    const billVotes = allVotes.filter(v => v.BILL_NUMBER === billNumber);
+
+    if (billVotes.length === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+
+    panel.style.display = 'block';
+
+    container.innerHTML = billVotes.map(v => {
+        let totalYeas = 0, totalNays = 0;
+        let passed = false;
+        if (v.CHOICES && Array.isArray(v.CHOICES)) {
+            v.CHOICES.forEach(c => {
+                totalYeas += c.YEAS || 0;
+                totalNays += c.NAYS || 0;
+                if (c.RESULTTEXT && c.RESULTTEXT.toLowerCase().includes('passed')) passed = true;
+            });
+        }
+        if (v.APPROVED === 'Y') passed = true;
+
+        const resultClass = passed ? 'hist-passed' : 'hist-failed';
+        const resultText = passed ? 'Passed' : 'Failed';
+
+        return `<div class="historical-vote-row">
+            <span class="hist-motion">${v.MOTION || 'Vote'}</span>
+            <span class="hist-result ${resultClass}">${resultText}</span>
+            <span class="hist-counts">${totalYeas}Y - ${totalNays}N</span>
+        </div>`;
+    }).join('');
+}
+
+// ===== MEMBER MODAL =====
+function openMemberModal(code) {
+    const members = getCurrentMembers();
+    const member = members.find(m => m.PERM_SPONSOR_CODE === code);
+    if (!member) return;
+
+    const stats = memberVoteStats[code];
+    const history = memberVoteHistory[code] || [];
+    const pred = predictions[code] || 'undecided';
+    const partyFull = { R: 'Republican', D: 'Democrat', I: 'Independent' }[member.PARTY] || member.PARTY;
+
+    document.getElementById('modal-title').textContent = `${member.FIRST} ${member.LAST}`;
+
+    let html = `
+        <div class="detail-row"><span>Party</span><span>${partyFull}</span></div>
+        <div class="detail-row"><span>District</span><span>${member.DISTRICT_NUMBER || '?'}</span></div>
+        <div class="detail-row"><span>County</span><span>${member.HOME_COUNTY || 'N/A'}</span></div>
+        <div class="detail-row"><span>Current Prediction</span><span style="font-weight:700;text-transform:uppercase;">${pred}</span></div>
+    `;
+
+    if (stats && stats.total > 0) {
+        html += `
+            <div class="detail-row"><span>Total Votes</span><span>${stats.total}</span></div>
+            <div class="detail-row"><span>Yea Rate</span><span style="color:var(--lsa-bottle-green);font-weight:600;">${stats.yeaPct}%</span></div>
+            <div class="detail-row"><span>Nay Rate</span><span style="color:var(--lsa-ruby-red);font-weight:600;">${stats.nayPct}%</span></div>
+        `;
+    }
+
+    if (history.length > 0) {
+        html += `<h4 style="margin-top:16px;margin-bottom:4px;font-size:var(--text-sm);color:var(--lsa-gray-500);">Recent Vote History</h4>`;
+        html += '<div class="vote-history-list">';
+        const recent = history.slice(-30).reverse();
+        recent.forEach(h => {
+            const color = h.choice === 'yea' ? 'var(--lsa-bottle-green)' : h.choice === 'nay' ? 'var(--lsa-ruby-red)' : '#b8860b';
+            html += `<div class="vote-history-item">
+                <span style="font-weight:500;">${h.billNumber || 'N/A'}</span> &mdash; ${h.motion || 'Vote'}
+                <span style="float:right;color:${color};font-weight:600;text-transform:uppercase;">${h.howVoted || 'N/A'}</span>
+            </div>`;
+        });
+        html += '</div>';
+    }
+
+    document.getElementById('modal-body').innerHTML = html;
+
+    // Wire modal buttons
+    document.getElementById('modal-btn-yea').onclick = () => { setPrediction(code, 'yea'); closeModal(); };
+    document.getElementById('modal-btn-nay').onclick = () => { setPrediction(code, 'nay'); closeModal(); };
+    document.getElementById('modal-btn-undecided').onclick = () => { setPrediction(code, 'undecided'); closeModal(); };
+    document.getElementById('modal-btn-absent').onclick = () => { setPrediction(code, 'absent'); closeModal(); };
+
+    document.getElementById('modal-backdrop').classList.add('active');
+    document.getElementById('member-modal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modal-backdrop').classList.remove('active');
+    document.getElementById('member-modal').classList.remove('active');
+}
+
+// ===== EVENT LISTENERS =====
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+
+    // Chamber change
+    document.getElementById('chamber-select').addEventListener('change', (e) => {
+        currentChamber = e.target.value;
+        predictions = {};
+        buildVoteStats();
+        renderMembers();
+        updateTally();
+    });
+
+    // Bill change
+    document.getElementById('bill-select').addEventListener('change', (e) => {
+        currentBillId = e.target.value;
+        if (currentBillId) {
+            // Auto-set chamber based on bill
+            const opt = e.target.selectedOptions[0];
+            if (opt && opt.dataset.chamber) {
+                const ch = opt.dataset.chamber;
+                if (ch === 'S' || ch === 'H') {
+                    currentChamber = ch;
+                    document.getElementById('chamber-select').value = ch;
+                }
+            }
+            showHistoricalVotes(currentBillId);
+            predictions = {};
+            buildVoteStats();
+            renderMembers();
+            updateTally();
+        }
+    });
+
+    // Auto-predict
+    document.getElementById('btn-auto-predict').addEventListener('click', autoPredict);
+
+    // Clear
+    document.getElementById('btn-clear').addEventListener('click', () => {
+        predictions = {};
+        renderMembers();
+        updateTally();
+    });
+
+    // Save scenario
+    document.getElementById('btn-save-scenario').addEventListener('click', saveScenario);
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            renderMembers();
+        });
+    });
+
+    // Search
+    document.getElementById('member-search').addEventListener('input', (e) => {
+        searchText = e.target.value;
+        renderMembers();
+    });
+
+    // Modal close
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+
+    // Double-click to open member detail modal
+    document.getElementById('member-grid').addEventListener('dblclick', (e) => {
+        const card = e.target.closest('.member-card');
+        if (card && card.dataset.code) {
+            openMemberModal(card.dataset.code);
+        }
+    });
+
+    // Right-click to open modal (alternative)
+    document.getElementById('member-grid').addEventListener('contextmenu', (e) => {
+        const card = e.target.closest('.member-card');
+        if (card && card.dataset.code) {
+            e.preventDefault();
+            openMemberModal(card.dataset.code);
+        }
+    });
+});
+</script>
+
+</body>
+</html>
