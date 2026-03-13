@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTXS - Member Tenure &amp; Experience Scorecard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Droid+Serif:wght@400;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/lsa-styles.css">
+    <style>
+        :root {
+            --navy: #003466;
+            --navy-light: #3C6997;
+            --navy-dark: #002244;
+            --gold: #C09D3B;
+            --gold-light: #e0c96e;
+            --gold-pale: #f5ecd3;
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-muted: #666666;
+            --text-light: #999999;
+            --green: #0C6E52;
+            --red: #961B1E;
+            --blue: #3C6997;
+            --orange: #dd6b20;
+            --purple: #805ad5;
+            --teal: #319795;
+        }
+
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+        }
+
+        /* ---- TOP BAR ---- */
+        .top-bar {
+            background: var(--navy-dark);
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar a {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .top-bar a:hover { color: var(--gold); }
+        .top-bar .session-info {
+            color: var(--text-light);
+            font-size: 0.8rem;
+        }
+
+        /* ---- HEADER ---- */
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            color: #fff;
+            text-align: center;
+            padding: 36px 24px 28px;
+            border-bottom: 4px solid var(--gold);
+        }
+        .logo-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        .logo-row img {
+            height: 48px;
+            width: 48px;
+        }
+        header h1 {
+            font-family: 'Arvo', serif;
+            font-size: 1.8rem;
+            color: #fff;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+        header .tagline {
+            font-family: 'Open Sans', sans-serif;
+            color: var(--gold-light);
+            font-size: 0.95rem;
+            font-weight: 300;
+            font-style: italic;
+        }
+
+        /* ---- NAV TABS ---- */
+        .nav-tabs {
+            background: #fff;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            overflow-x: auto;
+            padding: 0 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-tab {
+            padding: 14px 18px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .nav-tab:hover { color: var(--navy); background: rgba(0,52,102,0.03); }
+        .nav-tab.active {
+            color: var(--navy);
+            border-bottom-color: var(--gold);
+        }
+
+        /* ---- MAIN ---- */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+        }
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ---- LOADING ---- */
+        .loading-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            gap: 16px;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--gold-pale);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---- STATS ROW ---- */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .stat-value {
+            font-family: 'Arvo', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--navy);
+        }
+        .stat-label {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        /* ---- CARDS ---- */
+        .panel {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 16px 24px;
+            background: var(--navy);
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-header-light {
+            background: var(--bg);
+            color: var(--navy);
+            border-bottom: 2px solid var(--gold);
+        }
+        .panel-body {
+            padding: 20px 24px;
+        }
+
+        /* ---- MEMBER GRID ---- */
+        .member-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+        .member-card {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 18px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .member-card .tenure-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--gold);
+            transition: width 0.6s ease;
+        }
+        .member-card .mc-name {
+            font-family: 'Droid Serif', serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 2px;
+        }
+        .member-card .mc-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .member-card .mc-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .mc-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .mc-badge.party-r { background: #fee2e2; color: #991b1b; }
+        .mc-badge.party-d { background: #dbeafe; color: #1e3a8a; }
+        .mc-badge.party-other { background: #e5e7eb; color: #374151; }
+        .mc-badge.veteran { background: var(--gold-pale); color: #7c6a1f; }
+        .mc-badge.freshman { background: #d1fae5; color: #065f46; }
+        .mc-badge.chair { background: #ede9fe; color: #5b21b6; }
+        .mc-badge.cross-chamber { background: #e0e7ff; color: #3730a3; }
+
+        /* ---- FILTER BAR ---- */
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .filter-bar input,
+        .filter-bar select {
+            padding: 8px 14px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius-lg);
+            font-family: 'Open Sans', sans-serif;
+            font-size: 0.85rem;
+            background: #fff;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .filter-bar input:focus,
+        .filter-bar select:focus {
+            outline: none;
+            border-color: var(--navy);
+            box-shadow: 0 0 0 3px rgba(0,52,102,0.1);
+        }
+        .filter-bar input { min-width: 220px; }
+
+        /* ---- TABLES ---- */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .data-table th {
+            background: var(--navy);
+            color: #fff;
+            padding: 10px 14px;
+            text-align: left;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .data-table th:hover { background: var(--navy-light); }
+        .data-table th .sort-icon { margin-left: 4px; opacity: 0.5; }
+        .data-table th.sorted .sort-icon { opacity: 1; }
+        .data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        .data-table tr:hover td { background: rgba(0,52,102,0.02); }
+        .data-table tr { cursor: pointer; }
+
+        /* ---- POWER PLAYERS ---- */
+        .power-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+        .power-card {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            color: #fff;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .power-card:hover { transform: translateY(-3px); }
+        .power-card .pp-name {
+            font-family: 'Arvo', serif;
+            font-size: 1.15rem;
+            margin-bottom: 4px;
+        }
+        .power-card .pp-title {
+            color: var(--gold-light);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+        .power-card .pp-committees {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            line-height: 1.5;
+        }
+        .power-card .pp-stat {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* ---- WORD CLOUD ---- */
+        .word-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            min-height: 200px;
+        }
+        .word-cloud .word {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            color: var(--navy);
+            background: rgba(0,52,102,0.06);
+            transition: transform 0.2s, background 0.2s;
+            cursor: default;
+        }
+        .word-cloud .word:hover {
+            background: var(--gold-pale);
+            transform: scale(1.1);
+        }
+
+        /* ---- HEATMAP ---- */
+        .county-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px;
+        }
+        .county-cell {
+            padding: 10px 12px;
+            border-radius: var(--radius-default);
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: transform 0.15s;
+            cursor: default;
+        }
+        .county-cell:hover { transform: scale(1.05); }
+        .county-cell .county-name {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .county-cell .county-count {
+            font-family: 'Arvo', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        /* ---- PARTY COMPARISON ---- */
+        .party-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .party-block {
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            text-align: center;
+        }
+        .party-block.rep { background: #fef2f2; border-left: 4px solid #991b1b; }
+        .party-block.dem { background: #eff6ff; border-left: 4px solid #1e3a8a; }
+        .party-block .party-label {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        .party-block.rep .party-label { color: #991b1b; }
+        .party-block.dem .party-label { color: #1e3a8a; }
+        .party-stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-size: 0.85rem;
+        }
+        .party-stat-row:last-child { border-bottom: none; }
+        .party-stat-val {
+            font-weight: 700;
+            font-family: 'Arvo', serif;
+        }
+
+        /* ---- BAR CHART ---- */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .bar-label {
+            min-width: 120px;
+            font-size: 0.8rem;
+            text-align: right;
+            color: var(--text-muted);
+        }
+        .bar-track {
+            flex: 1;
+            height: 22px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #fff;
+            min-width: fit-content;
+            transition: width 0.6s ease;
+        }
+
+        /* ---- EDUCATION ---- */
+        .edu-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+        }
+        .edu-item {
+            padding: 12px 16px;
+            background: var(--bg);
+            border-radius: var(--radius-default);
+            font-size: 0.85rem;
+        }
+        .edu-item .edu-school {
+            font-weight: 700;
+            color: var(--navy);
+            font-size: 0.9rem;
+        }
+        .edu-item .edu-count {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* ---- MODAL ---- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal-content {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-2xl);
+            max-width: 700px;
+            width: 95%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: modalIn 0.25s ease;
+        }
+        @keyframes modalIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-header {
+            padding: 20px 24px;
+            background: var(--navy);
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        .modal-header h3 {
+            color: #fff;
+            font-family: 'Arvo', serif;
+            margin: 0;
+        }
+        .modal-header .modal-subtitle {
+            color: var(--gold-light);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            line-height: 1;
+            padding: 0 4px;
+        }
+        .modal-close:hover { opacity: 1; }
+        .modal-section {
+            padding: 20px 24px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-section:last-child { border-bottom: none; }
+        .modal-section h4 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--navy);
+            margin-bottom: 10px;
+        }
+        .modal-bio {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+        .modal-bio p { margin-bottom: 8px; }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .detail-item {
+            font-size: 0.85rem;
+        }
+        .detail-item .dl { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+        .detail-item .dv { font-weight: 600; color: var(--navy); }
+
+        .committee-list {
+            list-style: none;
+            padding: 0;
+        }
+        .committee-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .committee-list li:last-child { border-bottom: none; }
+        .comm-role {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--gold-pale);
+            color: #7c6a1f;
+        }
+
+        /* ---- EXPORT BTN ---- */
+        .btn-export {
+            padding: 8px 16px;
+            background: var(--gold);
+            color: var(--navy);
+            border: none;
+            border-radius: var(--radius-default);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-export:hover { background: var(--gold-light); }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 768px) {
+            .nav-tabs { flex-wrap: nowrap; }
+            .nav-tab { padding: 10px 12px; font-size: 0.72rem; }
+            header h1 { font-size: 1.3rem; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .party-compare { grid-template-columns: 1fr; }
+            .detail-grid { grid-template-columns: 1fr; }
+            main { padding: 16px 12px 40px; }
+            .filter-bar { flex-direction: column; }
+            .filter-bar input { min-width: 100%; }
+        }
+
+        /* ---- TENURE TIER COLORS ---- */
+        .tenure-tier-1 { color: #065f46; } /* 20+ years */
+        .tenure-tier-2 { color: #1e3a8a; } /* 10-19 */
+        .tenure-tier-3 { color: var(--navy); } /* 5-9 */
+        .tenure-tier-4 { color: var(--text-muted); } /* 0-4 */
+    </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+    <a href="../index.html">&#8592; LSA Ideas Engine</a>
+    <span class="session-info">MTXS - Member Tenure &amp; Experience Scorecard</span>
+</div>
+
+<!-- HEADER -->
+<header>
+    <div class="logo-row">
+        <img src="../assets/images/LSA_seal.png" alt="LSA Seal">
+        <h1>MTXS</h1>
+    </div>
+    <div class="tagline">"Experience shapes legislation."</div>
+</header>
+
+<!-- NAV TABS -->
+<div class="nav-tabs" id="navTabs">
+    <div class="nav-tab active" data-view="overview">Overview</div>
+    <div class="nav-tab" data-view="members">Member Grid</div>
+    <div class="nav-tab" data-view="freshman">Freshman vs Veteran</div>
+    <div class="nav-tab" data-view="committees">Committee Leadership</div>
+    <div class="nav-tab" data-view="power">Power Players</div>
+    <div class="nav-tab" data-view="demographics">Demographics</div>
+    <div class="nav-tab" data-view="counties">County Map</div>
+    <div class="nav-tab" data-view="party">Party Comparison</div>
+    <div class="nav-tab" data-view="education">Education</div>
+    <div class="nav-tab" data-view="directory">Directory</div>
+</div>
+
+<!-- MAIN -->
+<main id="mainContent">
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div style="font-family:'Montserrat',sans-serif;color:var(--text-muted);font-size:0.9rem;">Loading member data...</div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="view" id="view-overview">
+        <div class="stats-row" id="overviewStats"></div>
+        <div class="panel">
+            <div class="panel-header">Tenure Distribution</div>
+            <div class="panel-body" id="tenureDistribution"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <div class="panel">
+                <div class="panel-header">Top 10 Most Experienced</div>
+                <div class="panel-body" id="topExperienced"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">Newest Members</div>
+                <div class="panel-body" id="newestMembers"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MEMBER GRID -->
+    <div class="view" id="view-members">
+        <div class="filter-bar">
+            <input type="text" id="memberSearch" placeholder="Search by name, county, occupation...">
+            <select id="chamberFilter">
+                <option value="all">All Chambers</option>
+                <option value="H">House</option>
+                <option value="S">Senate</option>
+            </select>
+            <select id="partyFilter">
+                <option value="all">All Parties</option>
+                <option value="R">Republican</option>
+                <option value="D">Democrat</option>
+            </select>
+            <select id="sortFilter">
+                <option value="tenure-desc">Tenure: High to Low</option>
+                <option value="tenure-asc">Tenure: Low to High</option>
+                <option value="name-asc">Name: A-Z</option>
+                <option value="name-desc">Name: Z-A</option>
+                <option value="district-asc">District: Low to High</option>
+            </select>
+        </div>
+        <div id="memberCount" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;"></div>
+        <div class="member-grid" id="memberGrid"></div>
+    </div>
+
+    <!-- FRESHMAN VS VETERAN -->
+    <div class="view" id="view-freshman">
+        <div class="stats-row" id="freshVetStats"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <div class="panel">
+                <div class="panel-header" style="background:var(--green);">Veterans (Re-elected)</div>
+                <div class="panel-body" id="veteranList"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header" style="background:#0C6E52;">Freshmen (First Term)</div>
+                <div class="panel-body" id="freshmanList"></div>
+            </div>
+        </div>
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-header">Cross-Chamber Veterans</div>
+            <div class="panel-body" id="crossChamber"></div>
+        </div>
+    </div>
+
+    <!-- COMMITTEE LEADERSHIP -->
+    <div class="view" id="view-committees">
+        <div class="filter-bar">
+            <select id="commChamberFilter">
+                <option value="all">All Chambers</option>
+                <option value="H">House</option>
+                <option value="S">Senate</option>
+            </select>
+            <select id="commRoleFilter">
+                <option value="all">All Roles</option>
+                <option value="Chairman">Chairman</option>
+                <option value="Vice Chairman">Vice Chairman</option>
+                <option value="1st Vice Chairman">1st Vice Chairman</option>
+            </select>
+        </div>
+        <div id="committeeLeaders"></div>
+    </div>
+
+    <!-- POWER PLAYERS -->
+    <div class="view" id="view-power">
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:20px;">
+            Members who chair committees AND have significant tenure -- the institutional power brokers.
+        </p>
+        <div class="power-grid" id="powerGrid"></div>
+    </div>
+
+    <!-- DEMOGRAPHICS -->
+    <div class="view" id="view-demographics">
+        <div class="panel">
+            <div class="panel-header">Occupation Frequency</div>
+            <div class="panel-body">
+                <div class="word-cloud" id="occupationCloud"></div>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">Top Occupations</div>
+            <div class="panel-body" id="occupationBars"></div>
+        </div>
+    </div>
+
+    <!-- COUNTY MAP -->
+    <div class="view" id="view-counties">
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:16px;">
+            County representation by experience level. Darker shading indicates more experienced delegations.
+        </p>
+        <div class="county-grid" id="countyGrid"></div>
+    </div>
+
+    <!-- PARTY COMPARISON -->
+    <div class="view" id="view-party">
+        <div class="party-compare" id="partyCompare"></div>
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-header">Tenure Distribution by Party</div>
+            <div class="panel-body" id="partyTenureBars"></div>
+        </div>
+    </div>
+
+    <!-- EDUCATION -->
+    <div class="view" id="view-education">
+        <div class="panel">
+            <div class="panel-header">Universities &amp; Colleges Represented</div>
+            <div class="panel-body">
+                <div class="edu-list" id="eduList"></div>
+            </div>
+        </div>
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-header">Degrees Found</div>
+            <div class="panel-body" id="degreeList"></div>
+        </div>
+    </div>
+
+    <!-- DIRECTORY -->
+    <div class="view" id="view-directory">
+        <div class="filter-bar">
+            <input type="text" id="dirSearch" placeholder="Search directory...">
+            <button class="btn-export" id="exportBtn">Export CSV</button>
+        </div>
+        <div class="panel">
+            <div style="overflow-x:auto;">
+                <table class="data-table" id="directoryTable">
+                    <thead>
+                        <tr>
+                            <th data-col="name">Name <span class="sort-icon">&#8597;</span></th>
+                            <th data-col="chamber">Chamber <span class="sort-icon">&#8597;</span></th>
+                            <th data-col="party">Party <span class="sort-icon">&#8597;</span></th>
+                            <th data-col="district">Dist <span class="sort-icon">&#8597;</span></th>
+                            <th data-col="county">County <span class="sort-icon">&#8597;</span></th>
+                            <th data-col="tenure">Tenure <span class="sort-icon">&#8597;</span></th>
+                            <th data-col="occupation">Occupation <span class="sort-icon">&#8597;</span></th>
+                            <th data-col="reelected">Re-Elected <span class="sort-icon">&#8597;</span></th>
+                            <th data-col="committees">Committees <span class="sort-icon">&#8597;</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="directoryBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- MEMBER DETAIL MODAL -->
+<div class="modal-backdrop" id="memberModal">
+    <div class="modal-content" id="modalContent"></div>
+</div>
+
+<script>
+const API = 'https://rest.scstatehouse.gov';
+let allMembers = [];
+let houseCommittees = [];
+let senateCommittees = [];
+let houseOfficers = [];
+let senateOfficers = [];
+
+// ========== DATA LOADING ==========
+async function fetchJSON(url) {
+    const res = await fetch(url);
+    const json = await res.json();
+    return json.data;
+}
+
+async function loadAllData() {
+    try {
+        const [houseBios, senateBios, houseComm, senateComm, houseOff, senateOff] = await Promise.all([
+            fetchJSON(`${API}/house/bios`),
+            fetchJSON(`${API}/senate/bios`),
+            fetchJSON(`${API}/house/committees`),
+            fetchJSON(`${API}/senate/committees`),
+            fetchJSON(`${API}/house/officers`),
+            fetchJSON(`${API}/senate/officers`)
+        ]);
+
+        houseCommittees = houseComm || [];
+        senateCommittees = senateComm || [];
+        houseOfficers = houseOff || [];
+        senateOfficers = senateOff || [];
+
+        const houseMembers = (houseBios || []).map(m => enrichMember(m, 'H'));
+        const senateMembers = (senateBios || []).map(m => enrichMember(m, 'S'));
+        allMembers = [...houseMembers, ...senateMembers];
+
+        // Attach committee data to members
+        attachCommitteeData();
+
+        document.getElementById('loadingOverlay').style.display = 'none';
+        document.getElementById('view-overview').classList.add('active');
+        renderAll();
+    } catch (err) {
+        document.getElementById('loadingOverlay').innerHTML =
+            `<div style="color:var(--red);font-size:1rem;text-align:center;">
+                <div style="font-size:1.5rem;margin-bottom:12px;">Error Loading Data</div>
+                <div>${err.message}</div>
+                <button onclick="location.reload()" class="btn-export" style="margin-top:16px;">Retry</button>
+            </div>`;
+    }
+}
+
+function enrichMember(m, chamber) {
+    const tenure = extractTenure(m.BIOGRAPHY || '', m.PREVIOUS_SERVICE_DATE);
+    return {
+        ...m,
+        chamber,
+        fullName: `${m.TITLE || ''} ${m.FIRST || ''} ${m.LAST || ''}`.trim(),
+        displayName: `${m.FIRST || ''} ${m.LAST || ''}`.trim(),
+        tenure,
+        reElected: m.RE_ELECTED === true || m.RE_ELECTED === 'true',
+        crossChamber: m.OTHER_CHAMBER_SERVICE === true || m.OTHER_CHAMBER_SERVICE === 'true',
+        committees: [],
+        chairmanships: [],
+        education: extractEducation(m.BIOGRAPHY || ''),
+        sponsorCode: m.PERM_SPONSOR_CODE || ''
+    };
+}
+
+function extractTenure(bio, previousDate) {
+    // Try to extract years from biography text
+    const plainBio = bio.replace(/<[^>]+>/g, ' ').replace(/&[^;]+;/g, ' ');
+
+    // Look for patterns like "serving since 2003", "elected in 2003", "Member since 2003"
+    const sinceMatch = plainBio.match(/(?:serving|served|member|elected|appointed)\s+(?:since|in|from)\s+(\d{4})/i);
+    if (sinceMatch) {
+        const year = parseInt(sinceMatch[1]);
+        if (year > 1950 && year <= new Date().getFullYear()) {
+            return new Date().getFullYear() - year;
+        }
+    }
+
+    // Look for "X years" pattern
+    const yearsMatch = plainBio.match(/(\d+)\s+years?\s+(?:of\s+)?(?:service|experience|in the|in office)/i);
+    if (yearsMatch) {
+        return parseInt(yearsMatch[1]);
+    }
+
+    // Look for term counts "X terms"
+    const termMatch = plainBio.match(/(\d+)\s+terms?/i);
+    if (termMatch) {
+        return parseInt(termMatch[1]) * 2; // approximate 2 years per term
+    }
+
+    // Use PREVIOUS_SERVICE_DATE if available
+    if (previousDate) {
+        const pd = new Date(previousDate);
+        if (!isNaN(pd.getTime())) {
+            return Math.floor((new Date() - pd) / (365.25 * 24 * 60 * 60 * 1000));
+        }
+    }
+
+    // Look for any year that could be first elected
+    const yearMatches = plainBio.match(/\b(19[6-9]\d|20[0-2]\d)\b/g);
+    if (yearMatches) {
+        const years = yearMatches.map(Number).filter(y => y >= 1960 && y <= new Date().getFullYear());
+        if (years.length > 0) {
+            const earliest = Math.min(...years);
+            // Only use if it seems like a service date (not birth date - skip very early ones)
+            if (earliest >= 1970) {
+                return new Date().getFullYear() - earliest;
+            }
+        }
+    }
+
+    return 0;
+}
+
+function extractEducation(bio) {
+    const plainBio = bio.replace(/<[^>]+>/g, ' ').replace(/&[^;]+;/g, ' ');
+    const results = { schools: [], degrees: [] };
+
+    // Common SC and national universities
+    const universities = [
+        'University of South Carolina', 'USC', 'Clemson University', 'Clemson',
+        'The Citadel', 'Citadel', 'College of Charleston', 'Furman University', 'Furman',
+        'Wofford College', 'Wofford', 'Presbyterian College', 'Francis Marion',
+        'Coastal Carolina', 'Lander University', 'Winthrop University', 'Winthrop',
+        'South Carolina State', 'SC State', 'Charleston Southern', 'Bob Jones University',
+        'Anderson University', 'Benedict College', 'Allen University', 'Claflin',
+        'Newberry College', 'Erskine College', 'Converse', 'Columbia College',
+        'North Greenville', 'Southern Wesleyan', 'Limestone',
+        'Harvard', 'Yale', 'Duke', 'Georgetown', 'Emory', 'Vanderbilt',
+        'University of Georgia', 'UGA', 'University of North Carolina', 'UNC',
+        'University of Virginia', 'Wake Forest', 'Auburn',
+        'University of Alabama', 'University of Florida', 'University of Tennessee',
+        'Georgia Tech', 'MIT', 'Stanford', 'Princeton', 'Columbia University',
+        'University of Michigan', 'University of Texas', 'Howard University'
+    ];
+
+    for (const u of universities) {
+        const regex = new RegExp(u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        if (regex.test(plainBio)) {
+            results.schools.push(u);
+        }
+    }
+
+    // Degrees
+    const degreePatterns = [
+        /\bB\.?A\.?\b/, /\bB\.?S\.?\b/, /\bM\.?A\.?\b/, /\bM\.?S\.?\b/,
+        /\bM\.?B\.?A\.?\b/, /\bPh\.?D\.?\b/, /\bJ\.?D\.?\b/, /\bM\.?D\.?\b/,
+        /\bEd\.?D\.?\b/, /\bLL\.?B\.?\b/, /\bLL\.?M\.?\b/, /\bD\.?Min\.?\b/,
+        /\bM\.?Div\.?\b/, /\bM\.?Ed\.?\b/, /\bD\.?V\.?M\.?\b/,
+        /Bachelor/i, /Master/i, /Doctorate/i, /Juris Doctor/i
+    ];
+
+    for (const dp of degreePatterns) {
+        const match = plainBio.match(dp);
+        if (match) {
+            results.degrees.push(match[0]);
+        }
+    }
+
+    return results;
+}
+
+function attachCommitteeData() {
+    const allCommittees = [
+        ...houseCommittees.map(c => ({ ...c, chamber: 'H' })),
+        ...senateCommittees.map(c => ({ ...c, chamber: 'S' }))
+    ];
+
+    for (const comm of allCommittees) {
+        const members = comm.members || [];
+        for (const cm of members) {
+            const sponsorCode = cm.PERM_SPONSOR_CODE || cm.SPONSOR_CODE || '';
+            const member = allMembers.find(m => m.sponsorCode && m.sponsorCode === sponsorCode);
+            if (member) {
+                const commInfo = {
+                    name: comm.COMMITTEE_NAME || comm.NAME || 'Unknown Committee',
+                    role: cm.COMM_OFFICE || 'Member',
+                    seniority: cm.SENIORITY || 0,
+                    chamber: comm.chamber
+                };
+                member.committees.push(commInfo);
+                if (commInfo.role && commInfo.role.toLowerCase().includes('chairman')) {
+                    member.chairmanships.push(commInfo);
+                }
+            }
+        }
+    }
+}
+
+// ========== RENDERING ==========
+function renderAll() {
+    renderOverview();
+    renderMemberGrid();
+    renderFreshmanVeteran();
+    renderCommitteeLeadership();
+    renderPowerPlayers();
+    renderDemographics();
+    renderCountyHeatmap();
+    renderPartyComparison();
+    renderEducation();
+    renderDirectory();
+}
+
+// ---- OVERVIEW ----
+function renderOverview() {
+    const house = allMembers.filter(m => m.chamber === 'H');
+    const senate = allMembers.filter(m => m.chamber === 'S');
+    const avgTenure = allMembers.length ? (allMembers.reduce((s, m) => s + m.tenure, 0) / allMembers.length).toFixed(1) : 0;
+    const maxTenure = Math.max(...allMembers.map(m => m.tenure), 0);
+    const chairs = allMembers.filter(m => m.chairmanships.length > 0);
+    const freshmen = allMembers.filter(m => !m.reElected);
+    const crossChamber = allMembers.filter(m => m.crossChamber);
+
+    document.getElementById('overviewStats').innerHTML = `
+        <div class="stat-card"><div class="stat-value">${allMembers.length}</div><div class="stat-label">Total Members</div></div>
+        <div class="stat-card"><div class="stat-value">${house.length}</div><div class="stat-label">House</div></div>
+        <div class="stat-card"><div class="stat-value">${senate.length}</div><div class="stat-label">Senate</div></div>
+        <div class="stat-card"><div class="stat-value">${avgTenure}</div><div class="stat-label">Avg Tenure (yrs)</div></div>
+        <div class="stat-card"><div class="stat-value">${maxTenure}</div><div class="stat-label">Max Tenure (yrs)</div></div>
+        <div class="stat-card"><div class="stat-value">${chairs.length}</div><div class="stat-label">Committee Chairs</div></div>
+        <div class="stat-card"><div class="stat-value">${freshmen.length}</div><div class="stat-label">Freshmen</div></div>
+        <div class="stat-card"><div class="stat-value">${crossChamber.length}</div><div class="stat-label">Cross-Chamber</div></div>
+    `;
+
+    // Tenure distribution
+    const tiers = [
+        { label: '20+ Years', min: 20, max: 999, color: '#065f46' },
+        { label: '10-19 Years', min: 10, max: 19, color: '#1e3a8a' },
+        { label: '5-9 Years', min: 5, max: 9, color: var_navy() },
+        { label: '1-4 Years', min: 1, max: 4, color: '#6366f1' },
+        { label: 'First Term (0)', min: 0, max: 0, color: '#9ca3af' }
+    ];
+    const maxCount = Math.max(...tiers.map(t => allMembers.filter(m => m.tenure >= t.min && m.tenure <= t.max).length), 1);
+    document.getElementById('tenureDistribution').innerHTML = `<div class="bar-chart">${tiers.map(t => {
+        const count = allMembers.filter(m => m.tenure >= t.min && m.tenure <= t.max).length;
+        const pct = (count / maxCount * 100).toFixed(0);
+        return `<div class="bar-row">
+            <div class="bar-label">${t.label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${t.color};">${count}</div></div>
+        </div>`;
+    }).join('')}</div>`;
+
+    // Top experienced
+    const sorted = [...allMembers].sort((a, b) => b.tenure - a.tenure);
+    document.getElementById('topExperienced').innerHTML = sorted.slice(0, 10).map((m, i) =>
+        `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;cursor:pointer;" onclick="showMemberModal('${m.sponsorCode}')">
+            <span><strong>${i + 1}.</strong> ${m.displayName} <span style="color:var(--text-muted);font-size:0.8rem;">(${m.chamber === 'H' ? 'House' : 'Senate'} - ${m.PARTY || ''})</span></span>
+            <span style="font-weight:700;color:var(--navy);">${m.tenure} yrs</span>
+        </div>`
+    ).join('');
+
+    // Newest
+    const newest = [...allMembers].sort((a, b) => a.tenure - b.tenure);
+    document.getElementById('newestMembers').innerHTML = newest.slice(0, 10).map((m, i) =>
+        `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;cursor:pointer;" onclick="showMemberModal('${m.sponsorCode}')">
+            <span><strong>${i + 1}.</strong> ${m.displayName} <span style="color:var(--text-muted);font-size:0.8rem;">(${m.chamber === 'H' ? 'House' : 'Senate'} - ${m.PARTY || ''})</span></span>
+            <span style="font-weight:700;color:var(--green);">${m.tenure > 0 ? m.tenure + ' yrs' : 'New'}</span>
+        </div>`
+    ).join('');
+}
+
+function var_navy() { return '#003466'; }
+
+// ---- MEMBER GRID ----
+function renderMemberGrid() {
+    const search = (document.getElementById('memberSearch').value || '').toLowerCase();
+    const chamber = document.getElementById('chamberFilter').value;
+    const party = document.getElementById('partyFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+
+    let filtered = allMembers.filter(m => {
+        if (chamber !== 'all' && m.chamber !== chamber) return false;
+        if (party !== 'all' && m.PARTY !== party) return false;
+        if (search) {
+            const hay = `${m.displayName} ${m.HOME_COUNTY} ${m.OCCUPATION} ${m.DISTRICT_NUMBER}`.toLowerCase();
+            if (!hay.includes(search)) return false;
+        }
+        return true;
+    });
+
+    // Sort
+    switch (sort) {
+        case 'tenure-desc': filtered.sort((a, b) => b.tenure - a.tenure); break;
+        case 'tenure-asc': filtered.sort((a, b) => a.tenure - b.tenure); break;
+        case 'name-asc': filtered.sort((a, b) => (a.LAST || '').localeCompare(b.LAST || '')); break;
+        case 'name-desc': filtered.sort((a, b) => (b.LAST || '').localeCompare(a.LAST || '')); break;
+        case 'district-asc': filtered.sort((a, b) => (a.DISTRICT_NUMBER || 0) - (b.DISTRICT_NUMBER || 0)); break;
+    }
+
+    document.getElementById('memberCount').textContent = `Showing ${filtered.length} of ${allMembers.length} members`;
+    const maxTenure = Math.max(...allMembers.map(m => m.tenure), 1);
+
+    document.getElementById('memberGrid').innerHTML = filtered.map(m => {
+        const barPct = (m.tenure / maxTenure * 100).toFixed(0);
+        const partyClass = m.PARTY === 'R' ? 'party-r' : m.PARTY === 'D' ? 'party-d' : 'party-other';
+        let badges = `<span class="mc-badge ${partyClass}">${m.PARTY || '?'}</span>`;
+        if (m.reElected) badges += `<span class="mc-badge veteran">Veteran</span>`;
+        else badges += `<span class="mc-badge freshman">Freshman</span>`;
+        if (m.chairmanships.length > 0) badges += `<span class="mc-badge chair">Chair</span>`;
+        if (m.crossChamber) badges += `<span class="mc-badge cross-chamber">Cross-Chamber</span>`;
+
+        return `<div class="member-card" onclick="showMemberModal('${m.sponsorCode}')">
+            <div class="tenure-bar" style="width:${barPct}%"></div>
+            <div class="mc-name">${m.displayName}</div>
+            <div class="mc-meta">${m.chamber === 'H' ? 'House' : 'Senate'} Dist. ${m.DISTRICT_NUMBER || '?'} | ${m.HOME_COUNTY || ''} | ${m.tenure} yr${m.tenure !== 1 ? 's' : ''}</div>
+            <div class="mc-badges">${badges}</div>
+        </div>`;
+    }).join('');
+}
+
+// ---- FRESHMAN VS VETERAN ----
+function renderFreshmanVeteran() {
+    const veterans = allMembers.filter(m => m.reElected);
+    const freshmen = allMembers.filter(m => !m.reElected);
+    const crossChamber = allMembers.filter(m => m.crossChamber);
+
+    const vetAvg = veterans.length ? (veterans.reduce((s, m) => s + m.tenure, 0) / veterans.length).toFixed(1) : 0;
+    const freshAvg = freshmen.length ? (freshmen.reduce((s, m) => s + m.tenure, 0) / freshmen.length).toFixed(1) : 0;
+
+    document.getElementById('freshVetStats').innerHTML = `
+        <div class="stat-card"><div class="stat-value">${veterans.length}</div><div class="stat-label">Veterans</div></div>
+        <div class="stat-card"><div class="stat-value">${freshmen.length}</div><div class="stat-label">Freshmen</div></div>
+        <div class="stat-card"><div class="stat-value">${vetAvg}</div><div class="stat-label">Avg Veteran Tenure</div></div>
+        <div class="stat-card"><div class="stat-value">${freshAvg}</div><div class="stat-label">Avg Freshman Tenure</div></div>
+        <div class="stat-card"><div class="stat-value">${crossChamber.length}</div><div class="stat-label">Cross-Chamber Veterans</div></div>
+    `;
+
+    const renderList = (members, container) => {
+        const sorted = [...members].sort((a, b) => b.tenure - a.tenure);
+        document.getElementById(container).innerHTML = sorted.slice(0, 30).map(m =>
+            `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:0.85rem;cursor:pointer;" onclick="showMemberModal('${m.sponsorCode}')">
+                <span>${m.displayName} <span style="color:var(--text-muted);font-size:0.75rem;">(${m.chamber === 'H' ? 'H' : 'S'}-${m.PARTY || ''})</span></span>
+                <span style="font-weight:600;">${m.tenure} yrs</span>
+            </div>`
+        ).join('') + (sorted.length > 30 ? `<div style="color:var(--text-muted);font-size:0.8rem;padding-top:8px;">+ ${sorted.length - 30} more</div>` : '');
+    };
+
+    renderList(veterans, 'veteranList');
+    renderList(freshmen, 'freshmanList');
+
+    // Cross-chamber
+    const ccSorted = [...crossChamber].sort((a, b) => b.tenure - a.tenure);
+    document.getElementById('crossChamber').innerHTML = ccSorted.length === 0
+        ? '<div style="color:var(--text-muted);font-size:0.85rem;">No cross-chamber members found.</div>'
+        : `<div class="member-grid">${ccSorted.map(m => {
+            const partyClass = m.PARTY === 'R' ? 'party-r' : m.PARTY === 'D' ? 'party-d' : 'party-other';
+            return `<div class="member-card" onclick="showMemberModal('${m.sponsorCode}')">
+                <div class="mc-name">${m.displayName}</div>
+                <div class="mc-meta">${m.chamber === 'H' ? 'House' : 'Senate'} Dist. ${m.DISTRICT_NUMBER || '?'} | ${m.tenure} yrs</div>
+                <div class="mc-badges">
+                    <span class="mc-badge ${partyClass}">${m.PARTY || '?'}</span>
+                    <span class="mc-badge cross-chamber">Cross-Chamber</span>
+                </div>
+            </div>`;
+        }).join('')}</div>`;
+}
+
+// ---- COMMITTEE LEADERSHIP ----
+function renderCommitteeLeadership() {
+    const chamberF = document.getElementById('commChamberFilter').value;
+    const roleF = document.getElementById('commRoleFilter').value;
+
+    // Build list of committee leaders
+    let leaders = [];
+    for (const m of allMembers) {
+        for (const c of m.committees) {
+            if (c.role && c.role !== 'Member' && c.role.trim() !== '') {
+                if (chamberF !== 'all' && c.chamber !== chamberF) continue;
+                if (roleF !== 'all' && !c.role.includes(roleF)) continue;
+                leaders.push({ member: m, committee: c });
+            }
+        }
+    }
+
+    leaders.sort((a, b) => {
+        const roleOrder = r => r.includes('Chairman') && !r.includes('Vice') ? 0 : r.includes('Vice') ? 1 : 2;
+        return roleOrder(a.committee.role) - roleOrder(b.committee.role);
+    });
+
+    document.getElementById('committeeLeaders').innerHTML = leaders.length === 0
+        ? '<div style="color:var(--text-muted);padding:20px;">No committee leaders found matching filters.</div>'
+        : `<div class="member-grid">${leaders.map(l => {
+            const m = l.member;
+            const c = l.committee;
+            const partyClass = m.PARTY === 'R' ? 'party-r' : m.PARTY === 'D' ? 'party-d' : 'party-other';
+            return `<div class="member-card" onclick="showMemberModal('${m.sponsorCode}')">
+                <div class="mc-name">${m.displayName}</div>
+                <div class="mc-meta">${c.name}</div>
+                <div class="mc-badges">
+                    <span class="mc-badge ${partyClass}">${m.PARTY || '?'}</span>
+                    <span class="mc-badge chair">${c.role}</span>
+                    <span class="mc-badge" style="background:#f0f0f0;color:var(--text-muted);">${c.chamber === 'H' ? 'House' : 'Senate'}</span>
+                </div>
+            </div>`;
+        }).join('')}</div>`;
+}
+
+// ---- POWER PLAYERS ----
+function renderPowerPlayers() {
+    let powerPlayers = allMembers.filter(m => m.chairmanships.length > 0 && m.tenure >= 5);
+    powerPlayers.sort((a, b) => {
+        const scoreA = a.tenure * 2 + a.chairmanships.length * 10;
+        const scoreB = b.tenure * 2 + b.chairmanships.length * 10;
+        return scoreB - scoreA;
+    });
+
+    // If strict criteria yields no results, loosen it
+    if (powerPlayers.length === 0) {
+        powerPlayers = allMembers.filter(m => m.chairmanships.length > 0);
+        powerPlayers.sort((a, b) => b.tenure - a.tenure);
+    }
+
+    document.getElementById('powerGrid').innerHTML = powerPlayers.length === 0
+        ? '<div style="color:var(--text-muted);padding:20px;">No power players identified.</div>'
+        : powerPlayers.map(m => {
+            const chairNames = m.chairmanships.map(c => c.name).join(', ');
+            return `<div class="power-card" onclick="showMemberModal('${m.sponsorCode}')">
+                <div class="pp-name">${m.displayName}</div>
+                <div class="pp-title">${m.chamber === 'H' ? 'House' : 'Senate'} | ${m.PARTY || ''} | Dist. ${m.DISTRICT_NUMBER || '?'}</div>
+                <div class="pp-committees">Chairs: ${chairNames}</div>
+                <span class="pp-stat">${m.tenure} years tenure</span>
+                <span class="pp-stat">${m.chairmanships.length} chairmanship${m.chairmanships.length !== 1 ? 's' : ''}</span>
+            </div>`;
+        }).join('');
+}
+
+// ---- DEMOGRAPHICS ----
+function renderDemographics() {
+    const occupations = {};
+    for (const m of allMembers) {
+        const occ = (m.OCCUPATION || '').trim();
+        if (!occ) continue;
+        // Normalize
+        const words = occ.split(/[,;\/&]+/).map(w => w.trim()).filter(w => w.length > 1);
+        for (const w of words) {
+            const key = w.toLowerCase().replace(/s$/, '');
+            occupations[key] = (occupations[key] || { label: w, count: 0 });
+            occupations[key].count++;
+        }
+    }
+
+    const sorted = Object.values(occupations).sort((a, b) => b.count - a.count);
+    const top = sorted.slice(0, 40);
+    const maxCount = top.length > 0 ? top[0].count : 1;
+
+    // Word cloud
+    document.getElementById('occupationCloud').innerHTML = top.map(o => {
+        const size = 0.7 + (o.count / maxCount) * 1.6;
+        return `<span class="word" style="font-size:${size}rem;">${o.label} (${o.count})</span>`;
+    }).join('');
+
+    // Bars
+    const topBars = sorted.slice(0, 15);
+    const barMax = topBars.length > 0 ? topBars[0].count : 1;
+    document.getElementById('occupationBars').innerHTML = `<div class="bar-chart">${topBars.map(o => {
+        const pct = (o.count / barMax * 100).toFixed(0);
+        return `<div class="bar-row">
+            <div class="bar-label">${o.label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--navy);">${o.count}</div></div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+// ---- COUNTY HEATMAP ----
+function renderCountyHeatmap() {
+    const counties = {};
+    for (const m of allMembers) {
+        const county = (m.HOME_COUNTY || '').trim().toUpperCase();
+        if (!county) continue;
+        if (!counties[county]) counties[county] = { members: [], totalTenure: 0 };
+        counties[county].members.push(m);
+        counties[county].totalTenure += m.tenure;
+    }
+
+    const sorted = Object.entries(counties).sort((a, b) => b[1].members.length - a[1].members.length);
+    const maxMembers = sorted.length > 0 ? sorted[0][1].members.length : 1;
+
+    document.getElementById('countyGrid').innerHTML = sorted.map(([name, data]) => {
+        const intensity = data.members.length / maxMembers;
+        const avgT = (data.totalTenure / data.members.length).toFixed(1);
+        const bg = `rgba(0,52,102,${0.06 + intensity * 0.35})`;
+        const textColor = intensity > 0.5 ? '#fff' : 'var(--navy)';
+        return `<div class="county-cell" style="background:${bg};color:${textColor};" title="${name}: ${data.members.length} members, avg tenure ${avgT} yrs">
+            <div class="county-name">${name}</div>
+            <div class="county-count">${data.members.length}</div>
+            <div style="font-size:0.68rem;opacity:0.8;">avg ${avgT} yrs</div>
+        </div>`;
+    }).join('');
+}
+
+// ---- PARTY COMPARISON ----
+function renderPartyComparison() {
+    const reps = allMembers.filter(m => m.PARTY === 'R');
+    const dems = allMembers.filter(m => m.PARTY === 'D');
+
+    const calcStats = members => {
+        const avg = members.length ? (members.reduce((s, m) => s + m.tenure, 0) / members.length).toFixed(1) : 0;
+        const max = members.length ? Math.max(...members.map(m => m.tenure)) : 0;
+        const chairs = members.filter(m => m.chairmanships.length > 0).length;
+        const freshmen = members.filter(m => !m.reElected).length;
+        const crossC = members.filter(m => m.crossChamber).length;
+        const houseCount = members.filter(m => m.chamber === 'H').length;
+        const senateCount = members.filter(m => m.chamber === 'S').length;
+        return { total: members.length, avg, max, chairs, freshmen, crossC, houseCount, senateCount };
+    };
+
+    const rStats = calcStats(reps);
+    const dStats = calcStats(dems);
+
+    const renderBlock = (stats, cls, label) => `
+        <div class="party-block ${cls}">
+            <div class="party-label">${label} (${stats.total})</div>
+            <div class="party-stat-row"><span>Avg Tenure</span><span class="party-stat-val">${stats.avg} yrs</span></div>
+            <div class="party-stat-row"><span>Max Tenure</span><span class="party-stat-val">${stats.max} yrs</span></div>
+            <div class="party-stat-row"><span>Committee Chairs</span><span class="party-stat-val">${stats.chairs}</span></div>
+            <div class="party-stat-row"><span>Freshmen</span><span class="party-stat-val">${stats.freshmen}</span></div>
+            <div class="party-stat-row"><span>Cross-Chamber</span><span class="party-stat-val">${stats.crossC}</span></div>
+            <div class="party-stat-row"><span>House / Senate</span><span class="party-stat-val">${stats.houseCount} / ${stats.senateCount}</span></div>
+        </div>`;
+
+    document.getElementById('partyCompare').innerHTML = renderBlock(rStats, 'rep', 'Republican') + renderBlock(dStats, 'dem', 'Democrat');
+
+    // Tenure distribution by party
+    const tiers = ['20+', '10-19', '5-9', '1-4', '0'];
+    const tierRanges = [[20, 999], [10, 19], [5, 9], [1, 4], [0, 0]];
+    const rCounts = tierRanges.map(([min, max]) => reps.filter(m => m.tenure >= min && m.tenure <= max).length);
+    const dCounts = tierRanges.map(([min, max]) => dems.filter(m => m.tenure >= min && m.tenure <= max).length);
+    const barMax = Math.max(...rCounts, ...dCounts, 1);
+
+    document.getElementById('partyTenureBars').innerHTML = tiers.map((t, i) => `
+        <div style="margin-bottom:12px;">
+            <div style="font-size:0.8rem;font-weight:600;color:var(--navy);margin-bottom:4px;">${t} Years</div>
+            <div class="bar-row">
+                <div class="bar-label" style="min-width:40px;color:#991b1b;">R</div>
+                <div class="bar-track"><div class="bar-fill" style="width:${(rCounts[i]/barMax*100).toFixed(0)}%;background:#991b1b;">${rCounts[i]}</div></div>
+            </div>
+            <div class="bar-row" style="margin-top:4px;">
+                <div class="bar-label" style="min-width:40px;color:#1e3a8a;">D</div>
+                <div class="bar-track"><div class="bar-fill" style="width:${(dCounts[i]/barMax*100).toFixed(0)}%;background:#1e3a8a;">${dCounts[i]}</div></div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ---- EDUCATION ----
+function renderEducation() {
+    const schoolCounts = {};
+    const degreeCounts = {};
+
+    for (const m of allMembers) {
+        for (const s of m.education.schools) {
+            const key = s.toLowerCase();
+            if (!schoolCounts[key]) schoolCounts[key] = { label: s, count: 0 };
+            schoolCounts[key].count++;
+        }
+        for (const d of m.education.degrees) {
+            const key = d.toUpperCase();
+            if (!degreeCounts[key]) degreeCounts[key] = { label: d, count: 0 };
+            degreeCounts[key].count++;
+        }
+    }
+
+    const sortedSchools = Object.values(schoolCounts).sort((a, b) => b.count - a.count);
+    const sortedDegrees = Object.values(degreeCounts).sort((a, b) => b.count - a.count);
+
+    document.getElementById('eduList').innerHTML = sortedSchools.length === 0
+        ? '<div style="color:var(--text-muted);">No university data extracted from biographies.</div>'
+        : sortedSchools.map(s =>
+            `<div class="edu-item">
+                <div class="edu-school">${s.label}</div>
+                <div class="edu-count">${s.count} member${s.count !== 1 ? 's' : ''}</div>
+            </div>`
+        ).join('');
+
+    document.getElementById('degreeList').innerHTML = sortedDegrees.length === 0
+        ? '<div style="color:var(--text-muted);">No degree data extracted from biographies.</div>'
+        : `<div class="bar-chart">${sortedDegrees.map(d => {
+            const pct = sortedDegrees[0].count > 0 ? (d.count / sortedDegrees[0].count * 100).toFixed(0) : 0;
+            return `<div class="bar-row">
+                <div class="bar-label">${d.label}</div>
+                <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--navy);">${d.count}</div></div>
+            </div>`;
+        }).join('')}</div>`;
+}
+
+// ---- DIRECTORY ----
+let dirSortCol = 'tenure';
+let dirSortDir = 'desc';
+
+function renderDirectory() {
+    const search = (document.getElementById('dirSearch').value || '').toLowerCase();
+
+    let filtered = allMembers.filter(m => {
+        if (!search) return true;
+        const hay = `${m.displayName} ${m.HOME_COUNTY} ${m.OCCUPATION} ${m.PARTY} ${m.DISTRICT_NUMBER}`.toLowerCase();
+        return hay.includes(search);
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+        let va, vb;
+        switch (dirSortCol) {
+            case 'name': va = a.LAST || ''; vb = b.LAST || ''; break;
+            case 'chamber': va = a.chamber; vb = b.chamber; break;
+            case 'party': va = a.PARTY || ''; vb = b.PARTY || ''; break;
+            case 'district': va = a.DISTRICT_NUMBER || 0; vb = b.DISTRICT_NUMBER || 0; return dirSortDir === 'asc' ? va - vb : vb - va;
+            case 'county': va = a.HOME_COUNTY || ''; vb = b.HOME_COUNTY || ''; break;
+            case 'tenure': va = a.tenure; vb = b.tenure; return dirSortDir === 'asc' ? va - vb : vb - va;
+            case 'occupation': va = a.OCCUPATION || ''; vb = b.OCCUPATION || ''; break;
+            case 'reelected': va = a.reElected ? 1 : 0; vb = b.reElected ? 1 : 0; return dirSortDir === 'asc' ? va - vb : vb - va;
+            case 'committees': va = a.committees.length; vb = b.committees.length; return dirSortDir === 'asc' ? va - vb : vb - va;
+            default: va = ''; vb = '';
+        }
+        if (typeof va === 'string') {
+            return dirSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return dirSortDir === 'asc' ? va - vb : vb - va;
+    });
+
+    document.getElementById('directoryBody').innerHTML = filtered.map(m =>
+        `<tr onclick="showMemberModal('${m.sponsorCode}')">
+            <td><strong>${m.displayName}</strong></td>
+            <td>${m.chamber === 'H' ? 'House' : 'Senate'}</td>
+            <td><span class="mc-badge ${m.PARTY === 'R' ? 'party-r' : m.PARTY === 'D' ? 'party-d' : 'party-other'}">${m.PARTY || '?'}</span></td>
+            <td>${m.DISTRICT_NUMBER || ''}</td>
+            <td>${m.HOME_COUNTY || ''}</td>
+            <td>${m.tenure}</td>
+            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.OCCUPATION || ''}</td>
+            <td>${m.reElected ? 'Yes' : 'No'}</td>
+            <td>${m.committees.length}</td>
+        </tr>`
+    ).join('');
+}
+
+// ---- MODAL ----
+function showMemberModal(sponsorCode) {
+    const m = allMembers.find(x => x.sponsorCode === sponsorCode);
+    if (!m) return;
+
+    const partyClass = m.PARTY === 'R' ? 'party-r' : m.PARTY === 'D' ? 'party-d' : 'party-other';
+    const bioCleaned = (m.BIOGRAPHY || '').replace(/<br\s*\/?>/gi, '</p><p>');
+
+    document.getElementById('modalContent').innerHTML = `
+        <div class="modal-header">
+            <div>
+                <h3>${m.fullName}</h3>
+                <div class="modal-subtitle">${m.chamber === 'H' ? 'House' : 'Senate'} District ${m.DISTRICT_NUMBER || '?'} | ${m.PARTY === 'R' ? 'Republican' : m.PARTY === 'D' ? 'Democrat' : m.PARTY || 'Unknown'}</div>
+            </div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-section">
+            <h4>Member Details</h4>
+            <div class="detail-grid">
+                <div class="detail-item"><div class="dl">County</div><div class="dv">${m.HOME_COUNTY || 'N/A'}</div></div>
+                <div class="detail-item"><div class="dl">Tenure</div><div class="dv">${m.tenure} years</div></div>
+                <div class="detail-item"><div class="dl">Occupation</div><div class="dv">${m.OCCUPATION || 'N/A'}</div></div>
+                <div class="detail-item"><div class="dl">Re-Elected</div><div class="dv">${m.reElected ? 'Yes' : 'No'}</div></div>
+                <div class="detail-item"><div class="dl">Cross-Chamber Service</div><div class="dv">${m.crossChamber ? 'Yes' : 'No'}</div></div>
+                <div class="detail-item"><div class="dl">Email</div><div class="dv">${m.E_MAIL ? `<a href="mailto:${m.E_MAIL}">${m.E_MAIL}</a>` : 'N/A'}</div></div>
+            </div>
+        </div>
+        ${m.committees.length > 0 ? `
+        <div class="modal-section">
+            <h4>Committees (${m.committees.length})</h4>
+            <ul class="committee-list">
+                ${m.committees.map(c => `<li><span>${c.name}</span>${c.role && c.role !== 'Member' ? `<span class="comm-role">${c.role}</span>` : ''}</li>`).join('')}
+            </ul>
+        </div>` : ''}
+        ${m.education.schools.length > 0 || m.education.degrees.length > 0 ? `
+        <div class="modal-section">
+            <h4>Education</h4>
+            ${m.education.schools.length > 0 ? `<div style="margin-bottom:6px;"><strong>Schools:</strong> ${m.education.schools.join(', ')}</div>` : ''}
+            ${m.education.degrees.length > 0 ? `<div><strong>Degrees:</strong> ${m.education.degrees.join(', ')}</div>` : ''}
+        </div>` : ''}
+        <div class="modal-section">
+            <h4>Biography</h4>
+            <div class="modal-bio">${bioCleaned || '<span style="color:var(--text-muted);">No biography available.</span>'}</div>
+        </div>
+    `;
+
+    document.getElementById('memberModal').classList.add('open');
+}
+
+function closeModal() {
+    document.getElementById('memberModal').classList.remove('open');
+}
+
+// ========== EVENT HANDLERS ==========
+document.addEventListener('DOMContentLoaded', () => {
+    // Tab navigation
+    document.getElementById('navTabs').addEventListener('click', e => {
+        const tab = e.target.closest('.nav-tab');
+        if (!tab) return;
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        tab.classList.add('active');
+        const viewId = `view-${tab.dataset.view}`;
+        const viewEl = document.getElementById(viewId);
+        if (viewEl) viewEl.classList.add('active');
+    });
+
+    // Member grid filters
+    ['memberSearch', 'chamberFilter', 'partyFilter', 'sortFilter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', renderMemberGrid);
+    });
+
+    // Committee filters
+    ['commChamberFilter', 'commRoleFilter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', renderCommitteeLeadership);
+    });
+
+    // Directory search
+    document.getElementById('dirSearch').addEventListener('input', renderDirectory);
+
+    // Directory table sort
+    document.querySelectorAll('#directoryTable th').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.col;
+            if (dirSortCol === col) {
+                dirSortDir = dirSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                dirSortCol = col;
+                dirSortDir = col === 'tenure' || col === 'committees' || col === 'reelected' ? 'desc' : 'asc';
+            }
+            document.querySelectorAll('#directoryTable th').forEach(h => h.classList.remove('sorted'));
+            th.classList.add('sorted');
+            renderDirectory();
+        });
+    });
+
+    // Export CSV
+    document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
+    // Modal close
+    document.getElementById('memberModal').addEventListener('click', e => {
+        if (e.target === document.getElementById('memberModal')) closeModal();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // Load data
+    loadAllData();
+});
+
+// ---- EXPORT ----
+function exportCSV() {
+    const headers = ['Name', 'Chamber', 'Party', 'District', 'County', 'Tenure', 'Occupation', 'Re-Elected', 'Cross-Chamber', 'Committees', 'Email'];
+    const rows = allMembers.map(m => [
+        m.displayName,
+        m.chamber === 'H' ? 'House' : 'Senate',
+        m.PARTY || '',
+        m.DISTRICT_NUMBER || '',
+        m.HOME_COUNTY || '',
+        m.tenure,
+        (m.OCCUPATION || '').replace(/,/g, ';'),
+        m.reElected ? 'Yes' : 'No',
+        m.crossChamber ? 'Yes' : 'No',
+        m.committees.map(c => c.name).join('; '),
+        m.E_MAIL || ''
+    ]);
+
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sc_member_directory.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
