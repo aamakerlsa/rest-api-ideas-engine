@@ -653,10 +653,10 @@
 
         .error-message.visible { display: block; }
 
-        .demo-badge {
+        .live-badge {
             display: inline-block;
-            background: var(--orange-bg);
-            color: var(--orange);
+            background: var(--green-bg);
+            color: var(--green);
             font-size: 0.65rem;
             font-weight: 700;
             padding: 2px 8px;
@@ -742,7 +742,7 @@
     <div class="header-inner">
         <div class="header-top">
             <a href="../index.html" class="back-link">&larr; Ideas Engine</a>
-            <span class="header-badge">SC General Assembly</span>
+            <span class="header-badge">SC General Assembly &bull; Live API</span>
         </div>
         <h1><span>BFIS</span> &mdash; Budget & Fiscal Impact Synthesizer</h1>
         <p class="tagline">"Follow the money through the legislative process."</p>
@@ -883,107 +883,45 @@
 <script>
 // ═══════════════════════════════════════════
 // BFIS - Budget & Fiscal Impact Synthesizer
+// Live SC Statehouse REST API Integration
 // ═══════════════════════════════════════════
 
 const BASE = 'https://rest.scstatehouse.gov';
+
+// Budget progression stages in order
+const BUDGET_STAGES = [
+    'House Ways and Means',
+    'As passed by House',
+    'Senate Finance',
+    'As passed by Senate',
+    'Conference Committee',
+    'Appropriation Act'
+];
 
 // ── State ──
 let state = {
     sessions: [],
     currentSession: null,
-    budgets: null,
-    budgetBills: [],
-    currentBudget: null,
-    dashboardBudget: null,
-    fiscalImpact: [],
+    budgetVersions: [],       // raw from /budgets
+    budgetBillDetails: [],    // full bill objects from /bills/{sess}/{num}
+    chamberStats: null,
     sessionBillCounts: [],
-    houseBills: [],
-    senateBills: [],
-    usingDemo: {}
-};
-
-// ── Fallback Demo Data ──
-const DEMO = {
-    sessions: [
-        { SESS_NUMBER: "126", SESS_START_DATE: "2025", SESS_END_DATE: "2026" },
-        { SESS_NUMBER: "125", SESS_START_DATE: "2023", SESS_END_DATE: "2024" },
-        { SESS_NUMBER: "124", SESS_START_DATE: "2021", SESS_END_DATE: "2022" },
-        { SESS_NUMBER: "123", SESS_START_DATE: "2019", SESS_END_DATE: "2020" },
-        { SESS_NUMBER: "122", SESS_START_DATE: "2017", SESS_END_DATE: "2018" }
-    ],
-    currentSession: [{ SESS_NUMBER: "126", SESS_START_DATE: "2025", SESS_END_DATE: "2026" }],
-    budgets: [
-        { BUDGET_NAME: "General Fund", BUDGET_AMOUNT: 10542000000, FISCAL_YEAR: "2025-2026", CATEGORY: "General" },
-        { BUDGET_NAME: "Education", BUDGET_AMOUNT: 4215000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Education" },
-        { BUDGET_NAME: "Health & Human Services", BUDGET_AMOUNT: 2380000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Health" },
-        { BUDGET_NAME: "Transportation", BUDGET_AMOUNT: 1150000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Infrastructure" },
-        { BUDGET_NAME: "Public Safety", BUDGET_AMOUNT: 890000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Safety" },
-        { BUDGET_NAME: "Higher Education", BUDGET_AMOUNT: 720000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Education" },
-        { BUDGET_NAME: "Natural Resources", BUDGET_AMOUNT: 340000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Environment" },
-        { BUDGET_NAME: "Judicial", BUDGET_AMOUNT: 285000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Government" },
-        { BUDGET_NAME: "Legislative", BUDGET_AMOUNT: 65000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Government" },
-        { BUDGET_NAME: "Other Agencies", BUDGET_AMOUNT: 497000000, FISCAL_YEAR: "2025-2026", CATEGORY: "Government" }
-    ],
-    budgetBills: [
-        { KEY: "126-3700", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "3700", SUMMARY: "General Appropriations Bill for FY 2025-2026", TITLE: "A BILL TO MAKE APPROPRIATIONS FOR STATE GOVERNMENT", SPONSORTEXT: "Ways and Means Committee", RAT_NUMBER: null, ACT_NUMBER: null, STATUS: [{ step: "Committee" }] },
-        { KEY: "126-3701", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "3701", SUMMARY: "Capital Reserve Fund Appropriations", TITLE: "A BILL FOR CAPITAL RESERVE FUND", SPONSORTEXT: "Ways and Means Committee", RAT_NUMBER: null, ACT_NUMBER: null, STATUS: [{ step: "Introduced" }] },
-        { KEY: "126-0935", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "935", SUMMARY: "Supplemental Appropriations", TITLE: "A BILL FOR SUPPLEMENTAL APPROPRIATIONS", SPONSORTEXT: "Finance Committee", RAT_NUMBER: null, ACT_NUMBER: null, STATUS: [{ step: "Committee" }] },
-        { KEY: "126-3702", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "3702", SUMMARY: "Bond Bill for Infrastructure", TITLE: "A BILL TO AUTHORIZE GENERAL OBLIGATION BONDS", SPONSORTEXT: "Ways and Means Committee", RAT_NUMBER: "R125", ACT_NUMBER: "A98", STATUS: [{ step: "Ratified" }] },
-        { KEY: "126-0940", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "940", SUMMARY: "Revenue adjustments and tax conformity", TITLE: "A BILL TO AMEND REVENUE AND TAXATION", SPONSORTEXT: "Finance Committee", RAT_NUMBER: null, ACT_NUMBER: null, STATUS: [{ step: "Introduced" }] }
-    ],
-    currentBudget: [
-        { SECTION: "Part IA", AGENCY: "Department of Education", AMOUNT: 4215000000, FUND: "General" },
-        { SECTION: "Part IA", AGENCY: "Department of Health", AMOUNT: 2380000000, FUND: "General" },
-        { SECTION: "Part IA", AGENCY: "Department of Transportation", AMOUNT: 1150000000, FUND: "Federal" },
-        { SECTION: "Part IA", AGENCY: "Law Enforcement Division", AMOUNT: 890000000, FUND: "General" },
-        { SECTION: "Part IA", AGENCY: "University System", AMOUNT: 720000000, FUND: "General" },
-        { SECTION: "Part IB", AGENCY: "Proviso - Teacher Pay", AMOUNT: 385000000, FUND: "General" },
-        { SECTION: "Part IB", AGENCY: "Proviso - Infrastructure", AMOUNT: 220000000, FUND: "Capital Reserve" },
-        { SECTION: "Part IA", AGENCY: "Judicial Department", AMOUNT: 285000000, FUND: "General" },
-        { SECTION: "Part IA", AGENCY: "Legislative Services", AMOUNT: 65000000, FUND: "General" },
-        { SECTION: "Part IA", AGENCY: "Natural Resources", AMOUNT: 340000000, FUND: "Other" }
-    ],
-    fiscalImpact: [
-        { KEY: "126-0045", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "45", SUMMARY: "Income tax reduction phased over three years", FISCALIMPACT_URL: "#", SPONSORTEXT: "Rep. Smith" },
-        { KEY: "126-0102", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "102", SUMMARY: "Increase teacher minimum salary", FISCALIMPACT_URL: "#", SPONSORTEXT: "Sen. Johnson" },
-        { KEY: "126-0230", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "230", SUMMARY: "Create new cybersecurity division", FISCALIMPACT_URL: "#", SPONSORTEXT: "Rep. Williams" },
-        { KEY: "126-0415", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "415", SUMMARY: "Rural broadband expansion program", FISCALIMPACT_URL: "#", SPONSORTEXT: "Sen. Davis" },
-        { KEY: "126-0520", SESS_NUMBER: "126", CHAMBER: "H", BILL_NUMBER: "520", SUMMARY: "Medicaid expansion provisions", FISCALIMPACT_URL: "#", SPONSORTEXT: "Rep. Martinez" },
-        { KEY: "126-0633", SESS_NUMBER: "126", CHAMBER: "S", BILL_NUMBER: "633", SUMMARY: "State employee retirement reform", FISCALIMPACT_URL: "#", SPONSORTEXT: "Sen. Brown" }
-    ],
-    sessionBillCounts: [
-        { SESS_NUMBER: "122", HOUSE_PRE: 892, SENATE_PRE: 541, HOUSE_BILL_COUNT: 892, SENATE_BILL_COUNT: 541, TOTAL: 1433, SESS_START_DATE: "2017", SESS_END_DATE: "2018" },
-        { SESS_NUMBER: "123", HOUSE_PRE: 956, SENATE_PRE: 603, HOUSE_BILL_COUNT: 956, SENATE_BILL_COUNT: 603, TOTAL: 1559, SESS_START_DATE: "2019", SESS_END_DATE: "2020" },
-        { SESS_NUMBER: "124", HOUSE_PRE: 1024, SENATE_PRE: 618, HOUSE_BILL_COUNT: 1024, SENATE_BILL_COUNT: 618, TOTAL: 1642, SESS_START_DATE: "2021", SESS_END_DATE: "2022" },
-        { SESS_NUMBER: "125", HOUSE_PRE: 1087, SENATE_PRE: 672, HOUSE_BILL_COUNT: 1087, SENATE_BILL_COUNT: 672, TOTAL: 1759, SESS_START_DATE: "2023", SESS_END_DATE: "2024" },
-        { SESS_NUMBER: "126", HOUSE_PRE: 548, SENATE_PRE: 310, HOUSE_BILL_COUNT: 548, SENATE_BILL_COUNT: 310, TOTAL: 858, SESS_START_DATE: "2025", SESS_END_DATE: "2026" }
-    ],
-    dashboardBudget: {
-        TOTAL_BUDGET: 10542000000,
-        GENERAL_FUND: 10542000000,
-        FEDERAL_FUND: 8200000000,
-        OTHER_FUND: 3100000000,
-        TOTAL_ALL_FUNDS: 21842000000
-    }
+    fiscalImpact: [],
+    currentBudget: []
 };
 
 // ── Utilities ──
 function fmt(n) {
-    if (n == null || isNaN(n)) return '$0';
-    const num = Number(n);
-    if (num >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
-    if (num >= 1e6) return '$' + (num / 1e6).toFixed(1) + 'M';
-    if (num >= 1e3) return '$' + (num / 1e3).toFixed(0) + 'K';
-    return '$' + num.toLocaleString();
-}
-
-function fmtFull(n) {
-    if (n == null || isNaN(n)) return '$0';
-    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    if (n == null || isNaN(n)) return '0';
+    const v = Number(n);
+    if (v >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+    if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+    if (v >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K';
+    return v.toLocaleString();
 }
 
 function num(n) {
-    if (n == null || isNaN(n)) return 0;
+    if (n == null || isNaN(Number(n))) return 0;
     return Number(n);
 }
 
@@ -993,74 +931,138 @@ function chamberBadge(c) {
     return '<span class="badge">' + (c || '?') + '</span>';
 }
 
+function truncate(str, len) {
+    if (!str) return '';
+    return str.length > len ? str.substring(0, len) + '...' : str;
+}
+
+function stageBadge(desc) {
+    if (!desc) return '<span class="badge badge-pending">Unknown</span>';
+    const d = desc.toLowerCase();
+    if (d.includes('appropriation act')) return '<span class="badge badge-act">Appropriation Act</span>';
+    if (d.includes('conference')) return '<span class="badge badge-ratified">Conference</span>';
+    if (d.includes('as passed by senate')) return '<span class="badge badge-senate">Passed Senate</span>';
+    if (d.includes('senate finance')) return '<span class="badge badge-senate">Senate Finance</span>';
+    if (d.includes('as passed by house')) return '<span class="badge badge-house">Passed House</span>';
+    if (d.includes('house ways')) return '<span class="badge badge-house">House W&M</span>';
+    return '<span class="badge badge-pending">' + truncate(desc, 20) + '</span>';
+}
+
 function statusBadge(bill) {
     if (bill.ACT_NUMBER) return '<span class="badge badge-act">Act ' + bill.ACT_NUMBER + '</span>';
     if (bill.RAT_NUMBER) return '<span class="badge badge-ratified">Ratified</span>';
     if (bill.VETOED) return '<span class="badge badge-vetoed">Vetoed</span>';
-    const lastStatus = Array.isArray(bill.STATUS) && bill.STATUS.length > 0
-        ? (bill.STATUS[bill.STATUS.length - 1].step || bill.STATUS[bill.STATUS.length - 1].DESCRIPTION || 'Pending')
-        : 'Pending';
-    return '<span class="badge badge-pending">' + lastStatus + '</span>';
+    const actions = bill.ACTIONS || bill.STATUS;
+    if (Array.isArray(actions) && actions.length > 0) {
+        const last = actions[actions.length - 1];
+        const desc = last.DESCRIPTION || last.step || last.ACTION_DESCRIPTION || 'Pending';
+        return '<span class="badge badge-pending">' + truncate(desc, 25) + '</span>';
+    }
+    return '<span class="badge badge-pending">Pending</span>';
 }
 
-function demoLabel(key) {
-    return state.usingDemo[key] ? '<span class="demo-badge">Demo Data</span>' : '';
+// ── API Fetch (unwraps .data envelope) ──
+async function apiFetch(endpoint) {
+    const resp = await fetch(BASE + endpoint);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' for ' + endpoint);
+    const json = await resp.json();
+    // Unwrap the { error, message, data } envelope
+    if (json && json.hasOwnProperty('data')) {
+        return json.data;
+    }
+    return json;
 }
 
-// ── API Fetch with Fallback ──
-async function apiFetch(endpoint, demoKey) {
+// Safe fetch that returns null on failure
+async function apiFetchSafe(endpoint) {
     try {
-        const resp = await fetch(BASE + endpoint);
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
-        if (!data || (Array.isArray(data) && data.length === 0)) throw new Error('Empty');
-        state.usingDemo[demoKey] = false;
-        return data;
+        return await apiFetch(endpoint);
     } catch (e) {
-        console.warn('API fallback for ' + endpoint + ':', e.message);
-        state.usingDemo[demoKey] = true;
-        return DEMO[demoKey] || [];
+        console.warn('API error for ' + endpoint + ':', e.message);
+        return null;
     }
 }
 
 // ── Data Loading ──
 async function loadAllData() {
     document.getElementById('lastUpdated').textContent = 'Loading...';
+    const errorEl = document.getElementById('globalError');
+    errorEl.classList.remove('visible');
+    errorEl.textContent = '';
 
-    const [sessions, currentSession, budgets, budgetBills, currentBudget, fiscalImpact, sessionBillCounts, dashboardBudget] = await Promise.all([
-        apiFetch('/sessions', 'sessions'),
-        apiFetch('/currentsession', 'currentSession'),
-        apiFetch('/budgets', 'budgets'),
-        apiFetch('/budgetbills', 'budgetBills'),
-        apiFetch('/currentbudget', 'currentBudget'),
-        apiFetch('/bills/fiscalimpact', 'fiscalImpact'),
-        apiFetch('/session-billcount', 'sessionBillCounts'),
-        apiFetch('/dashboard/currentbudget', 'dashboardBudget')
-    ]);
+    try {
+        // Phase 1: Fetch core data in parallel
+        const [budgetVersions, currentSession, sessionBillCounts, chamberStats, fiscalImpact, currentBudget] = await Promise.all([
+            apiFetch('/budgets'),
+            apiFetchSafe('/currentsession'),
+            apiFetch('/session-billcount'),
+            apiFetchSafe('/website/chamberstats'),
+            apiFetchSafe('/bills/fiscalimpact'),
+            apiFetchSafe('/currentbudget')
+        ]);
 
-    state.sessions = Array.isArray(sessions) ? sessions : [];
-    state.currentSession = Array.isArray(currentSession) && currentSession.length > 0 ? currentSession[0] : (currentSession && currentSession.SESS_NUMBER ? currentSession : null);
-    state.budgets = Array.isArray(budgets) ? budgets : (budgets ? [budgets] : []);
-    state.budgetBills = Array.isArray(budgetBills) ? budgetBills : (budgetBills ? [budgetBills] : []);
-    state.currentBudget = Array.isArray(currentBudget) ? currentBudget : (currentBudget ? [currentBudget] : []);
-    state.fiscalImpact = Array.isArray(fiscalImpact) ? fiscalImpact : (fiscalImpact ? [fiscalImpact] : []);
-    state.sessionBillCounts = Array.isArray(sessionBillCounts) ? sessionBillCounts : (sessionBillCounts ? [sessionBillCounts] : []);
-    state.dashboardBudget = Array.isArray(dashboardBudget) ? (dashboardBudget[0] || dashboardBudget) : (dashboardBudget || {});
+        state.budgetVersions = Array.isArray(budgetVersions) ? budgetVersions : [];
+        state.currentSession = Array.isArray(currentSession) && currentSession.length > 0 ? currentSession[0] : null;
+        state.sessionBillCounts = Array.isArray(sessionBillCounts) ? sessionBillCounts : [];
+        state.chamberStats = chamberStats && typeof chamberStats === 'object' && !Array.isArray(chamberStats) ? chamberStats : (Array.isArray(chamberStats) && chamberStats.length > 0 ? chamberStats[0] : null);
+        state.fiscalImpact = Array.isArray(fiscalImpact) ? fiscalImpact : [];
+        state.currentBudget = Array.isArray(currentBudget) ? currentBudget : (currentBudget ? [currentBudget] : []);
 
-    populateSessionSelect();
-    renderAll();
+        // Build sessions list from sessionBillCounts
+        state.sessions = state.sessionBillCounts.map(s => ({
+            SESS_NUMBER: s.SESS_NUMBER,
+            SESS_START_DATE: (s.FIRST_DATE || '').substring(0, 4),
+            SESS_END_DATE: (s.LAST_DATE || '').substring(0, 4)
+        })).sort((a, b) => num(b.SESS_NUMBER) - num(a.SESS_NUMBER));
 
-    const now = new Date();
-    document.getElementById('lastUpdated').textContent = 'Updated ' + now.toLocaleTimeString();
+        // Phase 2: Fetch bill details for each unique budget bill number
+        const uniqueBills = new Map();
+        state.budgetVersions.forEach(bv => {
+            const key = bv.SESS_NUMBER + '/' + bv.BILL_NUMBER;
+            if (!uniqueBills.has(key)) {
+                uniqueBills.set(key, { session: bv.SESS_NUMBER, billNumber: bv.BILL_NUMBER });
+            }
+        });
+
+        const billFetches = [];
+        uniqueBills.forEach((val, key) => {
+            billFetches.push(
+                apiFetchSafe('/bills/' + val.session + '/' + val.billNumber)
+                    .then(data => ({ key, data }))
+            );
+        });
+
+        const billResults = await Promise.all(billFetches);
+        state.budgetBillDetails = [];
+        billResults.forEach(r => {
+            if (r.data) {
+                // API may return a single object or array
+                const bill = Array.isArray(r.data) ? r.data[0] : r.data;
+                if (bill) state.budgetBillDetails.push(bill);
+            }
+        });
+
+        populateSessionSelect();
+        renderAll();
+
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = 'Updated ' + now.toLocaleTimeString();
+
+    } catch (e) {
+        console.error('Load error:', e);
+        errorEl.textContent = 'Error loading data: ' + e.message;
+        errorEl.classList.add('visible');
+        document.getElementById('lastUpdated').textContent = 'Error';
+    }
 }
 
 function populateSessionSelect() {
     const sel = document.getElementById('sessionSelect');
-    const sessions = state.sessions.sort((a, b) => num(b.SESS_NUMBER) - num(a.SESS_NUMBER));
-    const currentNum = state.currentSession ? state.currentSession.SESS_NUMBER : (sessions.length > 0 ? sessions[0].SESS_NUMBER : '');
+    const currentNum = state.currentSession ? state.currentSession.SESS_NUMBER : (state.sessions.length > 0 ? state.sessions[0].SESS_NUMBER : '');
 
+    // Get unique years from budget versions for year-based filtering
     sel.innerHTML = '<option value="">All Sessions</option>' +
-        sessions.map(s =>
+        state.sessions.map(s =>
             '<option value="' + s.SESS_NUMBER + '"' +
             (s.SESS_NUMBER === currentNum ? ' selected' : '') +
             '>Session ' + s.SESS_NUMBER + ' (' + s.SESS_START_DATE + '-' + s.SESS_END_DATE + ')</option>'
@@ -1075,13 +1077,10 @@ function getFilters() {
     };
 }
 
-function filterBills(bills) {
+function filterBySession(items, sessField) {
     const f = getFilters();
-    return bills.filter(b => {
-        if (f.session && b.SESS_NUMBER !== f.session) return false;
-        if (f.chamber && b.CHAMBER !== f.chamber) return false;
-        return true;
-    });
+    if (!f.session) return items;
+    return items.filter(i => String(i[sessField || 'SESS_NUMBER']) === f.session);
 }
 
 // ── Render All ──
@@ -1098,179 +1097,257 @@ function renderAll() {
 // ── Render: Metrics ──
 function renderMetrics() {
     const grid = document.getElementById('metricsGrid');
-    const budgetBills = filterBills(state.budgetBills);
-    const fiscalBills = filterBills(state.fiscalImpact);
-    const db = state.dashboardBudget;
+    const cs = state.chamberStats;
+    const f = getFilters();
 
-    // Calculate totals
-    const totalBudget = db.TOTAL_ALL_FUNDS || db.TOTAL_BUDGET || db.TOTAL ||
-        state.budgets.reduce((s, b) => s + num(b.BUDGET_AMOUNT || b.AMOUNT || 0), 0);
-    const generalFund = db.GENERAL_FUND || db.TOTAL_BUDGET ||
-        state.budgets.filter(b => (b.FUND || b.CATEGORY || '').toLowerCase().includes('general'))
-            .reduce((s, b) => s + num(b.BUDGET_AMOUNT || b.AMOUNT || 0), 0);
+    // Budget versions count
+    const filteredVersions = f.session
+        ? state.budgetVersions.filter(v => v.SESS_NUMBER === f.session)
+        : state.budgetVersions;
 
-    const ratified = budgetBills.filter(b => b.RAT_NUMBER).length;
-    const acts = budgetBills.filter(b => b.ACT_NUMBER).length;
+    // Unique years in budget data
+    const budgetYears = [...new Set(state.budgetVersions.map(v => v.YEAR))].sort().reverse();
+    const latestYear = budgetYears[0] || '--';
 
-    // Session bill counts for sparkline
+    // Count completed budget cycles (those with Appropriation Act)
+    const enacted = filteredVersions.filter(v =>
+        (v.VERSION_DESCRIPTION || '').toLowerCase().includes('appropriation act')
+    ).length;
+
+    // Bill counts for sparkline
     const counts = state.sessionBillCounts
         .sort((a, b) => num(a.SESS_NUMBER) - num(b.SESS_NUMBER))
-        .map(s => num(s.TOTAL || (num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0) + num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0))));
+        .map(s => num(s.BILL_COUNT));
     const maxCount = Math.max(...counts, 1);
+
+    // Latest session bill count
+    const latestCount = counts.length > 0 ? counts[counts.length - 1] : '--';
+
+    // Chamber stats
+    const houseR = cs ? num(cs.currenthouserepublicans) : '--';
+    const houseD = cs ? num(cs.currenthousedemocrats) : '--';
+    const senR = cs ? num(cs.currentsenaterepublicans) : '--';
+    const senD = cs ? num(cs.currentsenatedemocrats) : '--';
 
     grid.innerHTML = `
         <div class="metric-card">
-            <div class="metric-label">Total Budget (All Funds)${demoLabel('dashboardBudget')}</div>
-            <div class="metric-value money">${fmt(totalBudget)}</div>
-            <div class="metric-sub">${fmtFull(totalBudget)}</div>
+            <div class="metric-label">Budget Versions Tracked</div>
+            <div class="metric-value">${filteredVersions.length}</div>
+            <div class="metric-sub">${budgetYears.length} fiscal years, ${enacted} enacted</div>
         </div>
         <div class="metric-card navy-accent">
-            <div class="metric-label">General Fund${demoLabel('budgets')}</div>
-            <div class="metric-value money">${fmt(generalFund)}</div>
-            <div class="metric-sub">${fmtFull(generalFund)}</div>
+            <div class="metric-label">Latest Budget Year</div>
+            <div class="metric-value">${latestYear}</div>
+            <div class="metric-sub">FY ${latestYear} budget cycle</div>
         </div>
         <div class="metric-card green-accent">
-            <div class="metric-label">Budget Bills${demoLabel('budgetBills')}</div>
-            <div class="metric-value">${budgetBills.length}</div>
-            <div class="metric-sub">${ratified} ratified, ${acts} enacted</div>
+            <div class="metric-label">Budget Bills Fetched</div>
+            <div class="metric-value">${state.budgetBillDetails.length}</div>
+            <div class="metric-sub">Unique budget bill details loaded</div>
         </div>
         <div class="metric-card blue-accent">
-            <div class="metric-label">Fiscal Impact Bills${demoLabel('fiscalImpact')}</div>
-            <div class="metric-value">${fiscalBills.length}</div>
-            <div class="metric-sub">Bills with fiscal analysis</div>
+            <div class="metric-label">Chamber Composition</div>
+            <div class="metric-value" style="font-size:1rem;line-height:1.5;">
+                ${cs ? `H: ${houseR}R / ${houseD}D<br>S: ${senR}R / ${senD}D` : 'N/A'}
+            </div>
+            <div class="metric-sub">${cs ? 'Current session' : 'Data unavailable'}</div>
         </div>
         <div class="metric-card orange-accent">
-            <div class="metric-label">Bill Trend (Sessions)${demoLabel('sessionBillCounts')}</div>
-            <div class="metric-value">${counts.length > 0 ? counts[counts.length - 1] : '--'}</div>
-            <div class="metric-sub">Current session total</div>
+            <div class="metric-label">Bill Count Trend</div>
+            <div class="metric-value">${latestCount.toLocaleString()}</div>
+            <div class="metric-sub">Latest session total bills</div>
             <div class="metric-sparkline">
-                ${counts.map((c, i) => `<div class="spark-bar" style="height:${Math.max((c / maxCount) * 100, 8)}%" title="${c} bills"></div>`).join('')}
+                ${counts.map((c, i) => `<div class="spark-bar" style="height:${Math.max((c / maxCount) * 100, 8)}%" title="Session: ${c.toLocaleString()} bills"></div>`).join('')}
             </div>
         </div>
     `;
 }
 
-// ── Render: Budget Chart ──
+// ── Render: Budget Chart (Budget Progression by Year) ──
 function renderBudgetChart() {
-    const items = getBudgetItems();
-    if (items.length === 0) {
-        document.getElementById('barChart').innerHTML = '<div class="state-message"><div class="icon">$</div>No budget allocation data available</div>';
+    const f = getFilters();
+    // Group budget versions by year
+    let versions = f.session
+        ? state.budgetVersions.filter(v => v.SESS_NUMBER === f.session)
+        : state.budgetVersions;
+
+    if (versions.length === 0) {
+        document.getElementById('barChart').innerHTML = '<div class="state-message"><div class="icon">$</div>No budget data available</div>';
         document.getElementById('treemap').innerHTML = '<div class="state-message"><div class="icon">$</div>No data available</div>';
         return;
     }
 
-    const maxVal = Math.max(...items.map(i => i.amount), 1);
-
-    // Bar chart
-    document.getElementById('barChart').innerHTML = items.map((item, i) =>
-        `<div class="bar-row">
-            <div class="bar-label" title="${item.name}">${item.name}</div>
-            <div class="bar-track">
-                <div class="bar-fill ${i % 2 === 0 ? '' : 'bar-fill-alt'}" style="width:${Math.max((item.amount / maxVal) * 100, 3)}%">
-                    <span class="bar-amount">${fmt(item.amount)}</span>
-                </div>
-            </div>
-        </div>`
-    ).join('');
-
-    // Treemap
-    const total = items.reduce((s, i) => s + i.amount, 0);
-    const colors = ['#1b2a4a', '#2c3e6b', '#c9a94e', '#38a169', '#3182ce', '#dd6b20', '#805ad5', '#e53e3e', '#319795', '#718096'];
-    document.getElementById('treemap').innerHTML = items.map((item, i) => {
-        const pct = (item.amount / total) * 100;
-        return `<div class="treemap-cell" style="flex-basis:${Math.max(pct, 5)}%;flex-grow:${pct};background:${colors[i % colors.length]};" title="${item.name}: ${fmtFull(item.amount)}">
-            ${pct > 6 ? item.name : ''}
-            <span class="treemap-cell-label">${fmt(item.amount)}</span>
-        </div>`;
-    }).join('');
-}
-
-function getBudgetItems() {
-    // Try to extract meaningful budget line items
-    const items = [];
-    const data = state.budgets.length > 0 ? state.budgets : state.currentBudget;
-
-    if (data.length === 0) return items;
-
-    // Detect fields
-    const sample = data[0];
-    const nameField = sample.BUDGET_NAME || sample.AGENCY || sample.NAME || sample.DESCRIPTION || sample.SECTION;
-    const amtField = Object.keys(sample).find(k => /amount|total|budget_amount/i.test(k));
-
-    data.forEach(d => {
-        const name = d.BUDGET_NAME || d.AGENCY || d.NAME || d.DESCRIPTION || d.SECTION || 'Unknown';
-        const amount = num(d[amtField] || d.BUDGET_AMOUNT || d.AMOUNT || d.TOTAL || 0);
-        if (amount > 0) {
-            items.push({ name, amount });
-        }
+    // Group by YEAR
+    const byYear = {};
+    versions.forEach(v => {
+        if (!byYear[v.YEAR]) byYear[v.YEAR] = [];
+        byYear[v.YEAR].push(v);
     });
 
-    // Sort descending by amount
-    items.sort((a, b) => b.amount - a.amount);
+    const years = Object.keys(byYear).sort().reverse();
 
-    // Limit to top 12
-    return items.slice(0, 12);
+    // Bar chart: show each version as a row, grouped by year
+    const barRows = [];
+    years.forEach(year => {
+        const yearVersions = byYear[year].sort((a, b) => {
+            const ai = BUDGET_STAGES.findIndex(s => (a.VERSION_DESCRIPTION || '').toLowerCase().includes(s.toLowerCase()));
+            const bi = BUDGET_STAGES.findIndex(s => (b.VERSION_DESCRIPTION || '').toLowerCase().includes(s.toLowerCase()));
+            return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+        });
+        yearVersions.forEach(v => {
+            barRows.push({
+                label: 'FY ' + v.YEAR + ' - ' + (v.VERSION_DESCRIPTION || 'v' + v.VERSION_ID),
+                billNum: v.BILL_NUMBER,
+                session: v.SESS_NUMBER,
+                stageIndex: BUDGET_STAGES.findIndex(s => (v.VERSION_DESCRIPTION || '').toLowerCase().includes(s.toLowerCase()))
+            });
+        });
+    });
+
+    // Use stage progression as "amount" for bar width
+    const maxStage = BUDGET_STAGES.length;
+    document.getElementById('barChart').innerHTML = barRows.map((row, i) => {
+        const progress = row.stageIndex >= 0 ? ((row.stageIndex + 1) / maxStage) * 100 : 10;
+        return `<div class="bar-row">
+            <div class="bar-label" title="${row.label}">${row.label}</div>
+            <div class="bar-track">
+                <div class="bar-fill ${i % 2 === 0 ? '' : 'bar-fill-alt'}" style="width:${Math.max(progress, 8)}%">
+                    <span class="bar-amount">${row.stageIndex >= 0 ? BUDGET_STAGES[row.stageIndex] : 'Bill ' + row.billNum}</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Treemap: show years with number of versions as sizing
+    const colors = ['#1b2a4a', '#2c3e6b', '#c9a94e', '#38a169', '#3182ce', '#dd6b20', '#805ad5', '#e53e3e', '#319795', '#718096'];
+    const totalVersions = versions.length;
+    document.getElementById('treemap').innerHTML = years.map((year, i) => {
+        const count = byYear[year].length;
+        const pct = (count / totalVersions) * 100;
+        const enacted = byYear[year].some(v => (v.VERSION_DESCRIPTION || '').toLowerCase().includes('appropriation act'));
+        return `<div class="treemap-cell" style="flex-basis:${Math.max(pct, 8)}%;flex-grow:${pct};background:${colors[i % colors.length]};" title="FY ${year}: ${count} versions${enacted ? ' (Enacted)' : ''}">
+            FY ${year}
+            <span class="treemap-cell-label">${count} version${count !== 1 ? 's' : ''}${enacted ? ' *' : ''}</span>
+        </div>`;
+    }).join('');
 }
 
 // ── Render: Budget Bills Table ──
 function renderBudgetBills() {
     const container = document.getElementById('budgetBillsTable');
     const countEl = document.getElementById('budgetBillCount');
-    const bills = filterBills(state.budgetBills);
-    countEl.textContent = bills.length;
+    const f = getFilters();
 
-    if (bills.length === 0) {
+    // Show budget versions grouped by year, with bill details where available
+    let versions = f.session
+        ? state.budgetVersions.filter(v => v.SESS_NUMBER === f.session)
+        : state.budgetVersions;
+
+    if (f.chamber) {
+        // Filter by chamber based on bill number convention (H bills start with higher numbers from House)
+        const billDetails = new Map();
+        state.budgetBillDetails.forEach(b => {
+            billDetails.set(b.BILL_NUMBER || b.BILLNUMBER, b);
+        });
+        versions = versions.filter(v => {
+            const detail = billDetails.get(v.BILL_NUMBER);
+            if (detail && detail.CHAMBER) return detail.CHAMBER === f.chamber;
+            // Guess chamber from bill number: typically H bills > 3000, S bills < 2000
+            const bn = num(v.BILL_NUMBER);
+            if (f.chamber === 'H') return bn >= 3000;
+            if (f.chamber === 'S') return bn < 3000;
+            return true;
+        });
+    }
+
+    // Sort: latest year first, then by stage progression
+    versions.sort((a, b) => {
+        if (a.YEAR !== b.YEAR) return num(b.YEAR) - num(a.YEAR);
+        const ai = BUDGET_STAGES.findIndex(s => (a.VERSION_DESCRIPTION || '').toLowerCase().includes(s.toLowerCase()));
+        const bi = BUDGET_STAGES.findIndex(s => (b.VERSION_DESCRIPTION || '').toLowerCase().includes(s.toLowerCase()));
+        return (bi === -1 ? -1 : bi) - (ai === -1 ? -1 : ai);
+    });
+
+    countEl.textContent = versions.length;
+
+    if (versions.length === 0) {
         container.innerHTML = '<div class="state-message"><div class="icon">B</div>No budget bills found for current filters</div>';
         return;
     }
 
+    // Build a lookup for bill details
+    const billDetailsMap = new Map();
+    state.budgetBillDetails.forEach(b => {
+        const bn = b.BILL_NUMBER || b.BILLNUMBER || '';
+        billDetailsMap.set(bn, b);
+    });
+
     container.innerHTML = `
         <table class="data-table">
             <thead><tr>
+                <th>Year</th>
                 <th>Bill</th>
-                <th>Chamber</th>
-                <th>Summary</th>
-                <th>Status</th>
+                <th>Stage</th>
+                <th>Session</th>
             </tr></thead>
             <tbody>
-                ${bills.map(b => `
-                    <tr onclick="toggleBillDetail(this, '${b.KEY || ''}')">
-                        <td style="font-weight:700;white-space:nowrap;">${b.CHAMBER || ''}${b.BILL_NUMBER || ''}</td>
-                        <td>${chamberBadge(b.CHAMBER)}</td>
-                        <td>${truncate(b.SUMMARY || b.TITLE || '', 60)}</td>
-                        <td>${statusBadge(b)}</td>
+                ${versions.map((v, idx) => {
+                    const detail = billDetailsMap.get(v.BILL_NUMBER);
+                    const detailId = 'budget-' + v.YEAR + '-' + v.VERSION_ID;
+                    const chamber = detail ? detail.CHAMBER : (num(v.BILL_NUMBER) >= 3000 ? 'H' : 'S');
+                    return `
+                    <tr onclick="toggleBillDetail(this, '${detailId}')" title="Click for details">
+                        <td style="font-weight:700;">FY ${v.YEAR}</td>
+                        <td>${chamberBadge(chamber)} ${chamber}${v.BILL_NUMBER}</td>
+                        <td>${stageBadge(v.VERSION_DESCRIPTION)}</td>
+                        <td>Session ${v.SESS_NUMBER}</td>
                     </tr>
                     <tr class="bill-detail-row"><td colspan="4">
-                        <div class="bill-detail" id="detail-${b.KEY || ''}">
+                        <div class="bill-detail" id="detail-${detailId}">
                             <div class="bill-detail-grid">
                                 <div class="detail-field">
-                                    <div class="label">Full Title</div>
-                                    <div class="value">${b.TITLE || b.SUMMARY || 'N/A'}</div>
+                                    <div class="label">Version</div>
+                                    <div class="value">${v.VERSION_DESCRIPTION || 'Version ' + v.VERSION_ID}</div>
+                                </div>
+                                <div class="detail-field">
+                                    <div class="label">Bill Number</div>
+                                    <div class="value">${chamber}${v.BILL_NUMBER} (Session ${v.SESS_NUMBER})</div>
+                                </div>
+                                ${detail ? `
+                                <div class="detail-field">
+                                    <div class="label">Title</div>
+                                    <div class="value">${detail.TITLE || detail.SUMMARY || 'N/A'}</div>
+                                </div>
+                                <div class="detail-field">
+                                    <div class="label">Summary</div>
+                                    <div class="value">${detail.SUMMARY || 'N/A'}</div>
                                 </div>
                                 <div class="detail-field">
                                     <div class="label">Sponsor</div>
-                                    <div class="value">${b.SPONSORTEXT || b.PERM_SPONSOR_CODE || 'N/A'}</div>
+                                    <div class="value">${detail.SPONSORTEXT || 'N/A'}</div>
                                 </div>
-                                <div class="detail-field">
-                                    <div class="label">Session</div>
-                                    <div class="value">${b.SESS_NUMBER || 'N/A'}</div>
-                                </div>
-                                ${b.RAT_NUMBER ? `<div class="detail-field"><div class="label">Ratification #</div><div class="value">${b.RAT_NUMBER}</div></div>` : ''}
-                                ${b.ACT_NUMBER ? `<div class="detail-field"><div class="label">Act #</div><div class="value">${b.ACT_NUMBER}</div></div>` : ''}
-                                ${b.FULLTEXT_URL ? `<div class="detail-field"><div class="label">Full Text</div><div class="value"><a href="${b.FULLTEXT_URL}" target="_blank">View Full Text</a></div></div>` : ''}
-                                ${b.FISCALIMPACT_URL ? `<div class="detail-field"><div class="label">Fiscal Impact</div><div class="value"><a href="${b.FISCALIMPACT_URL}" target="_blank">View Statement</a></div></div>` : ''}
+                                ${detail.RAT_NUMBER ? `<div class="detail-field"><div class="label">Ratification #</div><div class="value">${detail.RAT_NUMBER}</div></div>` : ''}
+                                ${detail.ACT_NUMBER ? `<div class="detail-field"><div class="label">Act #</div><div class="value">${detail.ACT_NUMBER}</div></div>` : ''}
+                                ${detail.ACTIONS && Array.isArray(detail.ACTIONS) && detail.ACTIONS.length > 0 ? `
+                                <div class="detail-field" style="grid-column:1/-1;">
+                                    <div class="label">Recent Actions</div>
+                                    <div class="value" style="max-height:150px;overflow-y:auto;font-size:0.78rem;">
+                                        ${detail.ACTIONS.slice(-5).reverse().map(a =>
+                                            '<div style="margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--border);">' +
+                                            '<strong>' + (a.ACTION_DATE || a.DATE || '') + '</strong> - ' +
+                                            (a.DESCRIPTION || a.ACTION_DESCRIPTION || '') +
+                                            '</div>'
+                                        ).join('')}
+                                    </div>
+                                </div>` : ''}
+                                ` : '<div class="detail-field"><div class="label">Bill Details</div><div class="value" style="color:var(--text-muted);">Full bill details not available for this bill number</div></div>'}
                             </div>
                         </div>
-                    </td></tr>
-                `).join('')}
+                    </td></tr>`;
+                }).join('')}
             </tbody>
         </table>
     `;
-}
-
-function truncate(str, len) {
-    if (!str) return '';
-    return str.length > len ? str.substring(0, len) + '...' : str;
 }
 
 function toggleBillDetail(row, key) {
@@ -1284,11 +1361,22 @@ function toggleBillDetail(row, key) {
 function renderFiscalImpact() {
     const container = document.getElementById('fiscalTable');
     const countEl = document.getElementById('fiscalCount');
-    const bills = filterBills(state.fiscalImpact);
+
+    if (!state.fiscalImpact || state.fiscalImpact.length === 0) {
+        countEl.textContent = '0';
+        container.innerHTML = '<div class="state-message"><div class="icon">FI</div>No fiscal impact data available from API</div>';
+        return;
+    }
+
+    const f = getFilters();
+    let bills = state.fiscalImpact;
+    if (f.session) bills = bills.filter(b => b.SESS_NUMBER === f.session);
+    if (f.chamber) bills = bills.filter(b => b.CHAMBER === f.chamber);
+
     countEl.textContent = bills.length;
 
     if (bills.length === 0) {
-        container.innerHTML = '<div class="state-message"><div class="icon">FI</div>No fiscal impact statements found</div>';
+        container.innerHTML = '<div class="state-message"><div class="icon">FI</div>No fiscal impact statements found for current filters</div>';
         return;
     }
 
@@ -1301,88 +1389,127 @@ function renderFiscalImpact() {
                 <th>Impact</th>
             </tr></thead>
             <tbody>
-                ${bills.map(b => `
-                    <tr onclick="toggleBillDetail(this, 'fi-${b.KEY || ''}')">
+                ${bills.slice(0, 50).map(b => `
+                    <tr>
                         <td style="font-weight:700;white-space:nowrap;">${b.CHAMBER || ''}${b.BILL_NUMBER || ''}</td>
                         <td>${chamberBadge(b.CHAMBER)}</td>
                         <td>${truncate(b.SUMMARY || b.TITLE || '', 50)}</td>
-                        <td>${b.FISCALIMPACT_URL ? '<span class="badge badge-fiscal">Statement</span>' : '<span class="badge badge-pending">Pending</span>'}</td>
+                        <td>${b.FISCALIMPACT_URL ? '<a href="' + b.FISCALIMPACT_URL + '" target="_blank"><span class="badge badge-fiscal">View</span></a>' : '<span class="badge badge-pending">N/A</span>'}</td>
                     </tr>
-                    <tr class="bill-detail-row"><td colspan="4">
-                        <div class="bill-detail" id="detail-fi-${b.KEY || ''}">
-                            <div class="bill-detail-grid">
-                                <div class="detail-field">
-                                    <div class="label">Full Title</div>
-                                    <div class="value">${b.TITLE || b.SUMMARY || 'N/A'}</div>
-                                </div>
-                                <div class="detail-field">
-                                    <div class="label">Sponsor</div>
-                                    <div class="value">${b.SPONSORTEXT || b.PERM_SPONSOR_CODE || 'N/A'}</div>
-                                </div>
-                                ${b.FISCALIMPACT_URL ? `<div class="detail-field"><div class="label">Fiscal Impact Statement</div><div class="value"><a href="${b.FISCALIMPACT_URL}" target="_blank">View Fiscal Impact</a></div></div>` : ''}
-                            </div>
-                        </div>
-                    </td></tr>
                 `).join('')}
             </tbody>
         </table>
+        ${bills.length > 50 ? '<div style="padding:8px 16px;font-size:0.78rem;color:var(--text-muted);">Showing 50 of ' + bills.length + ' bills</div>' : ''}
     `;
 }
 
-// ── Render: Current Budget Detail ──
+// ── Render: Current Budget Detail (Budget Progression Timeline) ──
 function renderCurrentBudget() {
     const container = document.getElementById('currentBudgetTable');
-    let data = state.currentBudget;
 
-    if (!Array.isArray(data)) data = data ? [data] : [];
+    // If /currentbudget returned data, render it
+    if (state.currentBudget && state.currentBudget.length > 0) {
+        const data = state.currentBudget;
+        const sample = data[0];
+        const keys = Object.keys(sample);
+        const nameKey = keys.find(k => /agency|name|section|description|department/i.test(k)) || keys[0];
+        const amtKey = keys.find(k => /amount|total|budget/i.test(k)) || keys[1];
+        const catKey = keys.find(k => /fund|category|section|part/i.test(k));
 
-    if (data.length === 0) {
-        container.innerHTML = '<div class="state-message"><div class="icon">$</div>No current budget detail available' + demoLabel('currentBudget') + '</div>';
+        const totalAmount = data.reduce((s, d) => s + num(d[amtKey]), 0);
+
+        if (totalAmount > 0) {
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead><tr>
+                        ${catKey ? '<th>Section</th>' : ''}
+                        <th>Agency / Item</th>
+                        <th style="text-align:right;">Amount</th>
+                        <th style="text-align:right;">% of Total</th>
+                    </tr></thead>
+                    <tbody>
+                        ${data.sort((a, b) => num(b[amtKey]) - num(a[amtKey])).map(d => {
+                            const pct = totalAmount > 0 ? ((num(d[amtKey]) / totalAmount) * 100).toFixed(1) : '0';
+                            return `<tr>
+                                ${catKey ? `<td>${d[catKey] || ''}</td>` : ''}
+                                <td>${d[nameKey] || ''}</td>
+                                <td style="text-align:right;font-weight:600;">$${num(d[amtKey]).toLocaleString()}</td>
+                                <td style="text-align:right;">
+                                    <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                                        <div style="width:60px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
+                                            <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:4px;"></div>
+                                        </div>
+                                        <span style="font-size:0.75rem;min-width:36px;">${pct}%</span>
+                                    </div>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                        <tr style="background:var(--bg);font-weight:700;">
+                            ${catKey ? '<td></td>' : ''}
+                            <td>Total</td>
+                            <td style="text-align:right;">$${totalAmount.toLocaleString()}</td>
+                            <td style="text-align:right;">100%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            return;
+        }
+    }
+
+    // Fallback: show budget progression timeline from budget versions
+    const byYear = {};
+    state.budgetVersions.forEach(v => {
+        if (!byYear[v.YEAR]) byYear[v.YEAR] = [];
+        byYear[v.YEAR].push(v);
+    });
+
+    const years = Object.keys(byYear).sort().reverse();
+    if (years.length === 0) {
+        container.innerHTML = '<div class="state-message"><div class="icon">$</div>No current budget detail available</div>';
         return;
     }
 
-    // Detect columns dynamically
-    const sample = data[0];
-    const keys = Object.keys(sample);
-    const nameKey = keys.find(k => /agency|name|section|description|department/i.test(k)) || keys[0];
-    const amtKey = keys.find(k => /amount|total|budget/i.test(k)) || keys[1];
-    const catKey = keys.find(k => /fund|category|section|part/i.test(k));
-
-    const totalAmount = data.reduce((s, d) => s + num(d[amtKey]), 0);
+    // Show latest year's progression as timeline
+    const latestYear = years[0];
+    const stages = byYear[latestYear].sort((a, b) => {
+        const ai = BUDGET_STAGES.findIndex(s => (a.VERSION_DESCRIPTION || '').toLowerCase().includes(s.toLowerCase()));
+        const bi = BUDGET_STAGES.findIndex(s => (b.VERSION_DESCRIPTION || '').toLowerCase().includes(s.toLowerCase()));
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
 
     container.innerHTML = `
         <table class="data-table">
             <thead><tr>
-                ${catKey ? '<th>Section</th>' : ''}
-                <th>Agency / Item</th>
-                <th style="text-align:right;">Amount</th>
-                <th style="text-align:right;">% of Total</th>
+                <th>Stage</th>
+                <th>Bill</th>
+                <th>Session</th>
+                <th>Progress</th>
             </tr></thead>
             <tbody>
-                ${data.sort((a, b) => num(b[amtKey]) - num(a[amtKey])).map(d => {
-                    const pct = totalAmount > 0 ? ((num(d[amtKey]) / totalAmount) * 100).toFixed(1) : '0';
-                    return `<tr>
-                        ${catKey ? `<td>${d[catKey] || ''}</td>` : ''}
-                        <td>${d[nameKey] || ''}</td>
-                        <td style="text-align:right;font-weight:600;">${fmtFull(d[amtKey])}</td>
-                        <td style="text-align:right;">
-                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
-                                <div style="width:60px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
-                                    <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:4px;"></div>
+                ${BUDGET_STAGES.map((stage, idx) => {
+                    const match = stages.find(v => (v.VERSION_DESCRIPTION || '').toLowerCase().includes(stage.toLowerCase()));
+                    const completed = !!match;
+                    const progressPct = ((idx + 1) / BUDGET_STAGES.length * 100).toFixed(0);
+                    return `<tr style="${completed ? '' : 'opacity:0.5;'}">
+                        <td style="font-weight:${completed ? '700' : '400'};">${stage}</td>
+                        <td>${match ? (num(match.BILL_NUMBER) >= 3000 ? 'H' : 'S') + match.BILL_NUMBER : '--'}</td>
+                        <td>${match ? 'Session ' + match.SESS_NUMBER : '--'}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div style="width:80px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
+                                    <div style="width:${completed ? progressPct : 0}%;height:100%;background:${completed ? 'var(--green)' : 'var(--border)'};border-radius:4px;transition:width 0.5s;"></div>
                                 </div>
-                                <span style="font-size:0.75rem;min-width:36px;">${pct}%</span>
+                                ${completed ? '<span class="badge badge-ratified" style="font-size:0.6rem;">Done</span>' : '<span class="badge badge-pending" style="font-size:0.6rem;">Pending</span>'}
                             </div>
                         </td>
                     </tr>`;
                 }).join('')}
-                <tr style="background:var(--bg);font-weight:700;">
-                    ${catKey ? '<td></td>' : ''}
-                    <td>Total</td>
-                    <td style="text-align:right;">${fmtFull(totalAmount)}</td>
-                    <td style="text-align:right;">100%</td>
-                </tr>
             </tbody>
         </table>
+        <div style="padding:8px 16px;font-size:0.78rem;color:var(--text-muted);">
+            FY ${latestYear} Budget Progression &mdash; ${stages.length} of ${BUDGET_STAGES.length} stages completed
+        </div>
     `;
 }
 
@@ -1398,50 +1525,36 @@ function renderSessionComparison() {
         return;
     }
 
-    const maxTotal = Math.max(...data.map(s => {
-        const h = num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0);
-        const se = num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0);
-        return h + se;
-    }), 1);
+    const maxTotal = Math.max(...data.map(s => num(s.BILL_COUNT)), 1);
 
     container.innerHTML = data.map(s => {
-        const h = num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0);
-        const se = num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0);
-        const total = num(s.TOTAL) || (h + se);
+        const total = num(s.BILL_COUNT);
+        const startYear = (s.FIRST_DATE || '').substring(0, 4);
+        const endYear = (s.LAST_DATE || '').substring(0, 4);
         return `
         <div class="session-card">
             <h4>
                 Session ${s.SESS_NUMBER}
-                <span class="year">${s.SESS_START_DATE || ''}-${s.SESS_END_DATE || ''}</span>
+                <span class="year">${startYear}-${endYear}</span>
             </h4>
             <div class="mini-bar-chart">
-                <div class="mini-bar-row">
-                    <div class="mini-bar-label">House</div>
-                    <div class="mini-bar-track">
-                        <div class="mini-bar-fill house-fill" style="width:${(h / maxTotal) * 100}%"></div>
-                    </div>
-                    <div class="mini-bar-count">${h.toLocaleString()}</div>
-                </div>
-                <div class="mini-bar-row">
-                    <div class="mini-bar-label">Senate</div>
-                    <div class="mini-bar-track">
-                        <div class="mini-bar-fill senate-fill" style="width:${(se / maxTotal) * 100}%"></div>
-                    </div>
-                    <div class="mini-bar-count">${se.toLocaleString()}</div>
-                </div>
-                <div class="mini-bar-row" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border);">
-                    <div class="mini-bar-label" style="font-weight:700;">Total</div>
+                <div class="mini-bar-row" style="margin-top:4px;">
+                    <div class="mini-bar-label" style="font-weight:700;">Bills</div>
                     <div class="mini-bar-track">
                         <div class="mini-bar-fill total-fill" style="width:${(total / maxTotal) * 100}%"></div>
                     </div>
                     <div class="mini-bar-count" style="font-weight:700;">${total.toLocaleString()}</div>
+                </div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:6px;">
+                    ${startYear ? 'From ' + s.FIRST_DATE.substring(0, 10) : ''}
+                    ${endYear ? ' to ' + s.LAST_DATE.substring(0, 10) : ''}
                 </div>
             </div>
         </div>`;
     }).join('');
 }
 
-// ── Render: Sparkline Cards ──
+// ── Render: Sparkline Cards (Bill Count Trends) ──
 function renderSparklines() {
     const container = document.getElementById('sparklineCards');
     const data = state.sessionBillCounts.sort((a, b) => num(a.SESS_NUMBER) - num(b.SESS_NUMBER));
@@ -1451,14 +1564,21 @@ function renderSparklines() {
         return;
     }
 
-    const houseVals = data.map(s => num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0));
-    const senateVals = data.map(s => num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0));
-    const totalVals = data.map(s => num(s.TOTAL) || (num(s.HOUSE_BILL_COUNT || s.HOUSE_PRE || 0) + num(s.SENATE_BILL_COUNT || s.SENATE_PRE || 0)));
+    const totalVals = data.map(s => num(s.BILL_COUNT));
+    // Budget versions per session
+    const budgetCountBySession = {};
+    state.budgetVersions.forEach(v => {
+        budgetCountBySession[v.SESS_NUMBER] = (budgetCountBySession[v.SESS_NUMBER] || 0) + 1;
+    });
+    const budgetVals = data.map(s => budgetCountBySession[s.SESS_NUMBER] || 0);
+
+    // Years per session as labels
+    const sessionLabels = data.map(s => s.SESS_NUMBER);
 
     function sparkline(values, color, lightColor) {
         const max = Math.max(...values, 1);
         return `<div class="css-sparkline">${values.map((v, i) =>
-            `<div class="spark" style="height:${Math.max((v / max) * 100, 5)}%;background:${i === values.length - 1 ? color : lightColor};" title="Session ${data[i].SESS_NUMBER}: ${v}"></div>`
+            `<div class="spark" style="height:${Math.max((v / max) * 100, 5)}%;background:${i === values.length - 1 ? color : lightColor};" title="Session ${sessionLabels[i]}: ${v.toLocaleString()}"></div>`
         ).join('')}</div>`;
     }
 
@@ -1469,34 +1589,37 @@ function renderSparklines() {
         if (prev === 0) return '';
         const pct = ((curr - prev) / prev * 100).toFixed(1);
         const arrow = pct >= 0 ? '&#9650;' : '&#9660;';
-        const color = pct >= 0 ? 'var(--green)' : 'var(--red)';
-        return `<span style="color:${color};font-size:0.75rem;">${arrow} ${Math.abs(pct)}%</span>`;
+        const clr = pct >= 0 ? 'var(--green)' : 'var(--red)';
+        return `<span style="color:${clr};font-size:0.75rem;">${arrow} ${Math.abs(pct)}%</span>`;
     }
 
     container.innerHTML = `
         <div class="metric-card">
-            <div class="metric-label">House Bills Trend${demoLabel('sessionBillCounts')}</div>
+            <div class="metric-label">Total Bills Trend</div>
             <div class="metric-value" style="display:flex;align-items:baseline;gap:8px;">
-                ${houseVals[houseVals.length - 1] || '--'} ${change(houseVals)}
-            </div>
-            <div class="metric-sub">Across ${data.length} sessions</div>
-            ${sparkline(houseVals, '#3b82f6', '#93c5fd')}
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Senate Bills Trend${demoLabel('sessionBillCounts')}</div>
-            <div class="metric-value" style="display:flex;align-items:baseline;gap:8px;">
-                ${senateVals[senateVals.length - 1] || '--'} ${change(senateVals)}
-            </div>
-            <div class="metric-sub">Across ${data.length} sessions</div>
-            ${sparkline(senateVals, '#ec4899', '#f9a8d4')}
-        </div>
-        <div class="metric-card">
-            <div class="metric-label">Total Bills Trend${demoLabel('sessionBillCounts')}</div>
-            <div class="metric-value" style="display:flex;align-items:baseline;gap:8px;">
-                ${totalVals[totalVals.length - 1] || '--'} ${change(totalVals)}
+                ${totalVals[totalVals.length - 1].toLocaleString()} ${change(totalVals)}
             </div>
             <div class="metric-sub">Across ${data.length} sessions</div>
             ${sparkline(totalVals, 'var(--navy)', 'var(--navy-light)')}
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Budget Versions per Session</div>
+            <div class="metric-value" style="display:flex;align-items:baseline;gap:8px;">
+                ${budgetVals[budgetVals.length - 1] || 0} ${change(budgetVals)}
+            </div>
+            <div class="metric-sub">Budget bill versions tracked</div>
+            ${sparkline(budgetVals, '#c9a94e', '#e8d48b')}
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Sessions Tracked</div>
+            <div class="metric-value">${data.length}</div>
+            <div class="metric-sub">Session ${sessionLabels[0]} through ${sessionLabels[sessionLabels.length - 1]}</div>
+            <div class="css-sparkline" style="margin-top:8px;">
+                ${data.map((s, i) => {
+                    const hasBudget = budgetCountBySession[s.SESS_NUMBER] > 0;
+                    return `<div class="spark" style="height:${hasBudget ? '100' : '30'}%;background:${hasBudget ? 'var(--green)' : '#e2e4e8'};" title="Session ${s.SESS_NUMBER}: ${hasBudget ? budgetCountBySession[s.SESS_NUMBER] + ' budget versions' : 'No budget data'}"></div>`;
+                }).join('')}
+            </div>
         </div>
     `;
 }
