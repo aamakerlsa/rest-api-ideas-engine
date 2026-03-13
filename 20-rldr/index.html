@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RLDR - Rules &amp; Leadership Directory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Droid+Serif:wght@400;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/lsa-styles.css">
+    <style>
+        body {
+            background-color: var(--lsa-gray-100);
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .app-navbar {
+            background-color: var(--lsa-primary);
+            padding: var(--space-3) var(--space-6);
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: var(--z-sticky);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .app-navbar .navbar-brand {
+            color: var(--lsa-white);
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-lg);
+            gap: var(--space-3);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        .app-navbar .navbar-brand img {
+            height: 36px;
+            width: auto;
+        }
+        .app-navbar .nav-back {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: var(--text-sm);
+            font-family: var(--font-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            transition: color var(--transition-fast);
+        }
+        .app-navbar .nav-back:hover {
+            color: var(--lsa-white);
+        }
+        .brand-tagline {
+            font-size: var(--text-xs);
+            color: var(--lsa-gold);
+            font-family: var(--font-primary);
+            font-weight: var(--font-normal);
+            font-style: italic;
+        }
+
+        /* Hero */
+        .hero-banner {
+            background: linear-gradient(135deg, var(--lsa-primary) 0%, var(--lsa-queen-blue) 100%);
+            color: var(--lsa-white);
+            padding: var(--space-8) var(--space-6);
+            text-align: center;
+        }
+        .hero-banner h1 {
+            color: var(--lsa-white);
+            font-family: var(--font-display);
+            font-size: var(--text-3xl);
+            margin-bottom: var(--space-2);
+        }
+        .hero-banner p {
+            color: rgba(255,255,255,0.8);
+            font-size: var(--text-lg);
+            margin-bottom: 0;
+        }
+
+        /* Main */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-6);
+        }
+
+        /* Section nav tabs */
+        .section-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            margin-bottom: var(--space-6);
+            background: var(--lsa-white);
+            padding: var(--space-3);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+        }
+        .section-nav button {
+            padding: var(--space-2) var(--space-4);
+            border: none;
+            background: transparent;
+            font-family: var(--font-primary);
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            color: var(--lsa-gray-600);
+            border-radius: var(--radius-default);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+        }
+        .section-nav button:hover {
+            background: var(--lsa-gray-100);
+            color: var(--lsa-primary);
+        }
+        .section-nav button.active {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+        }
+
+        /* Section panels */
+        .section-panel {
+            display: none;
+        }
+        .section-panel.active {
+            display: block;
+        }
+
+        /* Rules browser */
+        .rules-chamber-tabs {
+            display: flex;
+            gap: var(--space-1);
+            margin-bottom: var(--space-4);
+        }
+        .rules-chamber-tabs button {
+            padding: var(--space-2) var(--space-5);
+            border: 2px solid var(--lsa-primary);
+            background: transparent;
+            color: var(--lsa-primary);
+            font-family: var(--font-primary);
+            font-weight: var(--font-semibold);
+            font-size: var(--text-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .rules-chamber-tabs button:first-child {
+            border-radius: var(--radius-default) 0 0 var(--radius-default);
+        }
+        .rules-chamber-tabs button:last-child {
+            border-radius: 0 var(--radius-default) var(--radius-default) 0;
+        }
+        .rules-chamber-tabs button.active {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+        }
+
+        .rule-item {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            margin-bottom: var(--space-3);
+            overflow: hidden;
+        }
+        .rule-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-4) var(--space-5);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            gap: var(--space-3);
+        }
+        .rule-header:hover {
+            background: var(--lsa-gray-100);
+        }
+        .rule-header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            flex: 1;
+            min-width: 0;
+        }
+        .rule-id {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-xs);
+            font-weight: var(--font-bold);
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-full);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .rule-title {
+            font-family: var(--font-heading);
+            font-size: var(--text-base);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+        }
+        .rule-chevron {
+            font-size: var(--text-lg);
+            color: var(--lsa-gray-400);
+            transition: transform var(--transition-fast);
+            flex-shrink: 0;
+        }
+        .rule-item.expanded .rule-chevron {
+            transform: rotate(180deg);
+        }
+        .rule-content {
+            display: none;
+            padding: 0 var(--space-5) var(--space-5);
+            font-family: 'Droid Serif', Georgia, serif;
+            font-size: var(--text-sm);
+            line-height: var(--leading-relaxed);
+            color: var(--lsa-gray-700);
+        }
+        .rule-item.expanded .rule-content {
+            display: block;
+        }
+        .rule-content p, .rule-content div {
+            margin-bottom: var(--space-3);
+        }
+
+        /* Search */
+        .search-bar {
+            display: flex;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+        .search-bar input {
+            flex: 1;
+            padding: var(--space-3) var(--space-4);
+            border: none;
+            border-radius: var(--radius-default);
+            font-family: var(--font-primary);
+            font-size: var(--text-base);
+            box-shadow: var(--shadow-card);
+        }
+        .search-bar input:focus {
+            outline: 2px solid var(--lsa-primary);
+            outline-offset: 0;
+        }
+        .search-bar button {
+            padding: var(--space-3) var(--space-5);
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            border: none;
+            border-radius: var(--radius-default);
+            font-family: var(--font-primary);
+            font-weight: var(--font-semibold);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            white-space: nowrap;
+        }
+        .search-bar button:hover {
+            background: var(--lsa-queen-blue);
+        }
+        .search-result-count {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+            margin-bottom: var(--space-3);
+        }
+        mark {
+            background: var(--lsa-yellow);
+            color: var(--lsa-gray-800);
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        /* Officer cards */
+        .officers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-4);
+        }
+        .officer-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-5);
+            text-align: center;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .officer-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .officer-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: var(--radius-full);
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-heading-alt);
+            font-size: var(--text-xl);
+            font-weight: var(--font-bold);
+            margin: 0 auto var(--space-3);
+        }
+        .officer-avatar.senate {
+            background: var(--lsa-queen-blue);
+        }
+        .officer-name {
+            font-family: var(--font-heading);
+            font-size: var(--text-lg);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+            margin-bottom: var(--space-1);
+        }
+        .officer-title {
+            font-family: var(--font-primary);
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+            margin-bottom: var(--space-2);
+        }
+        .officer-chamber-badge {
+            display: inline-block;
+            font-size: var(--text-xs);
+            font-weight: var(--font-semibold);
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-full);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+        }
+        .chamber-house {
+            background: rgba(0, 52, 102, 0.1);
+            color: var(--lsa-primary);
+        }
+        .chamber-senate {
+            background: rgba(60, 105, 151, 0.1);
+            color: var(--lsa-queen-blue);
+        }
+
+        /* Org chart */
+        .org-chart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-6);
+        }
+        .org-level {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: var(--space-4);
+            position: relative;
+        }
+        .org-level::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            width: 2px;
+            height: 20px;
+            background: var(--lsa-gray-300);
+        }
+        .org-level:first-child::before {
+            display: none;
+        }
+        .org-node {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-4) var(--space-5);
+            text-align: center;
+            min-width: 200px;
+        }
+        .org-node.top-leader {
+            border-top: 4px solid var(--lsa-gold);
+        }
+        .org-node-name {
+            font-family: var(--font-heading);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+            font-size: var(--text-base);
+            margin-bottom: var(--space-1);
+        }
+        .org-node-title {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+        }
+        .org-section-title {
+            font-family: var(--font-heading-alt);
+            font-weight: var(--font-bold);
+            font-size: var(--text-xl);
+            color: var(--lsa-primary);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            margin-bottom: var(--space-4);
+            text-align: center;
+        }
+        .org-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-8);
+        }
+
+        /* Staff directory table */
+        .directory-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            font-size: var(--text-sm);
+        }
+        .directory-table th {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            padding: var(--space-3) var(--space-4);
+            text-align: left;
+            font-weight: var(--font-semibold);
+            font-family: var(--font-primary);
+        }
+        .directory-table td {
+            padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--lsa-gray-200);
+            vertical-align: top;
+        }
+        .directory-table tbody tr:hover {
+            background: var(--lsa-gray-100);
+        }
+        .directory-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Committee chairs */
+        .chairs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--space-3);
+        }
+        .chair-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-4);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        .chair-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-full);
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-bold);
+            font-size: var(--text-sm);
+            flex-shrink: 0;
+        }
+        .chair-avatar.senate {
+            background: var(--lsa-queen-blue);
+        }
+        .chair-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .chair-name {
+            font-family: var(--font-heading);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+            font-size: var(--text-sm);
+        }
+        .chair-committee {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Phone directory */
+        .phone-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            font-size: var(--text-sm);
+        }
+        .phone-table th {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            padding: var(--space-3) var(--space-4);
+            text-align: left;
+            font-weight: var(--font-semibold);
+        }
+        .phone-table td {
+            padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--lsa-gray-200);
+        }
+        .phone-table tbody tr:hover {
+            background: var(--lsa-gray-100);
+        }
+
+        /* Constitution cross-reference */
+        .constitution-section {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            margin-bottom: var(--space-3);
+            overflow: hidden;
+        }
+        .constitution-header {
+            padding: var(--space-4) var(--space-5);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background var(--transition-fast);
+        }
+        .constitution-header:hover {
+            background: var(--lsa-gray-100);
+        }
+        .constitution-title {
+            font-family: var(--font-heading);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+        }
+        .constitution-body {
+            display: none;
+            padding: 0 var(--space-5) var(--space-5);
+            font-family: 'Droid Serif', Georgia, serif;
+            font-size: var(--text-sm);
+            line-height: var(--leading-relaxed);
+            color: var(--lsa-gray-700);
+        }
+        .constitution-section.expanded .constitution-body {
+            display: block;
+        }
+
+        /* Quick reference cards */
+        .quick-ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-4);
+        }
+        .quick-ref-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+        .quick-ref-card-header {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            padding: var(--space-3) var(--space-4);
+            font-family: var(--font-heading-alt);
+            font-weight: var(--font-bold);
+            font-size: var(--text-sm);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+        }
+        .quick-ref-card-body {
+            padding: var(--space-4);
+        }
+        .quick-ref-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: var(--space-2) 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+            gap: var(--space-3);
+        }
+        .quick-ref-item:last-child {
+            border-bottom: none;
+        }
+        .quick-ref-label {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-600);
+        }
+        .quick-ref-value {
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            color: var(--lsa-primary);
+            text-align: right;
+        }
+
+        /* Loading / error states */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-12);
+            gap: var(--space-4);
+        }
+        .loading-text {
+            font-family: var(--font-primary);
+            color: var(--lsa-gray-500);
+            font-size: var(--text-sm);
+        }
+        .error-banner {
+            background: rgba(var(--lsa-ruby-red-rgb), 0.1);
+            color: var(--lsa-ruby-red);
+            border-left: 4px solid var(--lsa-ruby-red);
+            padding: var(--space-4) var(--space-5);
+            border-radius: var(--radius-default);
+            margin-bottom: var(--space-4);
+            font-size: var(--text-sm);
+        }
+
+        /* Filter controls */
+        .filter-row {
+            display: flex;
+            gap: var(--space-3);
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: var(--space-4);
+        }
+        .filter-row select {
+            padding: var(--space-2) var(--space-4);
+            border: none;
+            border-radius: var(--radius-default);
+            font-family: var(--font-primary);
+            font-size: var(--text-sm);
+            box-shadow: var(--shadow-card);
+            background: var(--lsa-white);
+            cursor: pointer;
+        }
+        .filter-row select:focus {
+            outline: 2px solid var(--lsa-primary);
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-3);
+            margin-bottom: var(--space-6);
+        }
+        .stat-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-4);
+            text-align: center;
+        }
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+        }
+        .stat-label {
+            font-size: var(--text-xs);
+            color: var(--lsa-gray-500);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+            margin-top: var(--space-1);
+        }
+
+        /* Print button */
+        .print-btn {
+            padding: var(--space-2) var(--space-4);
+            background: var(--lsa-gold);
+            color: var(--lsa-primary);
+            border: none;
+            border-radius: var(--radius-default);
+            font-family: var(--font-primary);
+            font-weight: var(--font-semibold);
+            font-size: var(--text-sm);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+        .print-btn:hover {
+            background: #a8882e;
+        }
+
+        /* Section headers */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+        .panel-title {
+            font-family: var(--font-heading);
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--lsa-primary);
+            margin-bottom: 0;
+        }
+        .panel-subtitle {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+            margin-bottom: var(--space-4);
+        }
+
+        /* Table wrapper for responsiveness */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+        }
+
+        /* Pagination info */
+        .results-info {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+            margin-bottom: var(--space-3);
+        }
+
+        /* Print styles */
+        @media print {
+            .app-navbar, .section-nav, .search-bar, .filter-row,
+            .rules-chamber-tabs, .print-btn, .hero-banner {
+                display: none !important;
+            }
+            .section-panel {
+                display: block !important;
+            }
+            .section-panel:not(#rulesPanel) {
+                display: none !important;
+            }
+            body.print-rules #rulesPanel { display: block !important; }
+            body.print-rules .rule-content { display: block !important; }
+            body.print-rules .rule-item { break-inside: avoid; }
+            .main-content { padding: 0; max-width: 100%; }
+            .rule-item { box-shadow: none !important; border: 1px solid #ccc; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .section-nav {
+                gap: var(--space-1);
+            }
+            .section-nav button {
+                font-size: var(--text-xs);
+                padding: var(--space-2) var(--space-3);
+            }
+            .org-columns {
+                grid-template-columns: 1fr;
+            }
+            .hero-banner h1 {
+                font-size: var(--text-2xl);
+            }
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .officers-grid {
+                grid-template-columns: 1fr;
+            }
+            .chairs-grid {
+                grid-template-columns: 1fr;
+            }
+            .quick-ref-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="app-navbar">
+        <a href="../index.html" class="navbar-brand">
+            <img src="../assets/images/LSA_seal.png" alt="LSA Seal">
+            <span>
+                RLDR
+                <span class="brand-tagline">Know the rules. Know the leaders.</span>
+            </span>
+        </a>
+        <a href="../index.html" class="nav-back">&#8592; Back to Apps</a>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero-banner">
+        <h1>Rules &amp; Leadership Directory</h1>
+        <p>Combined reference for House &amp; Senate Rules of Procedure, Officers, and Staff</p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Stats Row -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card"><div class="stat-number" id="statHouseRules">--</div><div class="stat-label">House Rules</div></div>
+            <div class="stat-card"><div class="stat-number" id="statSenateRules">--</div><div class="stat-label">Senate Rules</div></div>
+            <div class="stat-card"><div class="stat-number" id="statOfficers">--</div><div class="stat-label">Officers</div></div>
+            <div class="stat-card"><div class="stat-number" id="statChairs">--</div><div class="stat-label">Committee Chairs</div></div>
+            <div class="stat-card"><div class="stat-number" id="statStaff">--</div><div class="stat-label">Non-Member Staff</div></div>
+        </div>
+
+        <!-- Section Nav -->
+        <div class="section-nav" id="sectionNav">
+            <button class="active" data-section="rules">Rules Browser</button>
+            <button data-section="search">Rule Search</button>
+            <button data-section="officers">Officers</button>
+            <button data-section="leadership">Leadership</button>
+            <button data-section="staff">Staff Directory</button>
+            <button data-section="chairs">Committee Chairs</button>
+            <button data-section="phones">Phone Directory</button>
+            <button data-section="constitution">Constitution Art. III</button>
+            <button data-section="quickref">Quick Reference</button>
+        </div>
+
+        <!-- Loading state -->
+        <div class="loading-container" id="loadingState">
+            <div class="spinner spinner-lg"></div>
+            <div class="loading-text">Loading legislative data...</div>
+        </div>
+
+        <!-- Error state -->
+        <div class="error-banner" id="errorState" style="display:none;"></div>
+
+        <!-- Content panels -->
+        <div id="contentPanels" style="display:none;">
+
+            <!-- 1. Rules Browser -->
+            <div class="section-panel active" id="rulesPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Rules of Procedure</h2>
+                    <div style="display:flex;gap:var(--space-3);align-items:center;">
+                        <div class="rules-chamber-tabs" id="rulesChamberTabs">
+                            <button class="active" data-chamber="house">House</button>
+                            <button data-chamber="senate">Senate</button>
+                        </div>
+                        <button class="print-btn" onclick="printRules()">Print Rules</button>
+                    </div>
+                </div>
+                <div id="rulesContainer"></div>
+            </div>
+
+            <!-- 2. Rule Search -->
+            <div class="section-panel" id="searchPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Search Rules</h2>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="ruleSearchInput" placeholder="Search across House and Senate rules by keyword...">
+                    <button onclick="performRuleSearch()">Search</button>
+                </div>
+                <div id="searchResultCount" class="search-result-count"></div>
+                <div id="searchResults"></div>
+            </div>
+
+            <!-- 3. Officers Directory -->
+            <div class="section-panel" id="officersPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Officers Directory</h2>
+                </div>
+                <div class="filter-row">
+                    <select id="officerChamberFilter" onchange="renderOfficers()">
+                        <option value="all">All Chambers</option>
+                        <option value="house">House Only</option>
+                        <option value="senate">Senate Only</option>
+                    </select>
+                </div>
+                <div class="officers-grid" id="officersGrid"></div>
+            </div>
+
+            <!-- 4. Leadership Hierarchy -->
+            <div class="section-panel" id="leadershipPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Leadership Hierarchy</h2>
+                </div>
+                <div class="org-columns" id="orgChart"></div>
+            </div>
+
+            <!-- 5. Non-Member Staff -->
+            <div class="section-panel" id="staffPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Non-Member Staff Directory</h2>
+                </div>
+                <div class="filter-row">
+                    <input type="text" id="staffSearchInput" placeholder="Search staff..." style="flex:1;padding:var(--space-2) var(--space-4);border:none;border-radius:var(--radius-default);font-family:var(--font-primary);font-size:var(--text-sm);box-shadow:var(--shadow-card);" oninput="renderStaff()">
+                    <select id="staffChamberFilter" onchange="renderStaff()">
+                        <option value="all">All Chambers</option>
+                        <option value="house">House Only</option>
+                        <option value="senate">Senate Only</option>
+                    </select>
+                </div>
+                <div class="results-info" id="staffCount"></div>
+                <div class="table-wrapper">
+                    <table class="directory-table" id="staffTable">
+                        <thead><tr><th>Name</th><th>Title</th><th>Chamber</th></tr></thead>
+                        <tbody id="staffTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 6. Committee Chairs -->
+            <div class="section-panel" id="chairsPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Committee Chairs</h2>
+                </div>
+                <div class="filter-row">
+                    <select id="chairChamberFilter" onchange="renderChairs()">
+                        <option value="all">All Chambers</option>
+                        <option value="house">House Only</option>
+                        <option value="senate">Senate Only</option>
+                    </select>
+                </div>
+                <div class="chairs-grid" id="chairsGrid"></div>
+            </div>
+
+            <!-- 7. Telephone Directory -->
+            <div class="section-panel" id="phonesPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Telephone Directory</h2>
+                </div>
+                <div class="filter-row">
+                    <input type="text" id="phoneSearchInput" placeholder="Search phone directory..." style="flex:1;padding:var(--space-2) var(--space-4);border:none;border-radius:var(--radius-default);font-family:var(--font-primary);font-size:var(--text-sm);box-shadow:var(--shadow-card);" oninput="renderPhones()">
+                    <select id="phoneChamberFilter" onchange="renderPhones()">
+                        <option value="all">All Chambers</option>
+                        <option value="house">House Only</option>
+                        <option value="senate">Senate Only</option>
+                    </select>
+                </div>
+                <div class="results-info" id="phoneCount"></div>
+                <div class="table-wrapper">
+                    <table class="phone-table" id="phoneTable">
+                        <thead><tr><th>Name</th><th>Office / Title</th><th>Phone</th><th>Chamber</th></tr></thead>
+                        <tbody id="phoneTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 8. Constitution Cross-Reference -->
+            <div class="section-panel" id="constitutionPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Article III - Legislative Department</h2>
+                </div>
+                <p class="panel-subtitle">Constitutional provisions governing the South Carolina Legislature. Cross-reference with House and Senate Rules of Procedure.</p>
+                <div id="constitutionContainer"></div>
+            </div>
+
+            <!-- 9. Quick Reference -->
+            <div class="section-panel" id="quickrefPanel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Quick Reference Card</h2>
+                </div>
+                <div class="quick-ref-grid" id="quickRefGrid"></div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+const BASE = 'https://rest.scstatehouse.gov';
+
+// Data stores
+let houseRules = [];
+let senateRules = [];
+let houseOfficers = [];
+let senateOfficers = [];
+let houseNonmembers = [];
+let senateNonmembers = [];
+let housePhones = [];
+let senatePhones = [];
+let houseCommittees = [];
+let senateCommittees = [];
+let constitutionArticleIII = [];
+let currentRulesChamber = 'house';
+
+// ==================== API ====================
+async function apiFetch(endpoint) {
+    const res = await fetch(BASE + endpoint);
+    if (!res.ok) throw new Error(`API error ${res.status} for ${endpoint}`);
+    const json = await res.json();
+    return json.data;
+}
+
+function esc(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+// ==================== INIT ====================
+async function init() {
+    try {
+        const results = await Promise.all([
+            apiFetch('/house/rules'),
+            apiFetch('/senate/rules'),
+            apiFetch('/house/officers'),
+            apiFetch('/senate/officers'),
+            apiFetch('/house/nonmembers'),
+            apiFetch('/senate/nonmembers'),
+            apiFetch('/house/telephonelist'),
+            apiFetch('/senate/telephonelist'),
+            apiFetch('/house/committees'),
+            apiFetch('/senate/committees'),
+            apiFetch('/constitution/article_iii')
+        ]);
+
+        // Rules come as an object with a Rules array, or may be an array directly
+        const houseRulesData = results[0];
+        const senateRulesData = results[1];
+        houseRules = Array.isArray(houseRulesData) ? houseRulesData : (houseRulesData.Rules || []);
+        senateRules = Array.isArray(senateRulesData) ? senateRulesData : (senateRulesData.Rules || []);
+
+        houseOfficers = Array.isArray(results[2]) ? results[2] : [];
+        senateOfficers = Array.isArray(results[3]) ? results[3] : [];
+        houseNonmembers = Array.isArray(results[4]) ? results[4] : [];
+        senateNonmembers = Array.isArray(results[5]) ? results[5] : [];
+        housePhones = Array.isArray(results[6]) ? results[6] : [];
+        senatePhones = Array.isArray(results[7]) ? results[7] : [];
+        houseCommittees = Array.isArray(results[8]) ? results[8] : [];
+        senateCommittees = Array.isArray(results[9]) ? results[9] : [];
+
+        // Constitution may be object with Sections or array
+        const constData = results[10];
+        if (Array.isArray(constData)) {
+            constitutionArticleIII = constData;
+        } else if (constData && constData.Sections) {
+            constitutionArticleIII = constData.Sections;
+        } else if (constData && constData.sections) {
+            constitutionArticleIII = constData.sections;
+        } else {
+            constitutionArticleIII = constData ? [constData] : [];
+        }
+
+        updateStats();
+        renderRules();
+        renderOfficers();
+        renderLeadership();
+        renderStaff();
+        renderChairs();
+        renderPhones();
+        renderConstitution();
+        renderQuickRef();
+
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('contentPanels').style.display = 'block';
+    } catch (err) {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorState').textContent = 'Error loading data: ' + err.message;
+        console.error(err);
+    }
+}
+
+// ==================== STATS ====================
+function updateStats() {
+    document.getElementById('statHouseRules').textContent = houseRules.length;
+    document.getElementById('statSenateRules').textContent = senateRules.length;
+    document.getElementById('statOfficers').textContent = houseOfficers.length + senateOfficers.length;
+    document.getElementById('statStaff').textContent = houseNonmembers.length + senateNonmembers.length;
+
+    // Count chairs
+    const chairs = extractChairs();
+    document.getElementById('statChairs').textContent = chairs.length;
+}
+
+// ==================== SECTION NAV ====================
+document.getElementById('sectionNav').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    const section = e.target.dataset.section;
+    this.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(section + 'Panel').classList.add('active');
+});
+
+// ==================== RULES BROWSER ====================
+document.getElementById('rulesChamberTabs').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    currentRulesChamber = e.target.dataset.chamber;
+    this.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    renderRules();
+});
+
+function getRuleContentText(content) {
+    if (!content) return '';
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+        return content.map(seg => {
+            if (typeof seg === 'string') return seg;
+            if (seg && typeof seg === 'object') {
+                return seg.Text || seg.text || seg.Value || seg.value || seg.content || '';
+            }
+            return '';
+        }).join('');
+    }
+    return '';
+}
+
+function getRuleContentHTML(content) {
+    if (!content) return '<p><em>No content available</em></p>';
+    if (typeof content === 'string') return `<p>${content}</p>`;
+    if (Array.isArray(content)) {
+        return content.map(seg => {
+            if (typeof seg === 'string') return seg;
+            if (seg && typeof seg === 'object') {
+                let text = seg.Text || seg.text || seg.Value || seg.value || seg.content || '';
+                // Apply formatting if available
+                if (seg.Bold || seg.bold) text = `<strong>${text}</strong>`;
+                if (seg.Italic || seg.italic) text = `<em>${text}</em>`;
+                if (seg.Underline || seg.underline) text = `<u>${text}</u>`;
+                return text;
+            }
+            return '';
+        }).join('');
+    }
+    return '<p><em>No content available</em></p>';
+}
+
+function renderRules() {
+    const rules = currentRulesChamber === 'house' ? houseRules : senateRules;
+    const container = document.getElementById('rulesContainer');
+
+    if (!rules || rules.length === 0) {
+        container.innerHTML = '<div class="loading-container"><div class="loading-text">No rules found for this chamber.</div></div>';
+        return;
+    }
+
+    container.innerHTML = rules.map((rule, idx) => {
+        const id = rule.Id || rule.id || rule.RuleNumber || `${idx + 1}`;
+        const title = rule.Title || rule.title || rule.Name || 'Untitled';
+        const contentHTML = getRuleContentHTML(rule.Content || rule.content);
+        return `
+            <div class="rule-item" id="rule-${idx}">
+                <div class="rule-header" onclick="toggleRule(${idx})">
+                    <div class="rule-header-left">
+                        <span class="rule-id">${esc(String(id))}</span>
+                        <span class="rule-title">${esc(title)}</span>
+                    </div>
+                    <span class="rule-chevron">&#9660;</span>
+                </div>
+                <div class="rule-content">${contentHTML}</div>
+            </div>`;
+    }).join('');
+}
+
+function toggleRule(idx) {
+    const el = document.getElementById('rule-' + idx);
+    if (el) el.classList.toggle('expanded');
+}
+
+// ==================== RULE SEARCH ====================
+document.getElementById('ruleSearchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') performRuleSearch();
+});
+
+function performRuleSearch() {
+    const query = document.getElementById('ruleSearchInput').value.trim().toLowerCase();
+    const resultsContainer = document.getElementById('searchResults');
+    const countEl = document.getElementById('searchResultCount');
+
+    if (!query) {
+        resultsContainer.innerHTML = '';
+        countEl.textContent = '';
+        return;
+    }
+
+    const allRules = [
+        ...houseRules.map(r => ({ ...r, _chamber: 'House' })),
+        ...senateRules.map(r => ({ ...r, _chamber: 'Senate' }))
+    ];
+
+    const matches = allRules.filter(r => {
+        const title = (r.Title || r.title || r.Name || '').toLowerCase();
+        const text = getRuleContentText(r.Content || r.content).toLowerCase();
+        return title.includes(query) || text.includes(query);
+    });
+
+    countEl.textContent = `${matches.length} result${matches.length !== 1 ? 's' : ''} found across both chambers`;
+
+    if (matches.length === 0) {
+        resultsContainer.innerHTML = '<div class="loading-container"><div class="loading-text">No matching rules found.</div></div>';
+        return;
+    }
+
+    resultsContainer.innerHTML = matches.map((rule, idx) => {
+        const id = rule.Id || rule.id || rule.RuleNumber || '';
+        const title = rule.Title || rule.title || rule.Name || 'Untitled';
+        const text = getRuleContentText(rule.Content || rule.content);
+        const highlighted = highlightText(text, query);
+        const titleHighlighted = highlightText(title, query);
+
+        return `
+            <div class="rule-item">
+                <div class="rule-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div class="rule-header-left">
+                        <span class="rule-id">${esc(String(id))}</span>
+                        <span class="rule-title">${titleHighlighted} <span class="officer-chamber-badge ${rule._chamber === 'House' ? 'chamber-house' : 'chamber-senate'}">${rule._chamber}</span></span>
+                    </div>
+                    <span class="rule-chevron">&#9660;</span>
+                </div>
+                <div class="rule-content">${highlighted}</div>
+            </div>`;
+    }).join('');
+}
+
+function highlightText(text, query) {
+    if (!text || !query) return esc(text);
+    const escaped = esc(text);
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return escaped.replace(regex, '<mark>$1</mark>');
+}
+
+// ==================== OFFICERS ====================
+function renderOfficers() {
+    const filter = document.getElementById('officerChamberFilter').value;
+    let officers = [];
+    if (filter === 'all' || filter === 'house') {
+        officers = officers.concat(houseOfficers.map(o => ({ ...o, _chamber: 'house' })));
+    }
+    if (filter === 'all' || filter === 'senate') {
+        officers = officers.concat(senateOfficers.map(o => ({ ...o, _chamber: 'senate' })));
+    }
+
+    const grid = document.getElementById('officersGrid');
+    if (officers.length === 0) {
+        grid.innerHTML = '<div class="loading-container"><div class="loading-text">No officers found.</div></div>';
+        return;
+    }
+
+    grid.innerHTML = officers.map(o => {
+        // Try common field names for officer data
+        const name = o.NAME || o.Name || o.name || `${o.FIRST || o.FirstName || ''} ${o.LAST || o.LastName || ''}`.trim() || 'Unknown';
+        const title = o.TITLE || o.Title || o.title || o.OFFICE || o.Office || o.Position || o.position || '';
+        const chamber = o._chamber;
+        const initials = name.split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase();
+
+        return `
+            <div class="officer-card">
+                <div class="officer-avatar ${chamber === 'senate' ? 'senate' : ''}">${initials}</div>
+                <div class="officer-name">${esc(name)}</div>
+                <div class="officer-title">${esc(title)}</div>
+                <span class="officer-chamber-badge ${chamber === 'house' ? 'chamber-house' : 'chamber-senate'}">${chamber}</span>
+            </div>`;
+    }).join('');
+}
+
+// ==================== LEADERSHIP HIERARCHY ====================
+function renderLeadership() {
+    const container = document.getElementById('orgChart');
+
+    function buildOrgColumn(officers, label, chamberClass) {
+        if (!officers || officers.length === 0) {
+            return `<div><div class="org-section-title">${label}</div><div class="loading-text">No officers data available</div></div>`;
+        }
+
+        // Categorize officers by likely leadership rank
+        const leadershipKeywords = {
+            top: ['speaker', 'president', 'lieutenant governor', 'lt. governor', 'president pro tempore', 'pro tem'],
+            senior: ['leader', 'majority', 'minority', 'whip', 'caucus'],
+            officers: ['clerk', 'secretary', 'chaplain', 'sergeant', 'reading clerk', 'parliamentarian']
+        };
+
+        const categorized = { top: [], senior: [], officers: [] };
+        officers.forEach(o => {
+            const title = (o.TITLE || o.Title || o.title || o.OFFICE || o.Office || o.Position || '').toLowerCase();
+            const name = o.NAME || o.Name || o.name || `${o.FIRST || o.FirstName || ''} ${o.LAST || o.LastName || ''}`.trim() || 'Unknown';
+            const entry = { name, title: o.TITLE || o.Title || o.title || o.OFFICE || o.Office || o.Position || '' };
+
+            if (leadershipKeywords.top.some(k => title.includes(k))) {
+                categorized.top.push(entry);
+            } else if (leadershipKeywords.senior.some(k => title.includes(k))) {
+                categorized.senior.push(entry);
+            } else {
+                categorized.officers.push(entry);
+            }
+        });
+
+        let html = `<div><div class="org-section-title">${label}</div>`;
+        html += '<div class="org-chart">';
+
+        if (categorized.top.length > 0) {
+            html += '<div class="org-level">' + categorized.top.map(e => `
+                <div class="org-node top-leader">
+                    <div class="org-node-name">${esc(e.name)}</div>
+                    <div class="org-node-title">${esc(e.title)}</div>
+                </div>`).join('') + '</div>';
+        }
+
+        if (categorized.senior.length > 0) {
+            html += '<div class="org-level">' + categorized.senior.map(e => `
+                <div class="org-node">
+                    <div class="org-node-name">${esc(e.name)}</div>
+                    <div class="org-node-title">${esc(e.title)}</div>
+                </div>`).join('') + '</div>';
+        }
+
+        if (categorized.officers.length > 0) {
+            html += '<div class="org-level">' + categorized.officers.map(e => `
+                <div class="org-node">
+                    <div class="org-node-name">${esc(e.name)}</div>
+                    <div class="org-node-title">${esc(e.title)}</div>
+                </div>`).join('') + '</div>';
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    container.innerHTML =
+        buildOrgColumn(houseOfficers, 'House Leadership', 'house') +
+        buildOrgColumn(senateOfficers, 'Senate Leadership', 'senate');
+}
+
+// ==================== STAFF DIRECTORY ====================
+function renderStaff() {
+    const query = (document.getElementById('staffSearchInput').value || '').toLowerCase();
+    const chamberFilter = document.getElementById('staffChamberFilter').value;
+
+    let staff = [];
+    if (chamberFilter === 'all' || chamberFilter === 'house') {
+        staff = staff.concat(houseNonmembers.map(s => ({ ...s, _chamber: 'House' })));
+    }
+    if (chamberFilter === 'all' || chamberFilter === 'senate') {
+        staff = staff.concat(senateNonmembers.map(s => ({ ...s, _chamber: 'Senate' })));
+    }
+
+    if (query) {
+        staff = staff.filter(s => {
+            const name = (s.NAME || s.Name || s.name || `${s.FIRST || ''} ${s.LAST || ''}`.trim()).toLowerCase();
+            const title = (s.TITLE || s.Title || s.title || s.OFFICE || '').toLowerCase();
+            return name.includes(query) || title.includes(query);
+        });
+    }
+
+    document.getElementById('staffCount').textContent = `Showing ${staff.length} staff member${staff.length !== 1 ? 's' : ''}`;
+
+    const tbody = document.getElementById('staffTableBody');
+    if (staff.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:var(--space-8);color:var(--lsa-gray-500);">No staff members found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = staff.map(s => {
+        const name = s.NAME || s.Name || s.name || `${s.FIRST || ''} ${s.LAST || ''}`.trim() || 'Unknown';
+        const title = s.TITLE || s.Title || s.title || s.OFFICE || s.Office || '';
+        return `<tr>
+            <td>${esc(name)}</td>
+            <td>${esc(title)}</td>
+            <td><span class="officer-chamber-badge ${s._chamber === 'House' ? 'chamber-house' : 'chamber-senate'}">${s._chamber}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+// ==================== COMMITTEE CHAIRS ====================
+function extractChairs() {
+    const chairs = [];
+
+    function processCommittees(committees, chamber) {
+        if (!Array.isArray(committees)) return;
+        committees.forEach(c => {
+            const members = c.members || c.Members || [];
+            const commName = c.COMMITTEE_NAME || c.CommitteeName || c.Name || 'Unknown Committee';
+            members.forEach(m => {
+                const office = (m.COMM_OFFICE || m.CommOffice || m.Office || '').toLowerCase();
+                if (office.includes('chair') || office.includes('chairman') || office.includes('chairwoman')) {
+                    const name = `${(m.FIRST || m.FirstName || '').trim()} ${(m.LAST || m.LastName || '').trim()}`.trim();
+                    if (name) {
+                        chairs.push({
+                            name,
+                            committee: commName,
+                            office: m.COMM_OFFICE || m.CommOffice || m.Office || '',
+                            chamber
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    processCommittees(houseCommittees, 'house');
+    processCommittees(senateCommittees, 'senate');
+    return chairs;
+}
+
+function renderChairs() {
+    const filter = document.getElementById('chairChamberFilter').value;
+    let chairs = extractChairs();
+
+    if (filter !== 'all') {
+        chairs = chairs.filter(c => c.chamber === filter);
+    }
+
+    const grid = document.getElementById('chairsGrid');
+    if (chairs.length === 0) {
+        grid.innerHTML = '<div class="loading-container"><div class="loading-text">No committee chairs found.</div></div>';
+        return;
+    }
+
+    grid.innerHTML = chairs.map(c => {
+        const initials = c.name.split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase();
+        return `
+            <div class="chair-card">
+                <div class="chair-avatar ${c.chamber === 'senate' ? 'senate' : ''}">${initials}</div>
+                <div class="chair-info">
+                    <div class="chair-name">${esc(c.name)}</div>
+                    <div class="chair-committee">${esc(c.committee)}</div>
+                    <span class="officer-chamber-badge ${c.chamber === 'house' ? 'chamber-house' : 'chamber-senate'}" style="margin-top:4px;display:inline-block;">${c.chamber}</span>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+// ==================== PHONE DIRECTORY ====================
+function renderPhones() {
+    const query = (document.getElementById('phoneSearchInput').value || '').toLowerCase();
+    const chamberFilter = document.getElementById('phoneChamberFilter').value;
+
+    let phones = [];
+    if (chamberFilter === 'all' || chamberFilter === 'house') {
+        phones = phones.concat(housePhones.map(p => ({ ...p, _chamber: 'House' })));
+    }
+    if (chamberFilter === 'all' || chamberFilter === 'senate') {
+        phones = phones.concat(senatePhones.map(p => ({ ...p, _chamber: 'Senate' })));
+    }
+
+    if (query) {
+        phones = phones.filter(p => {
+            const name = (p.NAME || p.Name || p.name || `${p.FIRST || ''} ${p.LAST || ''}`.trim()).toLowerCase();
+            const office = (p.TITLE || p.Title || p.OFFICE || p.Office || p.DEPARTMENT || '').toLowerCase();
+            const phone = (p.PHONE || p.Phone || p.phone || p.TELEPHONE || '').toLowerCase();
+            return name.includes(query) || office.includes(query) || phone.includes(query);
+        });
+    }
+
+    document.getElementById('phoneCount').textContent = `Showing ${phones.length} entr${phones.length !== 1 ? 'ies' : 'y'}`;
+
+    const tbody = document.getElementById('phoneTableBody');
+    if (phones.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--lsa-gray-500);">No entries found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = phones.map(p => {
+        const name = p.NAME || p.Name || p.name || `${p.FIRST || ''} ${p.LAST || ''}`.trim() || '';
+        const office = p.TITLE || p.Title || p.OFFICE || p.Office || p.DEPARTMENT || p.Department || '';
+        const phone = p.PHONE || p.Phone || p.phone || p.TELEPHONE || p.Telephone || '';
+        return `<tr>
+            <td>${esc(name)}</td>
+            <td>${esc(office)}</td>
+            <td>${esc(phone)}</td>
+            <td><span class="officer-chamber-badge ${p._chamber === 'House' ? 'chamber-house' : 'chamber-senate'}">${p._chamber}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+// ==================== CONSTITUTION CROSS-REFERENCE ====================
+function renderConstitution() {
+    const container = document.getElementById('constitutionContainer');
+
+    if (!constitutionArticleIII || constitutionArticleIII.length === 0) {
+        container.innerHTML = '<div class="loading-container"><div class="loading-text">No constitutional data available.</div></div>';
+        return;
+    }
+
+    // Handle different structures
+    if (Array.isArray(constitutionArticleIII)) {
+        container.innerHTML = constitutionArticleIII.map((section, idx) => {
+            const sectionNum = section.SectionNumber || section.Section || section.Number || section.Id || section.id || (idx + 1);
+            const title = section.Title || section.title || section.Name || section.name || section.TITLE || '';
+            const content = section.Content || section.content || section.Text || section.text || section.CONTENT || '';
+
+            let contentHTML = '';
+            if (typeof content === 'string') {
+                contentHTML = `<p>${content}</p>`;
+            } else if (Array.isArray(content)) {
+                contentHTML = content.map(seg => {
+                    if (typeof seg === 'string') return seg;
+                    if (seg && typeof seg === 'object') {
+                        let text = seg.Text || seg.text || seg.Value || seg.value || seg.content || '';
+                        if (seg.Bold || seg.bold) text = `<strong>${text}</strong>`;
+                        if (seg.Italic || seg.italic) text = `<em>${text}</em>`;
+                        return text;
+                    }
+                    return '';
+                }).join('');
+            }
+
+            return `
+                <div class="constitution-section" id="const-${idx}">
+                    <div class="constitution-header" onclick="document.getElementById('const-${idx}').classList.toggle('expanded')">
+                        <span class="constitution-title">Section ${sectionNum}${title ? ': ' + esc(title) : ''}</span>
+                        <span class="rule-chevron">&#9660;</span>
+                    </div>
+                    <div class="constitution-body">${contentHTML || '<p><em>Content not available</em></p>'}</div>
+                </div>`;
+        }).join('');
+    } else {
+        // Single object - render as-is
+        const content = constitutionArticleIII.Content || constitutionArticleIII.content || constitutionArticleIII.Text || JSON.stringify(constitutionArticleIII);
+        container.innerHTML = `<div class="constitution-section expanded">
+            <div class="constitution-body"><p>${content}</p></div>
+        </div>`;
+    }
+}
+
+// ==================== QUICK REFERENCE ====================
+function renderQuickRef() {
+    const grid = document.getElementById('quickRefGrid');
+
+    // Extract key rule information by searching for common topics
+    function findRuleByKeyword(rules, keywords) {
+        for (const rule of rules) {
+            const title = (rule.Title || rule.title || rule.Name || '').toLowerCase();
+            const content = getRuleContentText(rule.Content || rule.content).toLowerCase();
+            if (keywords.some(k => title.includes(k) || content.includes(k))) {
+                return rule;
+            }
+        }
+        return null;
+    }
+
+    const houseQuorum = findRuleByKeyword(houseRules, ['quorum']);
+    const senateQuorum = findRuleByKeyword(senateRules, ['quorum']);
+    const houseVoting = findRuleByKeyword(houseRules, ['voting', 'vote', 'roll call']);
+    const senateVoting = findRuleByKeyword(senateRules, ['voting', 'vote', 'roll call']);
+    const houseDebate = findRuleByKeyword(houseRules, ['debate', 'speaking', 'floor']);
+    const senateDebate = findRuleByKeyword(senateRules, ['debate', 'speaking', 'floor']);
+    const houseAmend = findRuleByKeyword(houseRules, ['amendment', 'amend']);
+    const senateAmend = findRuleByKeyword(senateRules, ['amendment', 'amend']);
+
+    function ruleRef(rule) {
+        if (!rule) return 'N/A';
+        const id = rule.Id || rule.id || rule.RuleNumber || '';
+        const title = rule.Title || rule.title || rule.Name || '';
+        return `Rule ${id}: ${title}`;
+    }
+
+    grid.innerHTML = `
+        <div class="quick-ref-card">
+            <div class="quick-ref-card-header">Quorum Requirements</div>
+            <div class="quick-ref-card-body">
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">House</span>
+                    <span class="quick-ref-value">${esc(ruleRef(houseQuorum))}</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Senate</span>
+                    <span class="quick-ref-value">${esc(ruleRef(senateQuorum))}</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Constitutional</span>
+                    <span class="quick-ref-value">Art. III, Sec. 11</span>
+                </div>
+            </div>
+        </div>
+        <div class="quick-ref-card">
+            <div class="quick-ref-card-header">Voting Procedures</div>
+            <div class="quick-ref-card-body">
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">House</span>
+                    <span class="quick-ref-value">${esc(ruleRef(houseVoting))}</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Senate</span>
+                    <span class="quick-ref-value">${esc(ruleRef(senateVoting))}</span>
+                </div>
+            </div>
+        </div>
+        <div class="quick-ref-card">
+            <div class="quick-ref-card-header">Debate Rules</div>
+            <div class="quick-ref-card-body">
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">House</span>
+                    <span class="quick-ref-value">${esc(ruleRef(houseDebate))}</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Senate</span>
+                    <span class="quick-ref-value">${esc(ruleRef(senateDebate))}</span>
+                </div>
+            </div>
+        </div>
+        <div class="quick-ref-card">
+            <div class="quick-ref-card-header">Amendment Procedures</div>
+            <div class="quick-ref-card-body">
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">House</span>
+                    <span class="quick-ref-value">${esc(ruleRef(houseAmend))}</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Senate</span>
+                    <span class="quick-ref-value">${esc(ruleRef(senateAmend))}</span>
+                </div>
+            </div>
+        </div>
+        <div class="quick-ref-card">
+            <div class="quick-ref-card-header">Key Facts</div>
+            <div class="quick-ref-card-body">
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">House Rules</span>
+                    <span class="quick-ref-value">${houseRules.length} total</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Senate Rules</span>
+                    <span class="quick-ref-value">${senateRules.length} total</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Total Officers</span>
+                    <span class="quick-ref-value">${houseOfficers.length + senateOfficers.length}</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Committee Chairs</span>
+                    <span class="quick-ref-value">${extractChairs().length}</span>
+                </div>
+            </div>
+        </div>
+        <div class="quick-ref-card">
+            <div class="quick-ref-card-header">Constitutional Reference</div>
+            <div class="quick-ref-card-body">
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Legislature</span>
+                    <span class="quick-ref-value">Article III</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Composition</span>
+                    <span class="quick-ref-value">Sec. 1-3</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Quorum</span>
+                    <span class="quick-ref-value">Sec. 11</span>
+                </div>
+                <div class="quick-ref-item">
+                    <span class="quick-ref-label">Revenue Bills</span>
+                    <span class="quick-ref-value">Sec. 15</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== PRINT ====================
+function printRules() {
+    document.body.classList.add('print-rules');
+    // Expand all rules for printing
+    document.querySelectorAll('#rulesPanel .rule-item').forEach(el => el.classList.add('expanded'));
+    window.print();
+    document.body.classList.remove('print-rules');
+}
+
+// ==================== BOOT ====================
+init();
+</script>
+</body>
+</html>
