@@ -727,7 +727,7 @@
 <div class="metrics-bar" id="metricsBar">
     <div class="metric-card">
         <div class="metric-value" id="metricTotal">--</div>
-        <div class="metric-label">Total Amendments</div>
+        <div class="metric-label">Amendment Votes</div>
     </div>
     <div class="metric-card">
         <div class="metric-value house" id="metricHouse">--</div>
@@ -738,8 +738,8 @@
         <div class="metric-label">Senate</div>
     </div>
     <div class="metric-card">
-        <div class="metric-value common" id="metricCommon">--</div>
-        <div class="metric-label">Common</div>
+        <div class="metric-value" id="metricPassed">--</div>
+        <div class="metric-label">Passed</div>
     </div>
     <div class="metric-card">
         <div class="metric-value" id="metricSessions">--</div>
@@ -759,7 +759,6 @@
             <button class="toggle-btn active" data-chamber="all">All</button>
             <button class="toggle-btn" data-chamber="house">House</button>
             <button class="toggle-btn" data-chamber="senate">Senate</button>
-            <button class="toggle-btn" data-chamber="common">Common</button>
         </div>
     </div>
     <div class="control-group">
@@ -795,7 +794,7 @@
         </div>
         <div id="feedError" class="error-state" style="display:none;">
             <div class="error-icon">!</div>
-            <div>Failed to load amendments. Showing demo data.</div>
+            <div id="feedErrorMsg">Failed to load amendment vote data.</div>
         </div>
         <div class="amendment-feed" id="amendmentFeed"></div>
     </div>
@@ -851,7 +850,7 @@
                             <th>Session</th>
                             <th>House</th>
                             <th>Senate</th>
-                            <th>Common</th>
+                            <th>Passed</th>
                             <th>Total</th>
                             <th>Distribution</th>
                         </tr>
@@ -890,261 +889,171 @@
         currentChamber: 'all',
         currentSession: 'current',
         currentTab: 'feed',
-        allAmendments: [],
-        sessionData: {},       // { 122: { house: [], senate: [], common: [], all: [] }, ... }
-        isLoading: false,
-        useFallback: false
+        sessionData: {},  // { 126: { all: [], house: [], senate: [], passed: [] }, ... }
+        isLoading: false
     };
-
-    // ── Fallback Demo Data ──
-    const FALLBACK_DATA = generateFallbackData();
-
-    function generateFallbackData() {
-        const bills = ['H.3000', 'H.3105', 'H.3210', 'H.3415', 'H.3522', 'H.3601', 'H.3750',
-                        'S.100', 'S.215', 'S.330', 'S.445', 'S.560', 'S.675', 'S.790',
-                        'H.4001', 'H.4110', 'S.850', 'S.960'];
-        const chambers = ['House', 'Senate', 'Common'];
-        const types = ['Committee Amendment', 'Floor Amendment', 'Substitute Amendment',
-                        'Technical Amendment', 'Engrossed Amendment', 'Conference Report Amendment'];
-        const statuses = ['Adopted', 'Pending', 'Withdrawn', 'Tabled', 'Failed'];
-        const sponsors = ['Rep. Smith', 'Rep. Johnson', 'Sen. Williams', 'Sen. Brown',
-                            'Rep. Davis', 'Sen. Wilson', 'Rep. Taylor', 'Sen. Anderson',
-                            'Rep. Thomas', 'Sen. Jackson', 'Rep. White', 'Sen. Harris'];
-
-        const data = {};
-        SESSIONS.forEach(session => {
-            const count = 30 + Math.floor(Math.random() * 70);
-            const items = [];
-            for (let i = 0; i < count; i++) {
-                const chamber = chambers[Math.floor(Math.random() * (session > 124 ? 3 : 2.5))];
-                const chamberLower = chamber.toLowerCase();
-                items.push({
-                    billNumber: bills[Math.floor(Math.random() * bills.length)],
-                    chamber: chamber,
-                    chamberLower: chamberLower,
-                    amendmentType: types[Math.floor(Math.random() * types.length)],
-                    status: statuses[Math.floor(Math.random() * statuses.length)],
-                    sponsor: sponsors[Math.floor(Math.random() * sponsors.length)],
-                    session: session,
-                    description: `Amendment to modify provisions relating to ${['education', 'transportation', 'healthcare', 'taxation', 'criminal justice', 'environment', 'budget allocation', 'public safety'][Math.floor(Math.random() * 8)]}`,
-                    date: `2025-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-                    id: `AMDT-${session}-${String(i + 1).padStart(4, '0')}`
-                });
-            }
-            data[session] = {
-                all: items,
-                house: items.filter(a => a.chamberLower === 'house'),
-                senate: items.filter(a => a.chamberLower === 'senate'),
-                common: items.filter(a => a.chamberLower === 'common')
-            };
-        });
-        return data;
-    }
-
-    // ── Utility: Normalize API response into amendment array ──
-    function normalizeAmendments(data, session, chamberHint) {
-        if (!data) return [];
-
-        // If it's already an array, process each item
-        if (Array.isArray(data)) {
-            return data.map((item, idx) => normalizeItem(item, idx, session, chamberHint));
-        }
-
-        // If it's an object with nested arrays, find them
-        const possibleArrayKeys = Object.keys(data).filter(k => Array.isArray(data[k]));
-        if (possibleArrayKeys.length > 0) {
-            let combined = [];
-            possibleArrayKeys.forEach(key => {
-                const inferredChamber = key.toLowerCase().includes('house') ? 'house' :
-                                        key.toLowerCase().includes('senate') ? 'senate' :
-                                        key.toLowerCase().includes('common') ? 'common' : chamberHint;
-                data[key].forEach((item, idx) => {
-                    combined.push(normalizeItem(item, idx, session, inferredChamber));
-                });
-            });
-            return combined;
-        }
-
-        // If it's a single object, wrap it
-        if (typeof data === 'object' && Object.keys(data).length > 0) {
-            // Check if it looks like a single amendment
-            const keys = Object.keys(data);
-            const looksLikeAmendment = keys.some(k =>
-                /bill|amend|type|status|chamber/i.test(k)
-            );
-            if (looksLikeAmendment) {
-                return [normalizeItem(data, 0, session, chamberHint)];
-            }
-
-            // It might be a map of bill numbers -> amendments
-            let results = [];
-            keys.forEach(key => {
-                const val = data[key];
-                if (Array.isArray(val)) {
-                    val.forEach((item, idx) => results.push(normalizeItem(item, idx, session, chamberHint)));
-                } else if (typeof val === 'object' && val !== null) {
-                    results.push(normalizeItem(val, results.length, session, chamberHint));
-                }
-            });
-            return results;
-        }
-
-        return [];
-    }
-
-    function normalizeItem(item, idx, session, chamberHint) {
-        if (!item || typeof item !== 'object') {
-            return {
-                billNumber: String(item || 'Unknown'),
-                chamber: chamberHint || 'House',
-                chamberLower: (chamberHint || 'house').toLowerCase(),
-                amendmentType: 'Amendment',
-                status: 'Filed',
-                sponsor: '',
-                session: session,
-                description: '',
-                date: '',
-                id: `AMDT-${session}-${idx}`
-            };
-        }
-
-        // Try to find fields by common patterns
-        const findField = (obj, patterns) => {
-            for (const p of patterns) {
-                for (const key of Object.keys(obj)) {
-                    if (key.toLowerCase().includes(p.toLowerCase())) {
-                        return obj[key];
-                    }
-                }
-            }
-            return '';
-        };
-
-        const rawChamber = findField(item, ['chamber', 'body', 'origin']) ||
-                            chamberHint || 'House';
-        const chamberStr = String(rawChamber);
-        const chamberLower = chamberStr.toLowerCase().includes('senate') ? 'senate' :
-                                chamberStr.toLowerCase().includes('common') ? 'common' :
-                                chamberStr.toLowerCase().includes('house') ? 'house' :
-                                (chamberHint || 'house');
-
-        return {
-            billNumber: findField(item, ['billnumber', 'bill_number', 'bill', 'number', 'prefiled', 'billNumber']) ||
-                        findField(item, ['legislation', 'measure']) ||
-                        item.billNumber || item.bill || `Item ${idx + 1}`,
-            chamber: chamberLower.charAt(0).toUpperCase() + chamberLower.slice(1),
-            chamberLower: chamberLower,
-            amendmentType: findField(item, ['type', 'amendmenttype', 'amendment_type', 'kind']) ||
-                            findField(item, ['category', 'class']) || 'Amendment',
-            status: findField(item, ['status', 'state', 'disposition', 'action']) || 'Filed',
-            sponsor: findField(item, ['sponsor', 'author', 'member', 'introducer', 'offered']) || '',
-            session: session,
-            description: findField(item, ['description', 'title', 'summary', 'text', 'subject', 'desc']) || '',
-            date: findField(item, ['date', 'filed', 'introduced', 'created', 'actionDate', 'action_date']) || '',
-            id: findField(item, ['id', 'amendment_id', 'amendmentid', 'key', 'amendmentId']) ||
-                `AMDT-${session}-${idx}`,
-            _raw: item
-        };
-    }
 
     // ── API Fetching ──
     async function fetchJSON(url) {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const text = await response.text();
-        try {
-            return JSON.parse(text);
-        } catch(e) {
-            // Try to see if it's HTML or something else
-            return null;
+        const json = await response.json();
+        // Unwrap the standard wrapper: { error, message, data }
+        if (json && json.hasOwnProperty('data')) {
+            return json.data;
         }
+        return json;
     }
 
-    async function loadAmendments(session, chamber) {
-        let url = `${BASE_URL}/dashboard/currentamendment`;
+    // ── Parse a vote record into our normalized amendment-vote object ──
+    function parseVote(vote, session, chamberCode) {
+        const chamberLower = chamberCode === 'S' ? 'senate' : 'house';
+        const chamberLabel = chamberCode === 'S' ? 'Senate' : 'House';
+        const approved = String(vote.APPROVED) === '1';
 
-        if (session !== 'current') {
-            url += `/${session}`;
+        // Extract yea/nay counts from CHOICES array
+        let yeas = 0, nays = 0, notVoting = 0, excusedAbsent = 0, resultText = '';
+        let sponsors = [];
+        if (vote.CHOICES && vote.CHOICES.length > 0) {
+            const choice = vote.CHOICES[0];
+            yeas = parseInt(choice.YEAS) || 0;
+            nays = parseInt(choice.NAYS) || 0;
+            resultText = choice.RESULTTEXT || '';
+            if (choice.STATS) {
+                yeas = parseInt(choice.STATS.Yeas) || yeas;
+                nays = parseInt(choice.STATS.Nays) || nays;
+                notVoting = parseInt(choice.STATS['N/V']) || 0;
+                excusedAbsent = parseInt(choice.STATS['Exc. Abs.']) || 0;
+            }
+            if (choice.SPONSORS && Array.isArray(choice.SPONSORS)) {
+                sponsors = choice.SPONSORS;
+            }
         }
 
-        if (chamber !== 'all') {
-            url += `/${chamber}`;
-        }
+        const motion = (vote.MOTION || '').trim();
+        const voteTime = vote.VOTETIME || '';
 
+        return {
+            key: vote.KEY || `${session}-${chamberCode}-${vote.VOTE_NUMBER}`,
+            voteNumber: vote.VOTE_NUMBER || '',
+            billNumber: vote.BILL_NUMBER || '',
+            chamber: chamberLabel,
+            chamberLower: chamberLower,
+            chamberCode: chamberCode,
+            motion: motion,
+            approved: approved,
+            status: approved ? 'Passed' : 'Failed',
+            voteTime: voteTime,
+            date: voteTime ? voteTime.split(' ')[0] : '',
+            session: session,
+            yeas: yeas,
+            nays: nays,
+            notVoting: notVoting,
+            excusedAbsent: excusedAbsent,
+            margin: yeas - nays,
+            resultText: resultText,
+            sponsors: sponsors,
+            description: motion
+        };
+    }
+
+    // ── Filter: is this vote about an amendment? ──
+    function isAmendmentVote(vote) {
+        const motion = (vote.MOTION || '').toLowerCase();
+        return motion.includes('amend') || motion.includes('amendment');
+    }
+
+    // ── Load vote data for one session + chamber ──
+    async function loadChamberVotes(session, chamberName) {
+        const url = `${BASE_URL}/vote/${session}/${chamberName}`;
         try {
             const data = await fetchJSON(url);
-            return normalizeAmendments(data, session, chamber !== 'all' ? chamber : null);
-        } catch(e) {
-            console.warn(`API call failed for ${url}:`, e.message);
-            return null;
+            if (!Array.isArray(data)) return [];
+            const chamberCode = chamberName === 'house' ? 'H' : 'S';
+            // Filter to amendment-related votes only
+            return data
+                .filter(isAmendmentVote)
+                .map(v => parseVote(v, session, chamberCode));
+        } catch (e) {
+            console.warn(`Failed to load ${url}:`, e.message);
+            return [];
         }
     }
 
+    // ── Load all session data ──
     async function loadAllSessionData() {
+        const statusEl = document.getElementById('feedLoading');
+        let loaded = 0;
+
         const promises = SESSIONS.map(async session => {
-            // Try to load all chambers for this session
-            const allData = await loadAmendments(String(session), 'all');
-            if (allData && allData.length > 0) {
-                state.sessionData[session] = {
-                    all: allData,
-                    house: allData.filter(a => a.chamberLower === 'house'),
-                    senate: allData.filter(a => a.chamberLower === 'senate'),
-                    common: allData.filter(a => a.chamberLower === 'common')
-                };
-            } else {
-                // Try individual chambers
-                const [house, senate, common] = await Promise.all([
-                    loadAmendments(String(session), 'house'),
-                    loadAmendments(String(session), 'senate'),
-                    loadAmendments(String(session), 'common')
-                ]);
+            const [houseVotes, senateVotes] = await Promise.all([
+                loadChamberVotes(session, 'house'),
+                loadChamberVotes(session, 'senate')
+            ]);
 
-                const h = house || [];
-                const s = senate || [];
-                const c = common || [];
+            const all = [...houseVotes, ...senateVotes];
+            // Sort by vote time descending (most recent first)
+            all.sort((a, b) => {
+                if (a.voteTime && b.voteTime) return b.voteTime.localeCompare(a.voteTime);
+                if (a.voteTime) return -1;
+                if (b.voteTime) return 1;
+                return 0;
+            });
 
-                if (h.length > 0 || s.length > 0 || c.length > 0) {
-                    state.sessionData[session] = {
-                        all: [...h, ...s, ...c],
-                        house: h,
-                        senate: s,
-                        common: c
-                    };
-                } else {
-                    return null; // signal failure for this session
-                }
+            state.sessionData[session] = {
+                all: all,
+                house: houseVotes,
+                senate: senateVotes,
+                passed: all.filter(v => v.approved)
+            };
+
+            loaded++;
+            if (statusEl) {
+                statusEl.querySelector('div:last-child').textContent =
+                    `Loading amendment votes... (${loaded}/${SESSIONS.length} sessions)`;
             }
-            return session;
+
+            return all.length;
         });
 
         const results = await Promise.all(promises);
-        return results.some(r => r !== null);
+        return results.some(count => count > 0);
     }
 
     // ── Rendering: Metrics ──
     function updateMetrics() {
         const data = state.sessionData;
-        let totalAll = 0, totalHouse = 0, totalSenate = 0, totalCommon = 0;
+        let totalAll = 0, totalHouse = 0, totalSenate = 0, totalPassed = 0;
         let sessionCount = 0;
 
         SESSIONS.forEach(s => {
-            if (data[s]) {
+            if (data[s] && data[s].all.length > 0) {
                 sessionCount++;
                 totalAll += data[s].all.length;
                 totalHouse += data[s].house.length;
                 totalSenate += data[s].senate.length;
-                totalCommon += data[s].common.length;
+                totalPassed += data[s].passed.length;
             }
         });
 
         document.getElementById('metricTotal').textContent = totalAll.toLocaleString();
         document.getElementById('metricHouse').textContent = totalHouse.toLocaleString();
         document.getElementById('metricSenate').textContent = totalSenate.toLocaleString();
-        document.getElementById('metricCommon').textContent = totalCommon.toLocaleString();
+        document.getElementById('metricPassed').textContent = totalPassed.toLocaleString();
         document.getElementById('metricSessions').textContent = sessionCount;
         document.getElementById('metricAvg').textContent = sessionCount > 0
             ? Math.round(totalAll / sessionCount).toLocaleString()
             : '--';
+    }
+
+    // ── Helper: resolve session key from state ──
+    function resolveSessionKey() {
+        const session = state.currentSession;
+        if (session === 'current') {
+            const keys = Object.keys(state.sessionData).map(Number).filter(k => state.sessionData[k].all.length > 0);
+            return keys.length > 0 ? Math.max(...keys) : SESSIONS[SESSIONS.length - 1];
+        }
+        return parseInt(session);
     }
 
     // ── Rendering: Feed ──
@@ -1154,66 +1063,74 @@
         const loadingEl = document.getElementById('feedLoading');
         const errorEl = document.getElementById('feedError');
 
-        const session = state.currentSession;
         const chamber = state.currentChamber;
-
-        // Get data for selected session
-        let sessionKey = session === 'current' ? Math.max(...Object.keys(state.sessionData).map(Number)) : parseInt(session);
-        let sData = state.sessionData[sessionKey];
-
-        if (!sData) {
-            // Try to find any available session
-            const available = Object.keys(state.sessionData).map(Number).sort((a, b) => b - a);
-            if (available.length > 0) {
-                sessionKey = available[0];
-                sData = state.sessionData[sessionKey];
-            }
-        }
+        const sessionKey = resolveSessionKey();
+        const sData = state.sessionData[sessionKey];
 
         loadingEl.style.display = 'none';
 
-        if (!sData) {
+        if (!sData || sData.all.length === 0) {
             errorEl.style.display = 'block';
+            document.getElementById('feedErrorMsg').textContent =
+                `No amendment vote data found for Session ${sessionKey}.`;
             feed.innerHTML = '';
             countEl.textContent = '';
             return;
         }
 
-        errorEl.style.display = state.useFallback ? 'block' : 'none';
+        errorEl.style.display = 'none';
 
-        const amendments = chamber === 'all' ? sData.all :
-                            chamber === 'house' ? sData.house :
-                            chamber === 'senate' ? sData.senate :
-                            sData.common;
+        const votes = chamber === 'all' ? sData.all :
+                      chamber === 'house' ? sData.house :
+                      sData.senate;
 
-        countEl.textContent = `Showing ${amendments.length} amendment${amendments.length !== 1 ? 's' : ''} (Session ${sessionKey}${chamber !== 'all' ? ', ' + chamber.charAt(0).toUpperCase() + chamber.slice(1) : ''})`;
+        countEl.textContent = `Showing ${votes.length} amendment vote${votes.length !== 1 ? 's' : ''} (Session ${sessionKey}${chamber !== 'all' ? ', ' + chamber.charAt(0).toUpperCase() + chamber.slice(1) : ''})`;
 
-        if (amendments.length === 0) {
-            feed.innerHTML = '<div class="empty-state">No amendments found for the selected filters.</div>';
+        if (votes.length === 0) {
+            feed.innerHTML = '<div class="empty-state">No amendment votes found for the selected filters.</div>';
             return;
         }
 
-        feed.innerHTML = amendments.map((a, i) => `
-            <div class="amendment-card fade-in" style="animation-delay:${Math.min(i * 30, 300)}ms" onclick="this.classList.toggle('expanded')">
+        feed.innerHTML = votes.map((v, i) => `
+            <div class="amendment-card fade-in" style="animation-delay:${Math.min(i * 20, 300)}ms" onclick="this.classList.toggle('expanded')">
                 <div class="amendment-card-top">
-                    <div class="chamber-stripe ${a.chamberLower}"></div>
+                    <div class="chamber-stripe ${v.chamberLower}"></div>
                     <div class="amendment-card-body">
-                        <div class="amendment-bill-ref">${escapeHtml(String(a.billNumber))}</div>
-                        <span class="chamber-badge ${a.chamberLower}">${escapeHtml(a.chamber)}</span>
-                        <div class="amendment-type">${escapeHtml(String(a.amendmentType))}</div>
-                        <div class="amendment-status">${escapeHtml(String(a.status))}</div>
-                        <div class="amendment-session-tag">S${a.session}</div>
+                        <div class="amendment-bill-ref">${escapeHtml(v.billNumber)}</div>
+                        <span class="chamber-badge ${v.chamberLower}">${escapeHtml(v.chamber)}</span>
+                        <div class="amendment-type">${escapeHtml(v.motion)}</div>
+                        <div class="amendment-status" style="background:${v.approved ? '#dcfce7' : '#fee2e2'};color:${v.approved ? '#166534' : '#991b1b'};">${v.status}</div>
+                        <div class="amendment-session-tag">S${v.session}</div>
                         <div class="amendment-expand-icon">&#9660;</div>
                     </div>
                 </div>
                 <div class="amendment-detail">
                     <div class="detail-grid">
-                        ${a.description ? `<div class="detail-item"><div class="detail-label">Description</div><div class="detail-value">${escapeHtml(String(a.description))}</div></div>` : ''}
-                        ${a.sponsor ? `<div class="detail-item"><div class="detail-label">Sponsor</div><div class="detail-value">${escapeHtml(String(a.sponsor))}</div></div>` : ''}
-                        ${a.date ? `<div class="detail-item"><div class="detail-label">Date</div><div class="detail-value">${escapeHtml(String(a.date))}</div></div>` : ''}
-                        <div class="detail-item"><div class="detail-label">Amendment ID</div><div class="detail-value">${escapeHtml(String(a.id))}</div></div>
-                        <div class="detail-item"><div class="detail-label">Bill Reference</div><div class="detail-value">${escapeHtml(String(a.billNumber))}</div></div>
-                        <div class="detail-item"><div class="detail-label">Chamber</div><div class="detail-value">${escapeHtml(a.chamber)}</div></div>
+                        <div class="detail-item">
+                            <div class="detail-label">Vote Result</div>
+                            <div class="detail-value">${v.yeas} Yeas &ndash; ${v.nays} Nays (margin: ${v.margin > 0 ? '+' : ''}${v.margin})</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Vote Time</div>
+                            <div class="detail-value">${escapeHtml(v.voteTime || 'N/A')}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Vote Number</div>
+                            <div class="detail-value">${escapeHtml(String(v.voteNumber))}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Not Voting / Exc. Absent</div>
+                            <div class="detail-value">${v.notVoting} / ${v.excusedAbsent}</div>
+                        </div>
+                        ${v.resultText ? `<div class="detail-item"><div class="detail-label">Result</div><div class="detail-value">${escapeHtml(v.resultText)}</div></div>` : ''}
+                        <div class="detail-item">
+                            <div class="detail-label">Bill Reference</div>
+                            <div class="detail-value">${escapeHtml(v.billNumber)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Chamber</div>
+                            <div class="detail-value">${escapeHtml(v.chamber)}</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1229,8 +1146,7 @@
 
     function renderChamberBarChart() {
         const container = document.getElementById('chamberBarChart');
-        const session = state.currentSession;
-        let sessionKey = session === 'current' ? Math.max(...Object.keys(state.sessionData).map(Number)) : parseInt(session);
+        const sessionKey = resolveSessionKey();
         const sData = state.sessionData[sessionKey];
 
         if (!sData) {
@@ -1240,8 +1156,7 @@
 
         const counts = {
             House: sData.house.length,
-            Senate: sData.senate.length,
-            Common: sData.common.length
+            Senate: sData.senate.length
         };
 
         const max = Math.max(...Object.values(counts), 1);
@@ -1258,6 +1173,29 @@
                 </div>
             `;
         }).join('');
+
+        // Also show passed/failed breakdown
+        const passed = sData.passed.length;
+        const failed = sData.all.length - passed;
+        const maxPF = Math.max(passed, failed, 1);
+
+        container.innerHTML += `
+            <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+                <div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Pass / Fail</div>
+                <div class="bar-row">
+                    <div class="bar-label">Passed</div>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width:${(passed / maxPF * 100).toFixed(1)}%;background:linear-gradient(90deg,#22c55e,#4ade80);">${passed}</div>
+                    </div>
+                </div>
+                <div class="bar-row" style="margin-top:8px;">
+                    <div class="bar-label">Failed</div>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width:${(failed / maxPF * 100).toFixed(1)}%;background:linear-gradient(90deg,#ef4444,#f87171);">${failed}</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function renderSessionSparkline() {
@@ -1309,11 +1247,10 @@
         const maxTotal = Math.max(...SESSIONS.map(s => data[s] ? data[s].all.length : 0), 1);
 
         container.innerHTML = SESSIONS.map(s => {
-            const d = data[s] || { house: [], senate: [], common: [], all: [] };
+            const d = data[s] || { house: [], senate: [], all: [] };
             const total = d.all.length;
             const hPct = total > 0 ? (d.house.length / maxTotal * 100) : 0;
             const sPct = total > 0 ? (d.senate.length / maxTotal * 100) : 0;
-            const cPct = total > 0 ? (d.common.length / maxTotal * 100) : 0;
 
             return `
                 <div class="stacked-bar-row">
@@ -1321,7 +1258,6 @@
                     <div class="stacked-bar-track">
                         <div class="stacked-segment house" style="width:${hPct}%">${d.house.length > 0 ? d.house.length : ''}</div>
                         <div class="stacked-segment senate" style="width:${sPct}%">${d.senate.length > 0 ? d.senate.length : ''}</div>
-                        <div class="stacked-segment common" style="width:${cPct}%">${d.common.length > 0 ? d.common.length : ''}</div>
                     </div>
                     <div class="stacked-bar-total">${total}</div>
                 </div>
@@ -1342,11 +1278,11 @@
         const maxTotal = Math.max(...SESSIONS.map(s => data[s] ? data[s].all.length : 0), 1);
 
         tbody.innerHTML = SESSIONS.map(s => {
-            const d = data[s] || { house: [], senate: [], common: [], all: [] };
+            const d = data[s] || { house: [], senate: [], passed: [], all: [] };
             const total = d.all.length;
             const hPct = (d.house.length / maxTotal * 100).toFixed(0);
             const sPct = (d.senate.length / maxTotal * 100).toFixed(0);
-            const cPct = (d.common.length / maxTotal * 100).toFixed(0);
+            const passedCount = d.passed ? d.passed.length : 0;
 
             return `
                 <tr>
@@ -1360,15 +1296,13 @@
                         <span class="mini-bar" style="width:${sPct}px;background:var(--senate-accent);"></span>
                     </td>
                     <td>
-                        <span class="num common">${d.common.length}</span>
-                        <span class="mini-bar" style="width:${cPct}px;background:var(--common-accent);"></span>
+                        <span class="num common">${passedCount}</span>
                     </td>
                     <td><span class="num">${total}</span></td>
                     <td>
                         <div style="display:flex;gap:2px;align-items:center;">
                             <div style="width:${total > 0 ? (d.house.length / total * 80) : 0}px;height:14px;background:var(--house-accent);border-radius:3px 0 0 3px;"></div>
-                            <div style="width:${total > 0 ? (d.senate.length / total * 80) : 0}px;height:14px;background:var(--senate-accent);"></div>
-                            <div style="width:${total > 0 ? (d.common.length / total * 80) : 0}px;height:14px;background:var(--common-accent);border-radius:0 3px 3px 0;"></div>
+                            <div style="width:${total > 0 ? (d.senate.length / total * 80) : 0}px;height:14px;background:var(--senate-accent);border-radius:0 3px 3px 0;"></div>
                         </div>
                     </td>
                 </tr>
@@ -1376,12 +1310,12 @@
         }).join('');
 
         // Add totals row
-        let tH = 0, tS = 0, tC = 0, tA = 0;
+        let tH = 0, tS = 0, tP = 0, tA = 0;
         SESSIONS.forEach(s => {
-            const d = data[s] || { house: [], senate: [], common: [], all: [] };
+            const d = data[s] || { house: [], senate: [], passed: [], all: [] };
             tH += d.house.length;
             tS += d.senate.length;
-            tC += d.common.length;
+            tP += d.passed ? d.passed.length : 0;
             tA += d.all.length;
         });
 
@@ -1390,7 +1324,7 @@
                 <td>Total (All Sessions)</td>
                 <td><span class="num house">${tH}</span></td>
                 <td><span class="num senate">${tS}</span></td>
-                <td><span class="num common">${tC}</span></td>
+                <td><span class="num common">${tP}</span></td>
                 <td><span class="num">${tA}</span></td>
                 <td></td>
             </tr>
@@ -1403,35 +1337,50 @@
         const loading = document.getElementById('timelineLoading');
         loading.style.display = 'none';
 
-        // Gather all amendments and sort by session (descending), then simulate chronological order
-        let allAmendments = [];
+        // Gather all amendment votes sorted by vote time (most recent first)
+        let allVotes = [];
         SESSIONS.slice().reverse().forEach(s => {
             const d = state.sessionData[s];
             if (d) {
-                d.all.forEach(a => allAmendments.push(a));
+                d.all.forEach(v => allVotes.push(v));
             }
         });
 
-        // Show most recent 30
-        const recent = allAmendments.slice(0, 30);
+        // Sort by voteTime descending
+        allVotes.sort((a, b) => {
+            if (a.voteTime && b.voteTime) return b.voteTime.localeCompare(a.voteTime);
+            if (a.voteTime) return -1;
+            if (b.voteTime) return 1;
+            return 0;
+        });
+
+        // Apply chamber filter
+        const chamber = state.currentChamber;
+        if (chamber !== 'all') {
+            allVotes = allVotes.filter(v => v.chamberLower === chamber);
+        }
+
+        // Show most recent 40
+        const recent = allVotes.slice(0, 40);
 
         if (recent.length === 0) {
-            container.innerHTML = '<div class="empty-state">No timeline data available.</div>';
+            container.innerHTML = '<div class="empty-state">No amendment vote timeline data available.</div>';
             return;
         }
 
-        container.innerHTML = recent.map(a => `
+        container.innerHTML = recent.map(v => `
             <div class="timeline-item fade-in">
-                <div class="timeline-dot ${a.chamberLower}"></div>
+                <div class="timeline-dot ${v.chamberLower}"></div>
                 <div class="timeline-content">
                     <div class="timeline-header">
                         <div class="timeline-title">
-                            ${escapeHtml(String(a.billNumber))}
-                            <span class="chamber-badge ${a.chamberLower}" style="font-size:0.6rem;margin-left:6px;">${escapeHtml(a.chamber)}</span>
+                            ${escapeHtml(v.billNumber)}
+                            <span class="chamber-badge ${v.chamberLower}" style="font-size:0.6rem;margin-left:6px;">${escapeHtml(v.chamber)}</span>
+                            <span style="font-size:0.7rem;margin-left:8px;padding:2px 8px;border-radius:4px;background:${v.approved ? '#dcfce7' : '#fee2e2'};color:${v.approved ? '#166534' : '#991b1b'};font-weight:600;">${v.status}</span>
                         </div>
-                        <div class="timeline-time">${a.date ? escapeHtml(String(a.date)) : 'Session ' + a.session}</div>
+                        <div class="timeline-time">${v.voteTime ? escapeHtml(v.voteTime) : 'Session ' + v.session}</div>
                     </div>
-                    <div class="timeline-desc">${escapeHtml(String(a.amendmentType))} &mdash; ${escapeHtml(String(a.status))}${a.description ? '. ' + escapeHtml(String(a.description)) : ''}</div>
+                    <div class="timeline-desc">${escapeHtml(v.motion)} &mdash; ${v.yeas}Y / ${v.nays}N${v.margin !== 0 ? ' (margin ' + (v.margin > 0 ? '+' : '') + v.margin + ')' : ''}</div>
                 </div>
             </div>
         `).join('');
@@ -1452,14 +1401,13 @@
             if (!btn) return;
 
             document.querySelectorAll('#chamberToggle .toggle-btn').forEach(b => {
-                b.classList.remove('active', 'house-active', 'senate-active', 'common-active');
+                b.classList.remove('active', 'house-active', 'senate-active');
             });
             btn.classList.add('active');
 
             const chamber = btn.dataset.chamber;
             if (chamber === 'house') btn.classList.add('house-active');
             else if (chamber === 'senate') btn.classList.add('senate-active');
-            else if (chamber === 'common') btn.classList.add('common-active');
 
             state.currentChamber = chamber;
             renderActiveTab();
@@ -1500,14 +1448,14 @@
     async function init() {
         setupEvents();
 
-        // Try loading from API
         const success = await loadAllSessionData();
 
         if (!success || Object.keys(state.sessionData).length === 0) {
-            // Use fallback
-            console.warn('API data unavailable, using demo data');
-            state.useFallback = true;
-            state.sessionData = FALLBACK_DATA;
+            document.getElementById('feedLoading').style.display = 'none';
+            document.getElementById('feedError').style.display = 'block';
+            document.getElementById('feedErrorMsg').textContent =
+                'Unable to load amendment vote data from the SC Statehouse API.';
+            return;
         }
 
         // Update all views
