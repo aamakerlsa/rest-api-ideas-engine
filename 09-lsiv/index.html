@@ -981,71 +981,17 @@
 
     <script>
     const BASE = 'https://rest.scstatehouse.gov';
-    let currentSession = 126;
-    let apiAlive = false;
-
-    // ── Fallback Demo Data ──────────────────────────────────────────
-    const DEMO = {
-        sessions: Array.from({length: 27}, (_, i) => ({
-            sessionid: 100 + i,
-            description: `Session ${100 + i} (${1973 + i * 2}-${1974 + i * 2})`,
-            startyear: 1973 + i * 2,
-            endyear: 1974 + i * 2
-        })),
-        billCount: [
-            {sessionid: 126, billcount: 4250},
-            {sessionid: 125, billcount: 3980},
-            {sessionid: 124, billcount: 4100},
-            {sessionid: 123, billcount: 3750},
-            {sessionid: 122, billcount: 3600}
-        ],
-        chamberStats: {
-            house: { members: 124, bills_introduced: 2800, resolutions: 420, bills_passed: 310 },
-            senate: { members: 46, bills_introduced: 1450, resolutions: 210, bills_passed: 195 }
-        },
-        houseBios: Array.from({length: 124}, (_, i) => ({
-            party: i < 88 ? 'Republican' : (i < 122 ? 'Democrat' : 'Independent')
-        })),
-        senateBios: Array.from({length: 46}, (_, i) => ({
-            party: i < 30 ? 'Republican' : 'Democrat'
-        })),
-        votes: Array.from({length: 180}, (_, i) => ({
-            billnumber: `H.${3000 + i}`,
-            description: `Bill ${i + 1}`,
-            yeas: 50 + Math.floor(Math.random() * 70),
-            nays: 5 + Math.floor(Math.random() * 50),
-            chamber: i % 3 === 0 ? 'Senate' : 'House',
-            date: `2025-${String(1 + (i % 12)).padStart(2,'0')}-${String(1 + (i % 28)).padStart(2,'0')}`
-        })),
-        subjects: [
-            {subject: 'Education', count: 420},
-            {subject: 'Health & Human Services', count: 380},
-            {subject: 'Transportation', count: 310},
-            {subject: 'Criminal Justice', count: 290},
-            {subject: 'Taxation', count: 265},
-            {subject: 'Environment', count: 220},
-            {subject: 'Agriculture', count: 185},
-            {subject: 'Labor & Employment', count: 160},
-            {subject: 'Government Operations', count: 145},
-            {subject: 'Insurance & Banking', count: 130},
-            {subject: 'Judiciary', count: 110},
-            {subject: 'Military & Veterans', count: 85}
-        ],
-        meetings: Array.from({length: 200}, (_, i) => ({
-            meetingdate: `2025-${String(1 + (i % 11)).padStart(2,'0')}-${String(1 + (i % 28)).padStart(2,'0')}`,
-            committee: `Committee ${i % 15}`
-        })),
-        houseCommittees: Array.from({length: 22}, (_, i) => ({name: `House Committee ${i+1}`})),
-        senateCommittees: Array.from({length: 18}, (_, i) => ({name: `Senate Committee ${i+1}`})),
-        video: [{hours: 1250}]
-    };
+    let currentSession = '126';
 
     // ── Utility ─────────────────────────────────────────────────────
     async function apiFetch(path) {
         try {
             const r = await fetch(BASE + path, {headers: {Accept: 'application/json'}});
             if (!r.ok) throw new Error(r.status);
-            return await r.json();
+            const json = await r.json();
+            // ALL responses are wrapped: {error, message, data} - unwrap
+            if (json && json.hasOwnProperty('data')) return json.data;
+            return json;
         } catch (e) {
             console.warn('API error for', path, e);
             return null;
@@ -1098,62 +1044,76 @@
     // ── Populate Session Selector ───────────────────────────────────
     async function initSessions() {
         const sel = document.getElementById('sessionSelect');
-        let sessions = await apiFetch('/sessions');
-        if (!sessions || !Array.isArray(sessions) || sessions.length === 0) {
-            sessions = DEMO.sessions;
+
+        // Get current session first
+        const curArr = await apiFetch('/currentsession');
+        if (Array.isArray(curArr) && curArr.length && curArr[0].SESS_NUMBER) {
+            currentSession = curArr[0].SESS_NUMBER;
         }
-        // Sort descending
-        const sorted = [...sessions].sort((a, b) => (b.sessionid || b.session_id || 0) - (a.sessionid || a.session_id || 0));
+
+        // Fetch all sessions
+        const sessions = await apiFetch('/sessions');
+        if (!Array.isArray(sessions) || sessions.length === 0) {
+            sel.innerHTML = `<option value="${currentSession}">Session ${currentSession}</option>`;
+            return;
+        }
+
+        // Sort descending by SESS_NUMBER
+        const sorted = [...sessions].sort((a, b) => Number(b.SESS_NUMBER) - Number(a.SESS_NUMBER));
         sel.innerHTML = '';
         sorted.forEach(s => {
-            const id = s.sessionid || s.session_id || s.id;
-            if (id < 100 || id > 126) return;
             const opt = document.createElement('option');
-            opt.value = id;
-            opt.textContent = s.description || `Session ${id}`;
+            opt.value = s.SESS_NUMBER;
+            opt.textContent = `Session ${s.SESS_NUMBER} (${s.SESS_START_DATE}-${s.SESS_END_DATE})`;
             sel.appendChild(opt);
         });
 
-        // Try to get current session
-        const cur = await apiFetch('/currentsession');
-        if (cur && (cur.sessionid || cur.session_id)) {
-            currentSession = cur.sessionid || cur.session_id;
-        }
         sel.value = currentSession;
         sel.addEventListener('change', () => {
-            currentSession = parseInt(sel.value);
+            currentSession = sel.value;
             loadAllData();
         });
     }
 
     // ── KPI Cards ───────────────────────────────────────────────────
-    async function loadKPIs(billData, votesAll, meetingsH, meetingsS, hComms, sComms, videoData) {
+    function loadKPIs(billData, votesAll, meetingsH, meetingsS, hComms, sComms) {
         const grid = document.getElementById('kpiGrid');
 
-        const totalBills = billData ? (billData.find(b => (b.sessionid || b.session_id) == currentSession)?.billcount || billData.find(b => (b.sessionid || b.session_id) == currentSession)?.bill_count || 0) : DEMO.billCount[0].billcount;
-        const prevBills = billData ? (billData.find(b => (b.sessionid || b.session_id) == currentSession - 1)?.billcount || billData.find(b => (b.sessionid || b.session_id) == currentSession - 1)?.bill_count || 0) : DEMO.billCount[1].billcount;
+        // Bills from session-billcount
+        const curBill = Array.isArray(billData) ? billData.find(b => b.SESS_NUMBER == currentSession) : null;
+        const totalBills = curBill ? Number(curBill.BILL_COUNT) : 0;
+        const prevSession = Number(currentSession) - 1;
+        const prevBill = Array.isArray(billData) ? billData.find(b => Number(b.SESS_NUMBER) == prevSession) : null;
+        const prevBills = prevBill ? Number(prevBill.BILL_COUNT) : 0;
 
-        const votes = votesAll || DEMO.votes;
-        const totalVotes = Array.isArray(votes) ? votes.length : 0;
+        // Votes
+        const totalVotes = Array.isArray(votesAll) ? votesAll.length : 0;
 
-        const mH = Array.isArray(meetingsH) ? meetingsH : DEMO.meetings.slice(0, 100);
-        const mS = Array.isArray(meetingsS) ? meetingsS : DEMO.meetings.slice(100);
-        const totalMeetings = mH.length + mS.length;
+        // Meetings
+        const hMeetCount = Array.isArray(meetingsH) ? meetingsH.length : 0;
+        const sMeetCount = Array.isArray(meetingsS) ? meetingsS.length : 0;
+        const totalMeetings = hMeetCount + sMeetCount;
 
-        const hc = Array.isArray(hComms) ? hComms.length : DEMO.houseCommittees.length;
-        const sc = Array.isArray(sComms) ? sComms.length : DEMO.senateCommittees.length;
+        // Committees
+        const hc = Array.isArray(hComms) ? hComms.length : 0;
+        const sc = Array.isArray(sComms) ? sComms.length : 0;
         const totalCommittees = hc + sc;
 
-        const videoHours = Array.isArray(videoData) && videoData.length ? (videoData[0].hours || videoData.length * 2) : DEMO.video[0].hours;
+        // Date range from bill data
+        const dateRange = curBill ? `${curBill.FIRST_DATE} to ${curBill.LAST_DATE}` : `Session ${currentSession}`;
 
-        const billSpark = billData ? billData.slice(0, 5).map(b => b.billcount || b.bill_count || 0).reverse() : DEMO.billCount.map(b => b.billcount).reverse();
+        // Sparkline from recent sessions bill counts
+        const billSpark = Array.isArray(billData)
+            ? [...billData].sort((a, b) => Number(a.SESS_NUMBER) - Number(b.SESS_NUMBER)).slice(-6).map(b => Number(b.BILL_COUNT))
+            : [];
 
+        const billDiff = totalBills - prevBills;
         const cards = [
-            {label: 'Total Bills', value: num(totalBills), sub: `Session ${currentSession}`, trend: totalBills > prevBills ? 'up' : (totalBills < prevBills ? 'down' : 'neutral'), trendText: totalBills > prevBills ? `+${num(totalBills - prevBills)} vs prior` : `${num(totalBills - prevBills)} vs prior`, spark: billSpark, color: 'var(--navy)'},
-            {label: 'Votes Cast', value: num(totalVotes), sub: 'Both chambers', trend: 'neutral', trendText: 'This session', spark: null, color: 'var(--blue)'},
-            {label: 'Meetings Held', value: num(totalMeetings), sub: `H: ${num(mH.length)} / S: ${num(mS.length)}`, trend: 'neutral', trendText: 'Committees combined', spark: null, color: 'var(--green)'},
-            {label: 'Active Committees', value: num(totalCommittees), sub: `H: ${hc} / S: ${sc}`, trend: 'neutral', trendText: 'Standing & special', spark: null, color: 'var(--purple)'},
-            {label: 'Video Hours', value: num(videoHours), sub: 'Archived content', trend: 'up', trendText: 'Growing archive', spark: null, color: 'var(--orange)'}
+            {label: 'Total Bills', value: num(totalBills), sub: dateRange, trend: totalBills > prevBills ? 'up' : (totalBills < prevBills ? 'down' : 'neutral'), trendText: prevBills ? `${billDiff > 0 ? '+' : ''}${num(billDiff)} vs Session ${prevSession}` : `Session ${currentSession}`, spark: billSpark, color: 'var(--navy)'},
+            {label: 'Votes Cast', value: num(totalVotes), sub: 'House + Senate', trend: 'neutral', trendText: 'This session', spark: null, color: 'var(--blue)'},
+            {label: 'Meetings Held', value: num(totalMeetings), sub: `H: ${num(hMeetCount)} / S: ${num(sMeetCount)}`, trend: 'neutral', trendText: 'Committees combined', spark: null, color: 'var(--green)'},
+            {label: 'Active Committees', value: num(totalCommittees), sub: `H: ${hc} / S: ${sc}`, trend: 'neutral', trendText: 'Standing committees', spark: null, color: 'var(--purple)'},
+            {label: 'Members', value: num(124 + 46), sub: 'H: 124 / S: 46', trend: 'neutral', trendText: 'General Assembly', spark: null, color: 'var(--orange)'}
         ];
 
         grid.innerHTML = cards.map(c => `
@@ -1168,28 +1128,37 @@
     }
 
     // ── Bill Pipeline Funnel ────────────────────────────────────────
-    function renderFunnel(billData, chamberStats) {
+    function renderFunnel(billData, votesAll) {
         const el = document.getElementById('funnelViz');
-        const total = billData ? (billData.find(b => (b.sessionid || b.session_id) == currentSession)?.billcount || billData.find(b => (b.sessionid || b.session_id) == currentSession)?.bill_count || 4250) : 4250;
+        const curBill = Array.isArray(billData) ? billData.find(b => b.SESS_NUMBER == currentSession) : null;
+        const total = curBill ? Number(curBill.BILL_COUNT) : 0;
+
+        if (total === 0) {
+            el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No bill data available</div>';
+            return;
+        }
+
+        // Estimate pipeline stages from total bill count
+        // Use vote data to refine "Floor Vote" stage
+        const votedBills = new Set();
+        const approvedBills = new Set();
+        if (Array.isArray(votesAll)) {
+            votesAll.forEach(v => {
+                if (v.BILL_NUMBER) votedBills.add(v.BILL_NUMBER);
+                if (v.BILL_NUMBER && v.APPROVED === '1') approvedBills.add(v.BILL_NUMBER);
+            });
+        }
+
+        const floorVoteCount = votedBills.size || Math.round(total * 0.35);
+        const passedCount = approvedBills.size || Math.round(floorVoteCount * 0.5);
 
         const stages = [
             {label: 'Introduced', count: total, color: '#1b2a4a'},
-            {label: 'In Committee', count: Math.round(total * 0.72), color: '#2c3e6b'},
-            {label: 'Floor Vote', count: Math.round(total * 0.35), color: '#3b5998'},
-            {label: 'Passed', count: Math.round(total * 0.18), color: '#c9a94e'},
-            {label: 'Enacted', count: Math.round(total * 0.09), color: '#38a169'}
+            {label: 'In Committee (est.)', count: Math.round(total * 0.72), color: '#2c3e6b'},
+            {label: 'Floor Vote', count: floorVoteCount, color: '#3b5998'},
+            {label: 'Passed', count: passedCount, color: '#c9a94e'},
+            {label: 'Enacted (est.)', count: Math.round(passedCount * 0.5), color: '#38a169'}
         ];
-
-        // If we have chamberStats to refine numbers
-        if (chamberStats) {
-            const cs = chamberStats;
-            const hPassed = cs.house?.bills_passed || cs.house?.billsPassed || 0;
-            const sPassed = cs.senate?.bills_passed || cs.senate?.billsPassed || 0;
-            if (hPassed + sPassed > 0) {
-                stages[3].count = hPassed + sPassed;
-                stages[4].count = Math.round((hPassed + sPassed) * 0.5);
-            }
-        }
 
         const maxCount = stages[0].count;
         el.innerHTML = stages.map((s, i) => {
@@ -1207,26 +1176,46 @@
     }
 
     // ── Vote Analysis ───────────────────────────────────────────────
-    function renderVoteAnalysis(votes) {
+    function renderVoteAnalysis(votesAll) {
         const el = document.getElementById('voteAnalysis');
-        const data = Array.isArray(votes) && votes.length ? votes : DEMO.votes;
+
+        if (!Array.isArray(votesAll) || votesAll.length === 0) {
+            el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No vote data available</div>';
+            return;
+        }
 
         let totalYeas = 0, totalNays = 0, approvedCount = 0;
         const margins = [];
-        data.forEach(v => {
-            const y = v.yeas || v.ayes || 0;
-            const n = v.nays || v.noes || 0;
-            totalYeas += y;
-            totalNays += n;
-            if (y > n) approvedCount++;
-            margins.push({bill: v.billnumber || v.bill_number || v.bill || '?', margin: Math.abs(y - n), yeas: y, nays: n});
+
+        votesAll.forEach(v => {
+            // APPROVED field: "1" = approved, "0" = not
+            if (v.APPROVED === '1') approvedCount++;
+
+            // Parse CHOICES array for YEAS/NAYS
+            let yeas = 0, nays = 0;
+            if (Array.isArray(v.CHOICES) && v.CHOICES.length > 0) {
+                const choice = v.CHOICES[0];
+                yeas = Number(choice.YEAS) || 0;
+                nays = Number(choice.NAYS) || 0;
+            }
+            totalYeas += yeas;
+            totalNays += nays;
+
+            const margin = Math.abs(yeas - nays);
+            margins.push({
+                bill: v.BILL_NUMBER ? `${v.CHAMBER === 'H' ? 'H' : 'S'}.${v.BILL_NUMBER}` : `Vote #${v.VOTE_NUMBER}`,
+                motion: v.MOTION || '',
+                margin,
+                yeas,
+                nays
+            });
         });
 
-        const approvalRate = data.length ? (approvedCount / data.length * 100).toFixed(1) : 0;
+        const approvalRate = votesAll.length ? (approvedCount / votesAll.length * 100).toFixed(1) : 0;
         const avgMargin = margins.length ? (margins.reduce((a, m) => a + m.margin, 0) / margins.length).toFixed(1) : 0;
 
-        // Most contested = smallest margins
-        const contested = [...margins].sort((a, b) => a.margin - b.margin).slice(0, 8);
+        // Most contested = smallest positive margins (filter out 0-0 votes)
+        const contested = [...margins].filter(m => m.yeas + m.nays > 0).sort((a, b) => a.margin - b.margin).slice(0, 8);
 
         el.innerHTML = `
             <div class="vote-metrics-row">
@@ -1239,7 +1228,7 @@
                     <div class="vote-metric-label">Avg Margin</div>
                 </div>
                 <div class="vote-metric">
-                    <div class="vote-metric-value">${num(data.length)}</div>
+                    <div class="vote-metric-value">${num(votesAll.length)}</div>
                     <div class="vote-metric-label">Total Votes</div>
                 </div>
             </div>
@@ -1248,7 +1237,7 @@
                 ${contested.map(c => {
                     const cls = c.margin < 5 ? 'margin-tight' : (c.margin < 15 ? 'margin-ok' : 'margin-wide');
                     return `<div class="contested-item">
-                        <span class="contested-bill">${c.bill}</span>
+                        <span class="contested-bill" title="${c.motion}">${c.bill}</span>
                         <span style="font-size:0.72rem;color:var(--text-muted)">${c.yeas}Y - ${c.nays}N</span>
                         <span class="contested-margin ${cls}">&#177;${c.margin}</span>
                     </div>`;
@@ -1258,21 +1247,26 @@
     }
 
     // ── Chamber Comparison ──────────────────────────────────────────
-    function renderChamberComparison(chamberStats, hBios, sBios, hComms, sComms, hMeetings, sMeetings) {
+    function renderChamberComparison(chamberStats, hBios, sBios, hComms, sComms, hMeetings, sMeetings, hVotes, sVotes) {
         const el = document.getElementById('chamberComparison');
 
-        const hMembers = Array.isArray(hBios) ? hBios.length : DEMO.houseBios.length;
-        const sMembers = Array.isArray(sBios) ? sBios.length : DEMO.senateBios.length;
-        const hCommCount = Array.isArray(hComms) ? hComms.length : DEMO.houseCommittees.length;
-        const sCommCount = Array.isArray(sComms) ? sComms.length : DEMO.senateCommittees.length;
-        const hMeetCount = Array.isArray(hMeetings) ? hMeetings.length : 100;
-        const sMeetCount = Array.isArray(sMeetings) ? sMeetings.length : 100;
+        const hMembers = Array.isArray(hBios) ? hBios.length : 0;
+        const sMembers = Array.isArray(sBios) ? sBios.length : 0;
+        const hCommCount = Array.isArray(hComms) ? hComms.length : 0;
+        const sCommCount = Array.isArray(sComms) ? sComms.length : 0;
+        const hMeetCount = Array.isArray(hMeetings) ? hMeetings.length : 0;
+        const sMeetCount = Array.isArray(sMeetings) ? sMeetings.length : 0;
+        const hVoteCount = Array.isArray(hVotes) ? hVotes.length : 0;
+        const sVoteCount = Array.isArray(sVotes) ? sVotes.length : 0;
 
-        const cs = chamberStats || DEMO.chamberStats;
-        const hBills = cs.house?.bills_introduced || cs.house?.billsIntroduced || 2800;
-        const sBills = cs.senate?.bills_introduced || cs.senate?.billsIntroduced || 1450;
-        const hRes = cs.house?.resolutions || 420;
-        const sRes = cs.senate?.resolutions || 210;
+        // Party counts from chamberstats
+        let hR = 0, hD = 0, sR = 0, sD = 0;
+        if (chamberStats) {
+            hR = Number(chamberStats.currenthouserepublicans) || 0;
+            hD = Number(chamberStats.currenthousedemocrats) || 0;
+            sR = Number(chamberStats.currentsenaterepublicans) || 0;
+            sD = Number(chamberStats.currentsenatedemocrats) || 0;
+        }
 
         function side(name, stats) {
             return `
@@ -1290,45 +1284,66 @@
 
         el.innerHTML = side('House', [
             {label: 'Members', value: num(hMembers)},
-            {label: 'Bills Introduced', value: num(hBills)},
-            {label: 'Resolutions', value: num(hRes)},
+            {label: 'Republicans', value: num(hR)},
+            {label: 'Democrats', value: num(hD)},
+            {label: 'Votes Taken', value: num(hVoteCount)},
             {label: 'Committees', value: num(hCommCount)},
             {label: 'Meetings', value: num(hMeetCount)}
         ]) + '<div class="chamber-divider"></div>' + side('Senate', [
             {label: 'Members', value: num(sMembers)},
-            {label: 'Bills Introduced', value: num(sBills)},
-            {label: 'Resolutions', value: num(sRes)},
+            {label: 'Republicans', value: num(sR)},
+            {label: 'Democrats', value: num(sD)},
+            {label: 'Votes Taken', value: num(sVoteCount)},
             {label: 'Committees', value: num(sCommCount)},
             {label: 'Meetings', value: num(sMeetCount)}
         ]);
     }
 
-    // ── Party Composition ───────────────────────────────────────────
-    function renderPartyComposition(hBios, sBios) {
+    // ── Party Composition (from chamberstats) ───────────────────────
+    function renderPartyComposition(chamberStats) {
         const el = document.getElementById('partyComposition');
 
-        function countParties(bios) {
-            const counts = {};
-            (bios || []).forEach(b => {
-                const p = b.party || b.Party || 'Unknown';
-                const normalized = p.toLowerCase().includes('rep') ? 'Republican' :
-                                   p.toLowerCase().includes('dem') ? 'Democrat' : 'Other';
-                counts[normalized] = (counts[normalized] || 0) + 1;
-            });
-            return counts;
+        if (!chamberStats) {
+            el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No party data available</div>';
+            return;
         }
 
-        const hParties = Object.keys(countParties(hBios)).length ? countParties(hBios) : countParties(DEMO.houseBios);
-        const sParties = Object.keys(countParties(sBios)).length ? countParties(sBios) : countParties(DEMO.senateBios);
+        const hR = Number(chamberStats.currenthouserepublicans) || 0;
+        const hD = Number(chamberStats.currenthousedemocrats) || 0;
+        const hI = Number(chamberStats.currenthouseindependents) || 0;
+        const hNP = Number(chamberStats.currenthousenonpartisan) || 0;
+        const hPet = Number(chamberStats.currenthousepetitions) || 0;
+
+        const sR = Number(chamberStats.currentsenaterepublicans) || 0;
+        const sD = Number(chamberStats.currentsenatedemocrats) || 0;
+        const sI = Number(chamberStats.currentsenateindependents) || 0;
+        const sNP = Number(chamberStats.currentsenatenonpartisan) || 0;
+        const sPet = Number(chamberStats.currentsenatepetitions) || 0;
 
         const partyColors = {
             Republican: '#e53e3e',
             Democrat: '#3182ce',
-            Other: '#a0aec0'
+            Independent: '#38a169',
+            'Non-Partisan': '#805ad5',
+            Petition: '#dd6b20'
         };
+
+        function buildPartyMap(r, d, i, np, pet) {
+            const map = {};
+            if (r > 0) map['Republican'] = r;
+            if (d > 0) map['Democrat'] = d;
+            if (i > 0) map['Independent'] = i;
+            if (np > 0) map['Non-Partisan'] = np;
+            if (pet > 0) map['Petition'] = pet;
+            return map;
+        }
+
+        const hParties = buildPartyMap(hR, hD, hI, hNP, hPet);
+        const sParties = buildPartyMap(sR, sD, sI, sNP, sPet);
 
         function donutSection(title, parties) {
             const total = Object.values(parties).reduce((a, b) => a + b, 0);
+            if (total === 0) return `<div style="text-align:center;color:var(--text-muted)">No data</div>`;
             const segments = Object.entries(parties).map(([name, val]) => ({
                 value: val, color: partyColors[name] || '#a0aec0', name
             }));
@@ -1364,25 +1379,26 @@
     // ── Subject Distribution ────────────────────────────────────────
     function renderSubjects(subjects) {
         const el = document.getElementById('subjectChart');
-        let data = [];
 
-        if (Array.isArray(subjects) && subjects.length) {
-            // Aggregate by subject name
-            const map = {};
-            subjects.forEach(s => {
-                const name = s.subject || s.name || s.Subject || 'Unknown';
-                map[name] = (map[name] || 0) + (s.count || s.Count || 1);
-            });
-            data = Object.entries(map).map(([name, count]) => ({name, count}));
+        if (!Array.isArray(subjects) || subjects.length === 0) {
+            el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No subject data available</div>';
+            return;
         }
 
-        if (!data.length) data = DEMO.subjects.map(s => ({name: s.subject, count: s.count}));
+        // Each entry has A_TEXT and BILLS array - count bills per subject
+        const map = {};
+        subjects.forEach(s => {
+            const name = s.A_TEXT || 'Unknown';
+            const billCount = Array.isArray(s.BILLS) ? s.BILLS.length : 1;
+            map[name] = (map[name] || 0) + billCount;
+        });
 
+        let data = Object.entries(map).map(([name, count]) => ({name, count}));
         data.sort((a, b) => b.count - a.count);
-        const top = data.slice(0, 15);
+        const top = data.slice(0, 20);
         const maxVal = top[0]?.count || 1;
 
-        const barColors = ['#1b2a4a','#2c3e6b','#3b5998','#4a6fa5','#5a84b5','#6a99c5','#7aaed5','#8ac3e5','#9ad8f0','#aae8f8','#b5eeff','#c0f4ff','#d0f9ff','#e0fcff','#f0feff'];
+        const barColors = ['#1b2a4a','#2c3e6b','#3b5998','#4a6fa5','#5a84b5','#6a99c5','#7aaed5','#8ac3e5','#9ad8f0','#aae8f8','#b5eeff','#c0f4ff','#d0f9ff','#e0fcff','#f0feff','#1b2a4a','#2c3e6b','#3b5998','#4a6fa5','#5a84b5'];
 
         el.innerHTML = `
             <div class="hbar-chart">
@@ -1403,18 +1419,23 @@
     function renderHeatmap(hMeetings, sMeetings) {
         const el = document.getElementById('meetingHeatmap');
         const allMeetings = [
-            ...(Array.isArray(hMeetings) ? hMeetings : DEMO.meetings.slice(0, 100)),
-            ...(Array.isArray(sMeetings) ? sMeetings : DEMO.meetings.slice(100))
+            ...(Array.isArray(hMeetings) ? hMeetings : []),
+            ...(Array.isArray(sMeetings) ? sMeetings : [])
         ];
 
-        // Group by month and week
+        if (allMeetings.length === 0) {
+            el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No meeting data available</div>';
+            return;
+        }
+
+        // Group by month and week - parse MEETINGTIME field
         const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const weeks = ['W1','W2','W3','W4','W5'];
         const grid = {};
         let maxCount = 0;
 
         allMeetings.forEach(m => {
-            const dateStr = m.meetingdate || m.meeting_date || m.date || '';
+            const dateStr = m.MEETINGTIME || m.meetingtime || '';
             if (!dateStr) return;
             const d = new Date(dateStr);
             if (isNaN(d)) return;
@@ -1468,10 +1489,14 @@
         el.innerHTML = html;
     }
 
-    // ── Session Timeline ────────────────────────────────────────────
-    function renderTimeline() {
+    // ── Session Timeline (from session-billcount date range) ────────
+    function renderTimeline(billData) {
         const el = document.getElementById('sessionTimeline');
-        const year = 2023 + (currentSession - 125) * 2;
+        const curBill = Array.isArray(billData) ? billData.find(b => b.SESS_NUMBER == currentSession) : null;
+
+        const startYear = curBill ? curBill.FIRST_DATE.substring(0, 4) : '2025';
+        const endYear = curBill ? curBill.LAST_DATE.substring(0, 4) : '2026';
+        const year = Number(startYear);
 
         const events = [
             {date: `Jan ${year}`, text: 'Session Convenes', detail: 'Opening day, oath of office'},
@@ -1482,6 +1507,19 @@
             {date: `Jan ${year + 1}`, text: 'Second Year Convenes', detail: 'Legislative session continues'},
             {date: `May ${year + 1}`, text: 'Session Ends', detail: 'Final adjournment'}
         ];
+
+        if (curBill) {
+            events.unshift({
+                date: curBill.FIRST_DATE,
+                text: 'First Bill Filed',
+                detail: `Session ${currentSession} legislative activity begins`
+            });
+            events.push({
+                date: curBill.LAST_DATE,
+                text: 'Most Recent Activity',
+                detail: `${num(Number(curBill.BILL_COUNT))} total bills filed`
+            });
+        }
 
         el.innerHTML = `
             <div class="timeline">
@@ -1499,25 +1537,21 @@
     // ── Multi-Session Comparison Table ──────────────────────────────
     function renderComparisonTable(billData) {
         const el = document.getElementById('comparisonTable');
-        let rows = [];
 
-        if (Array.isArray(billData) && billData.length) {
-            const sorted = [...billData].sort((a, b) => (b.sessionid || b.session_id || 0) - (a.sessionid || a.session_id || 0));
-            rows = sorted.slice(0, 10).map((b, i) => {
-                const id = b.sessionid || b.session_id;
-                const count = b.billcount || b.bill_count || 0;
-                const prev = sorted[i + 1] ? (sorted[i + 1].billcount || sorted[i + 1].bill_count || 0) : count;
-                return {id, count, prev};
-            });
+        if (!Array.isArray(billData) || billData.length === 0) {
+            el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px">No session comparison data available</div>';
+            return;
         }
 
-        if (!rows.length) {
-            rows = DEMO.billCount.map((b, i) => ({
-                id: b.sessionid,
-                count: b.billcount,
-                prev: DEMO.billCount[i + 1]?.billcount || b.billcount
-            }));
-        }
+        // Sort descending by SESS_NUMBER
+        const sorted = [...billData].sort((a, b) => Number(b.SESS_NUMBER) - Number(a.SESS_NUMBER));
+        const rows = sorted.slice(0, 12).map((b, i) => {
+            const id = b.SESS_NUMBER;
+            const count = Number(b.BILL_COUNT) || 0;
+            const prev = sorted[i + 1] ? Number(sorted[i + 1].BILL_COUNT) || 0 : count;
+            const dateRange = `${b.FIRST_DATE || ''} - ${b.LAST_DATE || ''}`;
+            return {id, count, prev, dateRange};
+        });
 
         el.innerHTML = `
             <table class="comparison-table">
@@ -1525,6 +1559,7 @@
                     <tr>
                         <th>Session</th>
                         <th>Bills Filed</th>
+                        <th>Date Range</th>
                         <th>Change</th>
                         <th>Trend</th>
                         <th style="width:100px">Sparkline</th>
@@ -1538,6 +1573,7 @@
                             <tr style="${r.id == currentSession ? 'background:var(--gold-dim);font-weight:600' : ''}">
                                 <td>${r.id == currentSession ? '&#9658; ' : ''}Session ${r.id}</td>
                                 <td>${num(r.count)}</td>
+                                <td style="font-size:0.72rem;color:var(--text-muted)">${r.dateRange}</td>
                                 <td>${trendArrow(r.count, r.prev)} <span style="font-size:0.78rem">${diff > 0 ? '+' : ''}${num(diff)}</span></td>
                                 <td><span class="kpi-trend ${cls}" style="font-size:0.7rem">${cls === 'up' ? '&#9650; Up' : cls === 'down' ? '&#9660; Down' : '&#9644; Flat'}</span></td>
                                 <td>${makeSpark([r.prev, r.count], cls === 'up' ? '#38a169' : (cls === 'down' ? '#e53e3e' : '#718096'))}</td>
@@ -1553,14 +1589,14 @@
     function renderQuickLinks() {
         const el = document.getElementById('quickLinks');
         const links = [
-            {icon: '&#9654;', label: 'Session Video', url: `${BASE}/video/current`},
-            {icon: '&#128195;', label: 'House Journal', url: `https://www.scstatehouse.gov/sess${currentSession}_${2023 + (currentSession - 125) * 2}-${2024 + (currentSession - 125) * 2}/hj/hjindex.php`},
-            {icon: '&#128195;', label: 'Senate Journal', url: `https://www.scstatehouse.gov/sess${currentSession}_${2023 + (currentSession - 125) * 2}-${2024 + (currentSession - 125) * 2}/sj/sjindex.php`},
-            {icon: '&#128197;', label: 'House Calendar', url: `https://www.scstatehouse.gov/housecal.php`},
-            {icon: '&#128197;', label: 'Senate Calendar', url: `https://www.scstatehouse.gov/senatecal.php`},
-            {icon: '&#128200;', label: 'API Metrics', url: `${BASE}/metrics`},
-            {icon: '&#127963;', label: 'Committees', url: `${BASE}/house/committees`},
-            {icon: '&#128101;', label: 'Member Bios', url: `${BASE}/house/bios`}
+            {icon: '&#128195;', label: 'House Journal', url: 'https://www.scstatehouse.gov/houseintheknow.php'},
+            {icon: '&#128195;', label: 'Senate Journal', url: 'https://www.scstatehouse.gov/senateintheknow.php'},
+            {icon: '&#128197;', label: 'House Calendar', url: 'https://www.scstatehouse.gov/housecal.php'},
+            {icon: '&#128197;', label: 'Senate Calendar', url: 'https://www.scstatehouse.gov/senatecal.php'},
+            {icon: '&#127963;', label: 'House Committees', url: `${BASE}/house/committees`},
+            {icon: '&#127963;', label: 'Senate Committees', url: `${BASE}/senate/committees`},
+            {icon: '&#128101;', label: 'House Members', url: `${BASE}/house/bios`},
+            {icon: '&#128101;', label: 'Senate Members', url: `${BASE}/senate/bios`}
         ];
 
         el.innerHTML = links.map(l => `
@@ -1583,48 +1619,53 @@
             const [
                 billData,
                 chamberStats,
-                votesAll,
+                houseVotes,
+                senateVotes,
                 subjects,
                 hBios,
                 sBios,
                 hMeetings,
                 sMeetings,
                 hComms,
-                sComms,
-                videoData
+                sComms
             ] = await Promise.all([
                 apiFetch('/session-billcount'),
                 apiFetch('/website/chamberstats'),
-                apiFetch(`/vote/${currentSession}/all`),
-                apiFetch(`/subjects/${currentSession}`),
+                apiFetch(`/vote/${currentSession}/house`),
+                apiFetch(`/vote/${currentSession}/senate`),
+                apiFetch('/subjects/current'),
                 apiFetch('/house/bios'),
                 apiFetch('/senate/bios'),
                 apiFetch('/house/meetings-all'),
                 apiFetch('/senate/meetings-all'),
                 apiFetch('/house/committees'),
-                apiFetch('/senate/committees'),
-                apiFetch('/video/current')
+                apiFetch('/senate/committees')
             ]);
 
-            const anySuccess = [billData, chamberStats, votesAll, subjects, hBios, sBios].some(d => d !== null);
+            // Combine house + senate votes
+            const votesAll = [
+                ...(Array.isArray(houseVotes) ? houseVotes : []),
+                ...(Array.isArray(senateVotes) ? senateVotes : [])
+            ];
+
+            const anySuccess = [billData, chamberStats, houseVotes, senateVotes, subjects, hBios, sBios].some(d => d !== null);
             if (anySuccess) {
                 dot.className = 'api-dot';
                 statusText.textContent = 'API Connected';
-                apiAlive = true;
             } else {
                 dot.className = 'api-dot error';
-                statusText.textContent = 'Using demo data';
+                statusText.textContent = 'API Unreachable';
             }
 
             // Render all sections
-            await loadKPIs(billData, votesAll, hMeetings, sMeetings, hComms, sComms, videoData);
-            renderFunnel(billData, chamberStats);
+            loadKPIs(billData, votesAll, hMeetings, sMeetings, hComms, sComms);
+            renderFunnel(billData, votesAll);
             renderVoteAnalysis(votesAll);
-            renderChamberComparison(chamberStats, hBios, sBios, hComms, sComms, hMeetings, sMeetings);
-            renderPartyComposition(hBios, sBios);
+            renderChamberComparison(chamberStats, hBios, sBios, hComms, sComms, hMeetings, sMeetings, houseVotes, senateVotes);
+            renderPartyComposition(chamberStats);
             renderSubjects(subjects);
             renderHeatmap(hMeetings, sMeetings);
-            renderTimeline();
+            renderTimeline(billData);
             renderComparisonTable(billData);
             renderQuickLinks();
 
@@ -1632,19 +1673,7 @@
         } catch (err) {
             console.error('Load error:', err);
             dot.className = 'api-dot error';
-            statusText.textContent = 'Error - using demo data';
-
-            // Render with demo data
-            await loadKPIs(null, null, null, null, null, null, null);
-            renderFunnel(null, null);
-            renderVoteAnalysis(null);
-            renderChamberComparison(null, null, null, null, null, null, null);
-            renderPartyComposition(null, null);
-            renderSubjects(null);
-            renderHeatmap(null, null);
-            renderTimeline();
-            renderComparisonTable(null);
-            renderQuickLinks();
+            statusText.textContent = 'Error loading data';
         }
     }
 
