@@ -354,94 +354,148 @@ const state = {
   currentView: 'month',
   currentDate: new Date(),
   filters: { chamber: 'all', type: 'all', search: '' },
-  meetings: { house: [], senate: [] },
-  meetingsToday: { house: [], senate: [] },
-  meetingsUpcoming: { house: [], senate: [] },
-  meetingsLive: { house: [], senate: [] },
-  meetingsArchive: { house: [], senate: [] },
-  meetingsChamber: { house: [], senate: [] },
-  meetingsOther: { house: [], senate: [] },
   committees: { house: [], senate: [] },
-  videoLive: [],
-  videoUpcoming: [],
+  liveKeys: new Set(),
   allMeetings: [],
   agenda: JSON.parse(localStorage.getItem('cmap_agenda') || '[]'),
   loading: false,
   error: null
 };
 
-// ===== FALLBACK DATA =====
-const FALLBACK_MEETINGS = [
-  { meetingId: 'f1', committeeName: 'Judiciary Committee', chamber: 'house', meetingDate: todayStr(), meetingTime: '10:00 AM', room: '110', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
-  { meetingId: 'f2', committeeName: 'Ways and Means Committee', chamber: 'house', meetingDate: todayStr(), meetingTime: '2:00 PM', room: '228', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'live', meetingType: 'committee' },
-  { meetingId: 'f3', committeeName: 'Finance Committee', chamber: 'senate', meetingDate: todayStr(), meetingTime: '11:00 AM', room: '105', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
-  { meetingId: 'f4', committeeName: 'Education Committee', chamber: 'senate', meetingDate: tomorrowStr(), meetingTime: '9:00 AM', room: '209', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
-  { meetingId: 'f5', committeeName: 'House Chamber Session', chamber: 'house', meetingDate: tomorrowStr(), meetingTime: '12:00 PM', room: 'Chamber', building: 'State House', address: '1100 Gervais St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'chamber' },
-  { meetingId: 'f6', committeeName: 'Medical Affairs Committee', chamber: 'senate', meetingDate: addDaysStr(2), meetingTime: '10:30 AM', room: '308', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
-  { meetingId: 'f7', committeeName: 'Labor, Commerce and Industry', chamber: 'house', meetingDate: addDaysStr(3), meetingTime: '10:00 AM', room: '425', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
-  { meetingId: 'f8', committeeName: 'Senate Chamber Session', chamber: 'senate', meetingDate: addDaysStr(3), meetingTime: '2:00 PM', room: 'Chamber', building: 'State House', address: '1100 Gervais St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'chamber' },
-  { meetingId: 'f9', committeeName: 'Agriculture Committee', chamber: 'house', meetingDate: addDaysStr(5), meetingTime: '9:30 AM', room: '110', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'committee' },
-  { meetingId: 'f10', committeeName: 'Ethics Committee', chamber: 'senate', meetingDate: addDaysStr(6), meetingTime: '3:00 PM', room: '209', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'scheduled', meetingType: 'other' },
-  { meetingId: 'f11', committeeName: 'Appropriations Committee', chamber: 'house', meetingDate: addDaysStr(-1), meetingTime: '10:00 AM', room: '228', building: 'Blatt Building', address: '1105 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'completed', meetingType: 'committee' },
-  { meetingId: 'f12', committeeName: 'Rules Committee', chamber: 'senate', meetingDate: addDaysStr(-3), meetingTime: '1:00 PM', room: '105', building: 'Gressette Building', address: '1101 Pendleton St', city: 'Columbia', state: 'SC', zip: '29201', status: 'completed', meetingType: 'committee' }
-];
-
+// ===== HELPERS =====
 function todayStr() { return fmtDate(new Date()); }
-function tomorrowStr() { const d = new Date(); d.setDate(d.getDate() + 1); return fmtDate(d); }
-function addDaysStr(n) { const d = new Date(); d.setDate(d.getDate() + n); return fmtDate(d); }
 function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function esc(s) { if (!s) return ''; const el = document.createElement('span'); el.textContent = s; return el.innerHTML; }
+function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '...' : s || ''; }
 
-// ===== API FETCH =====
+function getHour(timeStr) {
+  if (!timeStr) return -1;
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (!match) return -1;
+  let h = parseInt(match[1]);
+  const ampm = (match[3] || '').toLowerCase();
+  if (ampm === 'pm' && h < 12) h += 12;
+  if (ampm === 'am' && h === 12) h = 0;
+  return h;
+}
+
+function formatDateShort(ds) {
+  if (!ds) return '';
+  const parts = ds.split('-');
+  if (parts.length < 3) return ds;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(parts[1])-1]} ${parseInt(parts[2])}`;
+}
+
+function formatDateLong(ds) {
+  if (!ds) return '';
+  const parts = ds.split('-');
+  if (parts.length < 3) return ds;
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${parseInt(parts[2])}, ${parts[0]}`;
+}
+
+// ===== API FETCH (unwraps .data) =====
 async function apiFetch(path) {
   try {
     const r = await fetch(API + path, { headers: { 'Accept': 'application/json' } });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    return data;
+    const json = await r.json();
+    // All SC Statehouse responses are wrapped: {error, message, data}
+    if (json && typeof json === 'object' && 'data' in json) {
+      return json.data;
+    }
+    return json;
   } catch (e) {
     console.warn(`API fetch failed: ${path}`, e.message);
     return null;
   }
 }
 
-function normalizeMeeting(m, chamber) {
-  // Handle various API response shapes
-  const meeting = {};
-  meeting.meetingId = m.meetingId || m.id || m.committeeCode || Math.random().toString(36).slice(2);
-  meeting.committeeName = m.committeeName || m.committee || m.description || m.title || 'Meeting';
-  meeting.committeeCode = m.committeeCode || m.code || '';
-  meeting.chamber = chamber || m.chamber || 'unknown';
-
-  // Date handling
-  const raw = m.meetingDate || m.stateDate || m.date || m.startDate || '';
-  if (raw) {
-    const d = new Date(raw);
-    if (!isNaN(d)) meeting.meetingDate = fmtDate(d);
-    else meeting.meetingDate = raw.split('T')[0];
-  } else {
-    meeting.meetingDate = '';
-  }
-
-  meeting.meetingTime = m.meetingTime || m.time || m.startTime || '';
-  meeting.room = m.room || m.roomNumber || '';
-  meeting.building = m.building || m.location || '';
-  meeting.address = m.address || '';
-  meeting.city = m.city || 'Columbia';
-  meeting.state = m.state || 'SC';
-  meeting.zip = m.zip || '';
-  meeting.phone = m.phone || m.phoneNumber || '';
-  meeting.status = m.status || 'scheduled';
-  meeting.meetingType = m.meetingType || 'committee';
-  meeting.agenda = m.agenda || m.agendaUrl || '';
-  meeting.notice = m.notice || '';
-  return meeting;
+// ===== NORMALIZE from API shape to internal shape =====
+function chamberFromCode(code) {
+  if (!code) return 'other';
+  const c = code.toUpperCase();
+  if (c === 'H') return 'house';
+  if (c === 'S') return 'senate';
+  if (c === 'B') return 'joint';
+  return 'other';
 }
 
+function meetingTypeFromRaw(m) {
+  // CHAMBER field: H/S/B; COMMITTEE "0" means chamber session
+  if (m.COMMITTEE === '0' || m.COMMITTEE === 0) return 'chamber';
+  return 'committee';
+}
+
+function normalizeMeeting(raw, chamberHint) {
+  const m = {};
+  m.meetingId = raw.KEY || String(Math.random().toString(36).slice(2));
+  m.committeeName = raw.COMMITTEENAME || raw.FULL_COMMITTEE_NAME || raw.VIDEO_TITLE || 'Meeting';
+  m.chamber = chamberHint || chamberFromCode(raw.CHAMBER);
+  m.meetingType = meetingTypeFromRaw(raw);
+  m.canceled = raw.CANCELED === '1' || raw.CANCELED === 1;
+
+  // Parse date from MEETINGTIME-ATOM (ISO) or MEETINGTIME or MEETINGDATE
+  if (raw['MEETINGTIME-ATOM']) {
+    const dt = new Date(raw['MEETINGTIME-ATOM']);
+    if (!isNaN(dt)) {
+      m.meetingDate = fmtDate(dt);
+    }
+  }
+  if (!m.meetingDate && raw.MEETINGTIME) {
+    const dt = new Date(raw.MEETINGTIME.replace(' ', 'T'));
+    if (!isNaN(dt)) {
+      m.meetingDate = fmtDate(dt);
+    }
+  }
+  if (!m.meetingDate && raw.MEETINGDATE) {
+    // MEETINGDATE is "MM/DD/YYYY"
+    const parts = raw.MEETINGDATE.split('/');
+    if (parts.length === 3) {
+      m.meetingDate = `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+    }
+  }
+  if (!m.meetingDate) m.meetingDate = '';
+
+  // Time display
+  m.meetingTime = raw.TIME || raw.DISPLAYTIME || '';
+  if (!m.meetingTime && raw.MEETINGTIME) {
+    // Extract time from "YYYY-MM-DD HH:MM:SS"
+    const timePart = raw.MEETINGTIME.split(' ')[1];
+    if (timePart) {
+      const [hh, mm] = timePart.split(':');
+      let h = parseInt(hh), suffix = h >= 12 ? 'pm' : 'am';
+      if (h > 12) h -= 12;
+      if (h === 0) h = 12;
+      m.meetingTime = `${h}:${mm} ${suffix}`;
+    }
+  }
+
+  m.location = raw.LOCATION || '';
+  m.address = raw.ADDRESS || '';
+  m.agendaLink = raw.FULLAGENDALINK || (raw.AGENDALINK ? `https://www.scstatehouse.gov/agendas/${raw.AGENDALINK}` : '');
+  m.billString = raw.BILL_STRING || '';
+  m.youtubeId = raw.YOUTUBE_VIDEO_ID || null;
+  m.videoType = raw.VIDEO_TYPE || 'N';
+  m.videoTitle = raw.VIDEO_TITLE || '';
+  m.backgroundImage = raw.BACKGROUND_IMAGE_URL || '';
+  m.status = 'scheduled';
+
+  return m;
+}
+
+// ===== LOAD ALL DATA =====
 async function loadAllData() {
   state.loading = true;
-  const today = todayStr();
 
-  // Fetch all endpoints in parallel
+  // Show loading state
+  document.getElementById('todayMeetings').innerHTML = '<div class="loading-spinner"><div class="spinner"></div> Loading live data...</div>';
+  document.getElementById('upcomingList').innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+  document.getElementById('viewContainer').innerHTML = '<div class="loading-spinner"><div class="spinner"></div> Fetching meetings from SC Statehouse...</div>';
+
   const [
     hMeetings, sMeetings,
     hToday, sToday,
@@ -449,10 +503,10 @@ async function loadAllData() {
     hLive, sLive,
     hAll, sAll,
     hArchive, sArchive,
+    hPast, sPast,
     hChamber, sChamber,
     hOther, sOther,
-    hCommittees, sCommittees,
-    vLive, vUpcoming
+    hCommittees, sCommittees
   ] = await Promise.all([
     apiFetch('/house/meetings'),
     apiFetch('/senate/meetings'),
@@ -466,68 +520,56 @@ async function loadAllData() {
     apiFetch('/senate/meetings-all'),
     apiFetch('/house/meetings-archive'),
     apiFetch('/senate/meetings-archive'),
+    apiFetch('/house/meetings-past'),
+    apiFetch('/senate/meetings-past'),
     apiFetch('/house/meetings-chamber'),
     apiFetch('/senate/meetings-chamber'),
     apiFetch('/house/meetings-other'),
     apiFetch('/senate/meetings-other'),
     apiFetch('/house/committees'),
-    apiFetch('/senate/committees'),
-    apiFetch('/video/live'),
-    apiFetch('/video/upcoming')
+    apiFetch('/senate/committees')
   ]);
 
-  const norm = (arr, ch) => (Array.isArray(arr) ? arr : []).map(m => normalizeMeeting(m, ch));
-
-  state.meetings.house = norm(hMeetings, 'house');
-  state.meetings.senate = norm(sMeetings, 'senate');
-  state.meetingsToday.house = norm(hToday, 'house');
-  state.meetingsToday.senate = norm(sToday, 'senate');
-  state.meetingsUpcoming.house = norm(hUpcoming, 'house');
-  state.meetingsUpcoming.senate = norm(sUpcoming, 'senate');
-  state.meetingsLive.house = norm(hLive, 'house');
-  state.meetingsLive.senate = norm(sLive, 'senate');
-  state.meetingsArchive.house = norm(hArchive, 'house');
-  state.meetingsArchive.senate = norm(sArchive, 'senate');
-  state.meetingsChamber.house = norm(hChamber, 'house');
-  state.meetingsChamber.senate = norm(sChamber, 'senate');
-  state.meetingsOther.house = norm(hOther, 'house');
-  state.meetingsOther.senate = norm(sOther, 'senate');
+  // Store committees (already unwrapped by apiFetch)
   state.committees.house = Array.isArray(hCommittees) ? hCommittees : [];
   state.committees.senate = Array.isArray(sCommittees) ? sCommittees : [];
-  state.videoLive = Array.isArray(vLive) ? vLive : [];
-  state.videoUpcoming = Array.isArray(vUpcoming) ? vUpcoming : [];
 
-  // Build unified all-meetings list from all sources, deduped
+  // Build live keys set
+  state.liveKeys = new Set();
+  const safeLive = arr => Array.isArray(arr) ? arr : [];
+  safeLive(hLive).forEach(m => { if (m.KEY) state.liveKeys.add(m.KEY); });
+  safeLive(sLive).forEach(m => { if (m.KEY) state.liveKeys.add(m.KEY); });
+
+  // Deduplicate all meetings by KEY across all endpoints
   const allMap = new Map();
-  const addAll = (arr, ch, type) => {
-    arr.forEach(m => {
-      const n = normalizeMeeting(m, ch);
-      if (type) n.meetingType = type;
-      const key = `${n.committeeName}-${n.meetingDate}-${n.meetingTime}`;
-      if (!allMap.has(key)) allMap.set(key, n);
+
+  const ingestArray = (arr, chamberHint) => {
+    if (!Array.isArray(arr)) return;
+    arr.forEach(raw => {
+      const key = raw.KEY;
+      if (!key) return;
+      if (allMap.has(key)) return; // already seen, skip duplicate
+      const m = normalizeMeeting(raw, chamberHint);
+      allMap.set(key, m);
     });
   };
 
-  // Add from various sources
-  [hMeetings, hAll, hToday, hUpcoming, hArchive].forEach(a => addAll(a || [], 'house', null));
-  [sMeetings, sAll, sToday, sUpcoming, sArchive].forEach(a => addAll(a || [], 'senate', null));
-  addAll(hChamber || [], 'house', 'chamber');
-  addAll(sChamber || [], 'senate', 'chamber');
-  addAll(hOther || [], 'house', 'other');
-  addAll(sOther || [], 'senate', 'other');
+  // Ingest all sources; house endpoints get 'house' hint, senate get 'senate'
+  // The CHAMBER field in the raw data is authoritative, but we pass hints for endpoints
+  // that are chamber-specific. normalizeMeeting uses chamberFromCode(raw.CHAMBER) as primary.
+  const houseSources = [hMeetings, hToday, hUpcoming, hLive, hAll, hArchive, hPast, hChamber, hOther];
+  const senateSources = [sMeetings, sToday, sUpcoming, sLive, sAll, sArchive, sPast, sChamber, sOther];
 
-  state.allMeetings = Array.from(allMap.values());
+  houseSources.forEach(arr => ingestArray(arr, null));
+  senateSources.forEach(arr => ingestArray(arr, null));
 
   // Mark live meetings
-  const liveNames = new Set();
-  [...(state.meetingsLive.house), ...(state.meetingsLive.senate)].forEach(m => liveNames.add(m.committeeName));
-  state.allMeetings.forEach(m => { if (liveNames.has(m.committeeName) && m.meetingDate === today) m.status = 'live'; });
-
-  // Use fallback if we got nothing
-  if (state.allMeetings.length === 0) {
-    console.log('Using fallback demo data');
-    state.allMeetings = FALLBACK_MEETINGS;
-  }
+  state.allMeetings = Array.from(allMap.values());
+  state.allMeetings.forEach(m => {
+    if (state.liveKeys.has(m.meetingId)) {
+      m.status = 'live';
+    }
+  });
 
   state.loading = false;
   renderAll();
@@ -550,8 +592,13 @@ function applyFilters() {
 
 function filterMeetings(meetings) {
   return meetings.filter(m => {
+    if (m.canceled) return false;
     if (state.filters.chamber !== 'all' && m.chamber !== state.filters.chamber) return false;
-    if (state.filters.type !== 'all' && m.meetingType !== state.filters.type) return false;
+    if (state.filters.type !== 'all') {
+      if (state.filters.type === 'committee' && m.meetingType !== 'committee') return false;
+      if (state.filters.type === 'chamber' && m.meetingType !== 'chamber') return false;
+      if (state.filters.type === 'other' && m.meetingType !== 'other' && m.meetingType !== 'chamber') return false;
+    }
     if (state.filters.search && !m.committeeName.toLowerCase().includes(state.filters.search)) return false;
     return true;
   });
@@ -602,7 +649,7 @@ function renderStats() {
   const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + 7);
   const weekEndStr = fmtDate(weekEnd);
 
-  const all = state.allMeetings;
+  const all = state.allMeetings.filter(m => !m.canceled);
   const todayCount = all.filter(m => m.meetingDate === today).length;
   const weekCount = all.filter(m => m.meetingDate >= today && m.meetingDate <= weekEndStr).length;
   const houseCount = all.filter(m => m.chamber === 'house' && m.meetingDate >= today).length;
@@ -634,7 +681,7 @@ function renderTodayMeetings() {
     <div class="today-meeting-card" onclick="showDetail('${esc(m.meetingId)}')">
       ${m.status === 'live' ? '<div class="live-badge"><span class="live-dot"></span> LIVE</div>' : ''}
       <div class="tmc-name">${esc(m.committeeName)}</div>
-      <div class="tmc-time">${esc(m.meetingTime || 'TBD')} &bull; ${esc(m.room || '')} ${esc(m.building || '')}</div>
+      <div class="tmc-time">${esc(m.meetingTime || 'TBD')} &bull; ${esc(m.location)}</div>
       <div style="margin-top:6px"><span class="badge badge-${m.chamber}">${m.chamber}</span></div>
     </div>
   `).join('');
@@ -650,7 +697,7 @@ function renderUpcoming() {
 
   const container = document.getElementById('upcomingList');
   if (upcoming.length === 0) {
-    container.innerHTML = '<div class="no-meetings-msg">No upcoming meetings.</div>';
+    container.innerHTML = '<div class="no-meetings-msg">No upcoming meetings this week.</div>';
     return;
   }
   container.innerHTML = upcoming.slice(0, 15).map(m => `
@@ -693,7 +740,6 @@ function renderMonthView() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = todayStr();
 
-  // Get meetings for this month
   const monthStr = `${year}-${String(month+1).padStart(2,'0')}`;
   const meetings = filterMeetings(state.allMeetings);
   const byDate = {};
@@ -704,19 +750,16 @@ function renderMonthView() {
     }
   });
 
-  // Also grab days from prev/next month for grid
   const prevMonthDays = new Date(year, month, 0).getDate();
 
   let html = '<div class="cal-month">';
   ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => html += `<div class="cal-dayname">${d}</div>`);
 
-  // Previous month days
   for (let i = firstDay - 1; i >= 0; i--) {
     const dayNum = prevMonthDays - i;
     html += `<div class="cal-day other-month"><div class="day-num">${dayNum}</div></div>`;
   }
 
-  // Current month days
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const isToday = dateStr === today;
@@ -726,7 +769,7 @@ function renderMonthView() {
     html += `<div class="cal-day${isToday ? ' today' : ''}" onclick="goToDay('${dateStr}')">`;
     html += `<div class="day-num">${day}</div>`;
     dayMeetings.slice(0, maxShow).forEach(m => {
-      const cls = m.status === 'live' ? 'live' : m.meetingType === 'chamber' ? 'chamber' : m.meetingType === 'other' ? 'other' : m.chamber;
+      const cls = m.status === 'live' ? 'live' : m.meetingType === 'chamber' ? 'chamber' : m.chamber;
       html += `<div class="cal-event ${cls}" onclick="event.stopPropagation();showDetail('${esc(m.meetingId)}')" title="${esc(m.committeeName)}">${m.status === 'live' ? '&#9679; ' : ''}${esc(truncate(m.committeeName, 20))}</div>`;
     });
     if (dayMeetings.length > maxShow) {
@@ -735,7 +778,6 @@ function renderMonthView() {
     html += '</div>';
   }
 
-  // Next month fill
   const totalCells = firstDay + daysInMonth;
   const remaining = (7 - (totalCells % 7)) % 7;
   for (let i = 1; i <= remaining; i++) {
@@ -768,7 +810,6 @@ function renderWeekView() {
     html += `<div class="cal-week-header${isToday ? ' today-col' : ''}">${dayNames[i]} ${dayNum}</div>`;
   });
 
-  // Time slots
   for (let h = 8; h <= 18; h++) {
     const timeLabel = h <= 12 ? `${h}:00 ${h < 12 ? 'AM' : 'PM'}` : `${h-12}:00 PM`;
     html += `<div class="cal-week-time">${timeLabel}</div>`;
@@ -835,7 +876,7 @@ function renderListView() {
 
 // ===== ARCHIVE VIEW =====
 function renderArchiveView() {
-  const pastMeetings = state.allMeetings.filter(m => m.meetingDate < todayStr() || m.status === 'completed')
+  const pastMeetings = state.allMeetings.filter(m => !m.canceled && m.meetingDate && m.meetingDate < todayStr())
     .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
 
   let html = '<div class="archive-controls">';
@@ -861,7 +902,7 @@ function filterArchive() {
   const search = (document.getElementById('archiveSearch')?.value || '').toLowerCase();
   const chamber = document.getElementById('archiveChamber')?.value || 'all';
   const pastMeetings = state.allMeetings
-    .filter(m => m.meetingDate < todayStr() || m.status === 'completed')
+    .filter(m => !m.canceled && m.meetingDate && m.meetingDate < todayStr())
     .filter(m => chamber === 'all' || m.chamber === chamber)
     .filter(m => !search || m.committeeName.toLowerCase().includes(search))
     .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
@@ -879,20 +920,22 @@ function filterArchive() {
 // ===== MEETING CARD =====
 function renderMeetingCard(m) {
   const isInAgenda = state.agenda.some(a => a.meetingId === m.meetingId);
-  const badgeType = m.meetingType === 'chamber' ? 'chamber' : m.meetingType === 'other' ? 'other' : m.chamber;
+  const badgeType = m.meetingType === 'chamber' ? 'chamber' : m.chamber === 'joint' ? 'other' : m.chamber;
+  const badgeLabel = m.meetingType === 'chamber' ? 'Chamber' : m.chamber === 'joint' ? 'Joint' : m.chamber;
   return `
     <div class="meeting-card ${m.chamber}${m.status === 'live' ? ' live' : ''}">
       <div class="mc-top">
         <div class="mc-name">${m.status === 'live' ? '<span class="live-badge"><span class="live-dot"></span> LIVE</span> ' : ''}${esc(m.committeeName)}</div>
         <div class="mc-badges">
-          <span class="badge badge-${badgeType}">${m.meetingType === 'chamber' ? 'Chamber' : m.meetingType === 'other' ? 'Other' : m.chamber}</span>
+          <span class="badge badge-${badgeType}">${badgeLabel}</span>
         </div>
       </div>
       <div class="mc-details">
         <span>&#128197; ${formatDateShort(m.meetingDate)}</span>
         <span>&#128336; ${esc(m.meetingTime || 'TBD')}</span>
-        ${m.room ? `<span>&#127970; ${esc(m.room)}${m.building ? ', ' + esc(m.building) : ''}</span>` : ''}
+        ${m.location ? `<span>&#127970; ${esc(m.location)}</span>` : ''}
       </div>
+      ${m.agendaLink ? `<div style="margin-top:6px"><a href="${esc(m.agendaLink)}" target="_blank" rel="noopener" style="font-size:.78rem;color:var(--gold)">View Agenda (PDF)</a></div>` : ''}
       <div class="mc-actions">
         <button class="btn-add-agenda${isInAgenda ? ' added' : ''}" onclick="event.stopPropagation();toggleMeetingAgenda('${esc(m.meetingId)}')">${isInAgenda ? '&#10003; Added' : '+ Agenda'}</button>
         <button class="btn-add-agenda" onclick="event.stopPropagation();showDetail('${esc(m.meetingId)}')">Details</button>
@@ -905,49 +948,73 @@ function showDetail(meetingId) {
   const m = state.allMeetings.find(x => x.meetingId === meetingId);
   if (!m) return;
 
-  // Find committee info
+  // Find matching committee from committees endpoints
   const allCommittees = [...state.committees.house, ...state.committees.senate];
-  const committee = allCommittees.find(c =>
-    (c.committeeName || c.name || '').toLowerCase().includes(m.committeeName.toLowerCase().replace(/committee/i,'').trim()) ||
-    m.committeeName.toLowerCase().includes((c.committeeName || c.name || '').toLowerCase().replace(/committee/i,'').trim())
-  );
+  const nameLower = m.committeeName.toLowerCase();
+  const committee = allCommittees.find(c => {
+    const cName = (c.COMMITTEE_NAME || '').toLowerCase();
+    if (!cName) return false;
+    // Fuzzy match: check if one contains the other
+    return nameLower.includes(cName) || cName.includes(nameLower) ||
+           nameLower.replace(/\bcommittee\b/gi, '').trim().includes(cName.replace(/\bcommittee\b/gi, '').trim()) ||
+           cName.replace(/\bcommittee\b/gi, '').trim().includes(nameLower.replace(/\bcommittee\b/gi, '').trim());
+  });
 
   const isInAgenda = state.agenda.some(a => a.meetingId === m.meetingId);
 
   let html = `
     <h2>${m.status === 'live' ? '<span class="live-badge"><span class="live-dot"></span> LIVE</span> ' : ''}${esc(m.committeeName)}</h2>
-    <div class="dp-chamber-badge"><span class="badge badge-${m.chamber}">${m.chamber}</span> <span class="badge badge-${m.meetingType === 'chamber' ? 'chamber' : 'other'}">${m.meetingType}</span></div>
+    <div class="dp-chamber-badge">
+      <span class="badge badge-${m.chamber}">${m.chamber}</span>
+      <span class="badge badge-${m.meetingType === 'chamber' ? 'chamber' : 'other'}">${m.meetingType}</span>
+    </div>
 
     <div class="dp-section">
       <h4>Meeting Details</h4>
       <div class="dp-info-grid">
         <span class="label">Date</span><span class="value">${formatDateLong(m.meetingDate)}</span>
         <span class="label">Time</span><span class="value">${esc(m.meetingTime || 'TBD')}</span>
-        <span class="label">Room</span><span class="value">${esc(m.room || 'N/A')}</span>
-        <span class="label">Building</span><span class="value">${esc(m.building || 'N/A')}</span>
-        ${m.address ? `<span class="label">Address</span><span class="value">${esc(m.address)}, ${esc(m.city)}, ${esc(m.state)} ${esc(m.zip)}</span>` : ''}
-        ${m.phone ? `<span class="label">Phone</span><span class="value">${esc(m.phone)}</span>` : ''}
-        <span class="label">Status</span><span class="value" style="text-transform:capitalize">${esc(m.status)}</span>
+        <span class="label">Location</span><span class="value">${esc(m.location || 'N/A')}</span>
+        ${m.address ? `<span class="label">Address</span><span class="value">${esc(m.address)}</span>` : ''}
+        <span class="label">Status</span><span class="value" style="text-transform:capitalize">${m.canceled ? 'Canceled' : esc(m.status)}</span>
+        ${m.billString ? `<span class="label">Bills</span><span class="value">${esc(m.billString)}</span>` : ''}
       </div>
     </div>`;
+
+  if (m.agendaLink) {
+    html += `
+    <div class="dp-section">
+      <h4>Agenda</h4>
+      <a href="${esc(m.agendaLink)}" target="_blank" rel="noopener" style="color:var(--gold);font-size:.9rem">View Full Agenda (PDF)</a>
+    </div>`;
+  }
+
+  if (m.youtubeId) {
+    html += `
+    <div class="dp-section">
+      <h4>Video</h4>
+      <a href="https://www.youtube.com/watch?v=${esc(m.youtubeId)}" target="_blank" rel="noopener" style="color:var(--gold);font-size:.9rem">Watch on YouTube</a>
+    </div>`;
+  }
 
   if (committee) {
     html += `
     <div class="dp-section">
       <h4>Committee Info</h4>
       <div class="dp-info-grid">
-        ${committee.room || committee.roomNumber ? `<span class="label">Office</span><span class="value">${esc(committee.room || committee.roomNumber)}</span>` : ''}
-        ${committee.building ? `<span class="label">Building</span><span class="value">${esc(committee.building)}</span>` : ''}
-        ${committee.phone || committee.phoneNumber ? `<span class="label">Phone</span><span class="value">${esc(committee.phone || committee.phoneNumber)}</span>` : ''}
+        <span class="label">Full Name</span><span class="value">${esc(committee.COMMITTEE_NAME || '')}</span>
+        ${committee.ROOM_NUMBER ? `<span class="label">Office</span><span class="value">${esc(committee.ROOM_NUMBER)}${committee.BUILDING ? ', ' + esc(committee.BUILDING) : ''}</span>` : ''}
+        ${committee.TELEPHONE_NUMBER ? `<span class="label">Phone</span><span class="value">${esc(committee.TELEPHONE_NUMBER)}</span>` : ''}
+        ${committee.ADDRESS ? `<span class="label">Address</span><span class="value">${esc(committee.ADDRESS)}</span>` : ''}
       </div>
     </div>`;
 
-    const members = committee.members || committee.committeeMembers || [];
+    const members = committee.members || [];
     if (members.length > 0) {
-      html += `<div class="dp-section"><h4>Committee Members</h4><ul class="dp-members">`;
-      members.slice(0, 20).forEach(mem => {
-        const name = mem.name || mem.memberName || `${mem.firstName || ''} ${mem.lastName || ''}`.trim();
-        const role = mem.role || mem.position || '';
+      html += `<div class="dp-section"><h4>Committee Members (${members.length})</h4><ul class="dp-members">`;
+      members.forEach(mem => {
+        const name = `${mem.FIRST || ''} ${mem.LAST || ''}`.trim();
+        const role = mem.COMM_OFFICE || '';
         html += `<li><span>${esc(name)}</span>${role ? `<span class="member-role">${esc(role)}</span>` : ''}</li>`;
       });
       html += '</ul></div>';
@@ -981,7 +1048,7 @@ function toggleMeetingAgenda(meetingId) {
   }
   localStorage.setItem('cmap_agenda', JSON.stringify(state.agenda));
   updateAgendaCount();
-  renderView(); // refresh cards
+  renderView();
 }
 
 function updateAgendaCount() {
@@ -1035,8 +1102,10 @@ function exportAgenda() {
     text += `${m.committeeName}\n`;
     text += `  Date: ${formatDateLong(m.meetingDate)}\n`;
     text += `  Time: ${m.meetingTime || 'TBD'}\n`;
-    text += `  Location: ${m.room || ''} ${m.building || ''}\n`;
-    text += `  Chamber: ${m.chamber}\n\n`;
+    text += `  Location: ${m.location || 'N/A'}\n`;
+    text += `  Chamber: ${m.chamber}\n`;
+    if (m.agendaLink) text += `  Agenda: ${m.agendaLink}\n`;
+    text += '\n';
   });
   const blob = new Blob([text], { type: 'text/plain' });
   const a = document.createElement('a');
@@ -1059,34 +1128,6 @@ function goToDay(dateStr) {
   document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
   document.querySelector('.view-tab[data-view="day"]').classList.add('active');
   renderView();
-}
-
-// ===== HELPERS =====
-function esc(s) { if (!s) return ''; const el = document.createElement('span'); el.textContent = s; return el.innerHTML; }
-function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '...' : s || ''; }
-function getHour(timeStr) {
-  if (!timeStr) return -1;
-  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
-  if (!match) return -1;
-  let h = parseInt(match[1]);
-  const ampm = (match[3] || '').toUpperCase();
-  if (ampm === 'PM' && h < 12) h += 12;
-  if (ampm === 'AM' && h === 12) h = 0;
-  return h;
-}
-function formatDateShort(ds) {
-  if (!ds) return '';
-  const parts = ds.split('-');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `${months[parseInt(parts[1])-1]} ${parseInt(parts[2])}`;
-}
-function formatDateLong(ds) {
-  if (!ds) return '';
-  const parts = ds.split('-');
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${parseInt(parts[2])}, ${parts[0]}`;
 }
 
 // ===== INIT =====
