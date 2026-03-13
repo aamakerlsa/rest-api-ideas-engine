@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PGOV - Party Governance &amp; Caucus Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Droid+Serif:wght@400;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/lsa-styles.css">
+    <style>
+        :root {
+            --rep-red: #c0392b;
+            --rep-red-light: rgba(192, 57, 43, 0.1);
+            --rep-red-bg: rgba(192, 57, 43, 0.05);
+            --dem-blue: #2980b9;
+            --dem-blue-light: rgba(41, 128, 185, 0.1);
+            --dem-blue-bg: rgba(41, 128, 185, 0.05);
+        }
+
+        body {
+            background-color: var(--lsa-gray-100);
+            min-height: 100vh;
+        }
+
+        /* Top bar */
+        .top-bar {
+            background: #0a1e3d;
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar a {
+            color: var(--lsa-gold);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .top-bar a:hover { color: #e8d48b; }
+        .top-bar .session-info {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+        }
+
+        /* Navbar */
+        .app-navbar {
+            background: linear-gradient(135deg, var(--lsa-primary) 0%, #1a4a7a 100%);
+            padding: 20px 24px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+        .navbar-inner img {
+            height: 48px;
+            width: 48px;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .navbar-title {
+            color: white;
+            font-family: var(--font-heading);
+            font-size: var(--text-2xl);
+            font-weight: 700;
+        }
+        .navbar-tagline {
+            color: var(--lsa-gold);
+            font-size: var(--text-sm);
+            font-family: var(--font-primary);
+            margin-top: 2px;
+        }
+
+        /* Navigation tabs */
+        .nav-tabs {
+            background: white;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            overflow-x: auto;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .nav-tabs li {
+            margin: 0;
+        }
+        .nav-tab {
+            display: block;
+            padding: 14px 20px;
+            color: var(--lsa-gray-500);
+            text-decoration: none;
+            font-size: var(--text-sm);
+            font-weight: 600;
+            font-family: var(--font-primary);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .nav-tab:hover {
+            color: var(--lsa-primary);
+            background: var(--lsa-gray-100);
+        }
+        .nav-tab.active {
+            color: var(--lsa-primary);
+            border-bottom-color: var(--lsa-primary);
+        }
+
+        /* Main content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Section panels */
+        .section-panel {
+            display: none;
+        }
+        .section-panel.active {
+            display: block;
+        }
+
+        /* Panel header */
+        .panel-header {
+            margin-bottom: 24px;
+        }
+        .panel-header h2 {
+            font-family: var(--font-heading);
+            font-size: var(--text-3xl);
+            color: var(--lsa-primary);
+            margin-bottom: 4px;
+        }
+        .panel-header p {
+            color: var(--lsa-gray-500);
+            font-size: var(--text-base);
+            margin-bottom: 0;
+        }
+
+        /* Grid layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        /* Cards */
+        .pgov-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .pgov-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .pgov-card-header {
+            padding: 16px 20px;
+            font-family: var(--font-heading-alt);
+            font-weight: 700;
+            font-size: var(--text-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--lsa-gray-600);
+            background: var(--lsa-gray-100);
+        }
+        .pgov-card-body {
+            padding: 20px;
+        }
+
+        /* Stat cards */
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: var(--text-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            color: var(--lsa-gray-500);
+            margin-bottom: 8px;
+            font-family: var(--font-heading-alt);
+        }
+        .stat-value {
+            font-size: var(--text-4xl);
+            font-weight: 700;
+            font-family: var(--font-display);
+            line-height: 1.1;
+        }
+        .stat-sub {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-400);
+            margin-top: 4px;
+        }
+        .stat-rep { color: var(--rep-red); }
+        .stat-dem { color: var(--dem-blue); }
+
+        /* Party bar */
+        .party-bar {
+            display: flex;
+            height: 32px;
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            box-shadow: var(--shadow-inner);
+        }
+        .party-bar-r {
+            background: var(--rep-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: var(--text-xs);
+            font-weight: 700;
+            transition: width 0.6s ease;
+        }
+        .party-bar-d {
+            background: var(--dem-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: var(--text-xs);
+            font-weight: 700;
+            transition: width 0.6s ease;
+        }
+
+        /* Supermajority marker */
+        .supermajority-line {
+            position: relative;
+        }
+        .supermajority-line::after {
+            content: '2/3';
+            position: absolute;
+            top: -18px;
+            left: 66.67%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: var(--lsa-gray-400);
+            font-weight: 700;
+        }
+        .supermajority-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 66.67%;
+            height: 100%;
+            width: 2px;
+            background: rgba(0,0,0,0.3);
+            z-index: 2;
+        }
+
+        /* Tables */
+        .pgov-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--text-sm);
+        }
+        .pgov-table th {
+            text-align: left;
+            padding: 10px 14px;
+            background: var(--lsa-gray-100);
+            font-weight: 600;
+            color: var(--lsa-gray-600);
+            font-size: var(--text-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .pgov-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--lsa-gray-100);
+            color: var(--lsa-gray-700);
+        }
+        .pgov-table tbody tr:hover {
+            background: var(--lsa-gray-100);
+        }
+
+        /* Party badges */
+        .party-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .party-badge-r {
+            background: var(--rep-red-light);
+            color: var(--rep-red);
+        }
+        .party-badge-d {
+            background: var(--dem-blue-light);
+            color: var(--dem-blue);
+        }
+
+        /* Filters */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-bar select,
+        .filter-bar input {
+            padding: 8px 14px;
+            border: 1px solid var(--lsa-gray-200);
+            border-radius: var(--radius-default);
+            font-family: var(--font-primary);
+            font-size: var(--text-sm);
+            background: white;
+            color: var(--lsa-gray-700);
+            box-shadow: var(--shadow-sm);
+        }
+        .filter-bar select:focus,
+        .filter-bar input:focus {
+            outline: none;
+            border-color: var(--lsa-primary);
+            box-shadow: 0 0 0 3px rgba(0,52,102,0.1);
+        }
+
+        /* Filter pills */
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .filter-pill {
+            padding: 6px 16px;
+            border-radius: var(--radius-full);
+            border: 2px solid var(--lsa-gray-200);
+            background: white;
+            font-size: var(--text-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--lsa-gray-600);
+        }
+        .filter-pill:hover {
+            border-color: var(--lsa-primary);
+            color: var(--lsa-primary);
+        }
+        .filter-pill.active {
+            background: var(--lsa-primary);
+            border-color: var(--lsa-primary);
+            color: white;
+        }
+        .filter-pill.pill-r.active {
+            background: var(--rep-red);
+            border-color: var(--rep-red);
+        }
+        .filter-pill.pill-d.active {
+            background: var(--dem-blue);
+            border-color: var(--dem-blue);
+        }
+
+        /* Loading */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            gap: 16px;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--lsa-gray-200);
+            border-top-color: var(--lsa-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            color: var(--lsa-gray-400);
+            font-size: var(--text-sm);
+        }
+
+        /* Error */
+        .error-msg {
+            background: rgba(150,27,30,0.08);
+            color: var(--lsa-ruby-red);
+            padding: 16px 20px;
+            border-radius: var(--radius-default);
+            border-left: 4px solid var(--lsa-ruby-red);
+            margin: 16px 0;
+            font-size: var(--text-sm);
+        }
+
+        /* County grid */
+        .county-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .county-card {
+            background: white;
+            border-radius: var(--radius-default);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        .county-name {
+            font-weight: 700;
+            font-size: var(--text-sm);
+            color: var(--lsa-primary);
+            margin-bottom: 6px;
+        }
+        .county-bar {
+            display: flex;
+            height: 8px;
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        .county-bar-r { background: var(--rep-red); }
+        .county-bar-d { background: var(--dem-blue); }
+        .county-counts {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--lsa-gray-500);
+        }
+
+        /* Member list */
+        .member-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+        }
+        .member-card {
+            background: white;
+            border-radius: var(--radius-default);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: box-shadow 0.2s;
+        }
+        .member-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: var(--text-sm);
+            flex-shrink: 0;
+        }
+        .member-avatar-r { background: var(--rep-red); }
+        .member-avatar-d { background: var(--dem-blue); }
+        .member-info h4 {
+            font-size: var(--text-sm);
+            font-family: var(--font-primary);
+            color: var(--lsa-gray-700);
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+        .member-info .member-detail {
+            font-size: 11px;
+            color: var(--lsa-gray-400);
+        }
+
+        /* Comparison dashboard */
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 16px;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--lsa-gray-100);
+        }
+        .comparison-row:last-child {
+            border-bottom: none;
+        }
+        .comp-left {
+            text-align: right;
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--rep-red);
+            font-family: var(--font-display);
+        }
+        .comp-center {
+            text-align: center;
+            font-size: var(--text-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            color: var(--lsa-gray-400);
+            min-width: 140px;
+        }
+        .comp-right {
+            text-align: left;
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--dem-blue);
+            font-family: var(--font-display);
+        }
+
+        /* Cohesion chart */
+        .cohesion-bar-container {
+            margin: 12px 0;
+        }
+        .cohesion-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--text-sm);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .cohesion-bar {
+            height: 24px;
+            background: var(--lsa-gray-100);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+        }
+        .cohesion-fill {
+            height: 100%;
+            border-radius: var(--radius-full);
+            transition: width 0.6s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .cohesion-fill-r { background: var(--rep-red); }
+        .cohesion-fill-d { background: var(--dem-blue); }
+
+        /* Officers list */
+        .officer-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--lsa-gray-100);
+        }
+        .officer-card:last-child { border-bottom: none; }
+        .officer-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--lsa-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: var(--text-lg);
+            flex-shrink: 0;
+        }
+        .officer-name {
+            font-weight: 700;
+            color: var(--lsa-gray-700);
+            font-size: var(--text-base);
+        }
+        .officer-title {
+            font-size: var(--text-sm);
+            color: var(--lsa-gray-500);
+        }
+
+        /* Vote results */
+        .vote-card {
+            background: white;
+            border-radius: var(--radius-default);
+            box-shadow: var(--shadow-sm);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .vote-title {
+            font-weight: 700;
+            color: var(--lsa-gray-700);
+            font-size: var(--text-sm);
+            margin-bottom: 8px;
+        }
+        .vote-cohesion-row {
+            display: flex;
+            gap: 16px;
+        }
+        .vote-cohesion-item {
+            flex: 1;
+        }
+
+        /* Full-width card */
+        .full-card {
+            grid-column: 1 / -1;
+        }
+
+        /* Dashboard big numbers */
+        .big-number {
+            font-family: var(--font-display);
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        /* Cross-party table highlights */
+        .cross-party-pct {
+            font-weight: 700;
+            font-family: var(--font-display);
+        }
+
+        /* Footer */
+        .app-footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--lsa-gray-400);
+            font-size: var(--text-xs);
+            margin-top: 40px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .nav-tabs { justify-content: flex-start; }
+            .main-content { padding: 16px; }
+            .comparison-row { grid-template-columns: 1fr; gap: 4px; }
+            .comp-left, .comp-right { text-align: center; }
+            .navbar-inner { flex-direction: column; gap: 8px; }
+            .panel-header h2 { font-size: var(--text-2xl); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+    <a href="../index.html">&#8592; Back to Applications</a>
+    <span class="session-info">126th Session</span>
+</div>
+
+<!-- Navbar -->
+<div class="app-navbar">
+    <div class="navbar-inner">
+        <img src="../assets/images/LSA_seal.png" alt="LSA Seal">
+        <div>
+            <div class="navbar-title">PGOV</div>
+            <div class="navbar-tagline">Understand the power dynamics shaping South Carolina.</div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation tabs -->
+<ul class="nav-tabs" id="navTabs">
+    <li><a class="nav-tab active" data-tab="overview">Overview</a></li>
+    <li><a class="nav-tab" data-tab="leadership">Leadership</a></li>
+    <li><a class="nav-tab" data-tab="committees">Committees</a></li>
+    <li><a class="nav-tab" data-tab="geography">Geography</a></li>
+    <li><a class="nav-tab" data-tab="caucus">Caucus Roster</a></li>
+    <li><a class="nav-tab" data-tab="cohesion">Voting Cohesion</a></li>
+    <li><a class="nav-tab" data-tab="crossparty">Cross-Party</a></li>
+    <li><a class="nav-tab" data-tab="officers">Officers</a></li>
+    <li><a class="nav-tab" data-tab="dashboard">R vs D</a></li>
+</ul>
+
+<!-- Main content -->
+<div class="main-content">
+
+    <!-- 1. OVERVIEW -->
+    <div class="section-panel active" id="panel-overview">
+        <div class="panel-header">
+            <h2>Party Power Overview</h2>
+            <p>Current composition of the SC General Assembly by party affiliation.</p>
+        </div>
+        <div id="overview-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading chamber statistics...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. LEADERSHIP -->
+    <div class="section-panel" id="panel-leadership">
+        <div class="panel-header">
+            <h2>Leadership &amp; Committee Chairs</h2>
+            <p>Party breakdown of committee chairmanships across both chambers.</p>
+        </div>
+        <div id="leadership-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading committee data...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. COMMITTEES -->
+    <div class="section-panel" id="panel-committees">
+        <div class="panel-header">
+            <h2>Committee Control Analysis</h2>
+            <p>Which party controls each committee through the chair position.</p>
+        </div>
+        <div id="committees-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading committee details...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. GEOGRAPHY -->
+    <div class="section-panel" id="panel-geography">
+        <div class="panel-header">
+            <h2>Geographic Party Distribution</h2>
+            <p>County-by-county breakdown of party representation.</p>
+        </div>
+        <div id="geography-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading member data...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. CAUCUS ROSTER -->
+    <div class="section-panel" id="panel-caucus">
+        <div class="panel-header">
+            <h2>Caucus Roster</h2>
+            <p>Filterable list of all members organized by party and chamber.</p>
+        </div>
+        <div id="caucus-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading member rosters...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. VOTING COHESION -->
+    <div class="section-panel" id="panel-cohesion">
+        <div class="panel-header">
+            <h2>Party Voting Cohesion</h2>
+            <p>How often each party votes as a bloc on roll call votes.</p>
+        </div>
+        <div id="cohesion-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading vote data...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. CROSS-PARTY -->
+    <div class="section-panel" id="panel-crossparty">
+        <div class="panel-header">
+            <h2>Cross-Party Voters</h2>
+            <p>Members who most frequently vote against their party majority.</p>
+        </div>
+        <div id="crossparty-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading vote analysis...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. OFFICERS -->
+    <div class="section-panel" id="panel-officers">
+        <div class="panel-header">
+            <h2>Officers by Party</h2>
+            <p>Elected officers of the House and Senate.</p>
+        </div>
+        <div id="officers-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading officer data...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. R VS D DASHBOARD -->
+    <div class="section-panel" id="panel-dashboard">
+        <div class="panel-header">
+            <h2>R vs D Comparison Dashboard</h2>
+            <p>Key metrics side by side.</p>
+        </div>
+        <div id="dashboard-content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Building comparison dashboard...</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Footer -->
+<div class="app-footer">
+    PGOV - Party Governance &amp; Caucus Analyzer &middot; SC Legislative Services Agency &middot; 126th Session
+</div>
+
+<script>
+const API = 'https://rest.scstatehouse.gov';
+
+// Cache
+const cache = {};
+
+// ---- API helper ----
+async function apiFetch(endpoint) {
+    if (cache[endpoint]) return cache[endpoint];
+    const res = await fetch(`${API}${endpoint}`);
+    if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
+    const json = await res.json();
+    const data = json.data !== undefined ? json.data : json;
+    cache[endpoint] = data;
+    return data;
+}
+
+function showError(containerId, msg) {
+    document.getElementById(containerId).innerHTML = `<div class="error-msg">${msg}</div>`;
+}
+
+function showLoading(containerId, msg) {
+    document.getElementById(containerId).innerHTML = `
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">${msg || 'Loading...'}</div>
+        </div>`;
+}
+
+function pct(part, total) {
+    return total === 0 ? 0 : Math.round((part / total) * 1000) / 10;
+}
+
+// ---- Tab navigation ----
+document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        const panel = document.getElementById('panel-' + tab.dataset.tab);
+        if (panel) panel.classList.add('active');
+
+        // Lazy load
+        const tabName = tab.dataset.tab;
+        if (tabName === 'leadership' && !loaded.leadership) loadLeadership();
+        if (tabName === 'committees' && !loaded.committees) loadCommittees();
+        if (tabName === 'geography' && !loaded.geography) loadGeography();
+        if (tabName === 'caucus' && !loaded.caucus) loadCaucus();
+        if (tabName === 'cohesion' && !loaded.cohesion) loadCohesion();
+        if (tabName === 'crossparty' && !loaded.crossparty) loadCrossParty();
+        if (tabName === 'officers' && !loaded.officers) loadOfficers();
+        if (tabName === 'dashboard' && !loaded.dashboard) loadDashboard();
+    });
+});
+
+const loaded = {};
+
+// ---- Global data holders ----
+let allHouseMembers = [];
+let allSenateMembers = [];
+let chamberStats = null;
+let houseCommittees = [];
+let senateCommittees = [];
+
+// ---- 1. OVERVIEW ----
+async function loadOverview() {
+    try {
+        chamberStats = await apiFetch('/website/chamberstats');
+        const hr = parseInt(chamberStats.currenthouserepublicans) || 0;
+        const hd = parseInt(chamberStats.currenthousedemocrats) || 0;
+        const sr = parseInt(chamberStats.currentsenaterepublicans) || 0;
+        const sd = parseInt(chamberStats.currentsenatedemocrats) || 0;
+        const hTotal = hr + hd;
+        const sTotal = sr + sd;
+        const totalR = hr + sr;
+        const totalD = hd + sd;
+        const total = totalR + totalD;
+
+        const hSuper = hr >= Math.ceil(hTotal * 2 / 3);
+        const sSuper = sr >= Math.ceil(sTotal * 2 / 3);
+
+        document.getElementById('overview-content').innerHTML = `
+            <div class="grid-4" style="margin-bottom:24px;">
+                <div class="stat-card">
+                    <div class="stat-label">Total Republican</div>
+                    <div class="stat-value stat-rep">${totalR}</div>
+                    <div class="stat-sub">${pct(totalR, total)}% of all seats</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Democrat</div>
+                    <div class="stat-value stat-dem">${totalD}</div>
+                    <div class="stat-sub">${pct(totalD, total)}% of all seats</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">House Seats</div>
+                    <div class="stat-value">${hTotal}</div>
+                    <div class="stat-sub"><span class="stat-rep">${hr} R</span> / <span class="stat-dem">${hd} D</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Senate Seats</div>
+                    <div class="stat-value">${sTotal}</div>
+                    <div class="stat-sub"><span class="stat-rep">${sr} R</span> / <span class="stat-dem">${sd} D</span></div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="pgov-card">
+                    <div class="pgov-card-header">House Composition</div>
+                    <div class="pgov-card-body">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                            <span style="color:var(--rep-red);font-weight:700;">R: ${hr} (${pct(hr, hTotal)}%)</span>
+                            <span style="color:var(--dem-blue);font-weight:700;">D: ${hd} (${pct(hd, hTotal)}%)</span>
+                        </div>
+                        <div class="supermajority-line">
+                            <div class="party-bar">
+                                <div class="party-bar-r" style="width:${pct(hr, hTotal)}%">${hr}</div>
+                                <div class="party-bar-d" style="width:${pct(hd, hTotal)}%">${hd}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:12px;font-size:var(--text-sm);color:var(--lsa-gray-500);">
+                            Supermajority (2/3 = ${Math.ceil(hTotal * 2 / 3)} seats):
+                            <strong style="color:${hSuper ? 'var(--lsa-bottle-green)' : 'var(--lsa-gray-500)'}">
+                                ${hSuper ? 'Republicans HOLD supermajority' : 'No supermajority'}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="pgov-card">
+                    <div class="pgov-card-header">Senate Composition</div>
+                    <div class="pgov-card-body">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                            <span style="color:var(--rep-red);font-weight:700;">R: ${sr} (${pct(sr, sTotal)}%)</span>
+                            <span style="color:var(--dem-blue);font-weight:700;">D: ${sd} (${pct(sd, sTotal)}%)</span>
+                        </div>
+                        <div class="supermajority-line">
+                            <div class="party-bar">
+                                <div class="party-bar-r" style="width:${pct(sr, sTotal)}%">${sr}</div>
+                                <div class="party-bar-d" style="width:${pct(sd, sTotal)}%">${sd}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:12px;font-size:var(--text-sm);color:var(--lsa-gray-500);">
+                            Supermajority (2/3 = ${Math.ceil(sTotal * 2 / 3)} seats):
+                            <strong style="color:${sSuper ? 'var(--lsa-bottle-green)' : 'var(--lsa-gray-500)'}">
+                                ${sSuper ? 'Republicans HOLD supermajority' : 'No supermajority'}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pgov-card" style="margin-top:24px;">
+                <div class="pgov-card-header">Combined General Assembly</div>
+                <div class="pgov-card-body">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                        <span style="color:var(--rep-red);font-weight:700;">Republicans: ${totalR} (${pct(totalR, total)}%)</span>
+                        <span style="color:var(--dem-blue);font-weight:700;">Democrats: ${totalD} (${pct(totalD, total)}%)</span>
+                    </div>
+                    <div class="party-bar" style="height:40px;">
+                        <div class="party-bar-r" style="width:${pct(totalR, total)}%;font-size:var(--text-sm);">${totalR} R</div>
+                        <div class="party-bar-d" style="width:${pct(totalD, total)}%;font-size:var(--text-sm);">${totalD} D</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        loaded.overview = true;
+    } catch (e) {
+        showError('overview-content', 'Failed to load chamber statistics: ' + e.message);
+    }
+}
+
+// ---- Fetch all members ----
+async function ensureMembers() {
+    if (allHouseMembers.length === 0) {
+        allHouseMembers = await apiFetch('/house/bios');
+        if (!Array.isArray(allHouseMembers)) allHouseMembers = [];
+    }
+    if (allSenateMembers.length === 0) {
+        allSenateMembers = await apiFetch('/senate/bios');
+        if (!Array.isArray(allSenateMembers)) allSenateMembers = [];
+    }
+}
+
+async function ensureCommittees() {
+    if (houseCommittees.length === 0) {
+        houseCommittees = await apiFetch('/house/committees');
+        if (!Array.isArray(houseCommittees)) houseCommittees = [];
+    }
+    if (senateCommittees.length === 0) {
+        senateCommittees = await apiFetch('/senate/committees');
+        if (!Array.isArray(senateCommittees)) senateCommittees = [];
+    }
+}
+
+// ---- Helper: get party of member by sponsor code ----
+function buildMemberLookup() {
+    const lookup = {};
+    allHouseMembers.forEach(m => {
+        const code = m.PERM_SPONSOR_CODE || m.perm_sponsor_code;
+        const party = m.PARTY || m.party || '';
+        if (code) lookup[code] = { party, name: m.FIRST_NAME + ' ' + m.LAST_NAME, chamber: 'House' };
+    });
+    allSenateMembers.forEach(m => {
+        const code = m.PERM_SPONSOR_CODE || m.perm_sponsor_code;
+        const party = m.PARTY || m.party || '';
+        if (code) lookup[code] = { party, name: m.FIRST_NAME + ' ' + m.LAST_NAME, chamber: 'Senate' };
+    });
+    return lookup;
+}
+
+// ---- Helper: find chairs from committees ----
+function extractChairs(committees, chamber) {
+    const chairs = [];
+    committees.forEach(comm => {
+        const commName = comm.COMMITTEE_NAME || comm.committee_name || 'Unknown';
+        const members = comm.members || [];
+        members.forEach(m => {
+            const office = (m.COMM_OFFICE || m.comm_office || '').toLowerCase();
+            if (office.includes('chairman') || office.includes('chair')) {
+                chairs.push({
+                    committee: commName,
+                    name: (m.FIRST_NAME || m.first_name || '') + ' ' + (m.LAST_NAME || m.last_name || ''),
+                    party: m.PARTY || m.party || '',
+                    office: m.COMM_OFFICE || m.comm_office || '',
+                    chamber: chamber
+                });
+            }
+        });
+    });
+    return chairs;
+}
+
+// ---- 2. LEADERSHIP ----
+async function loadLeadership() {
+    try {
+        await ensureCommittees();
+        await ensureMembers();
+
+        const houseChairs = extractChairs(houseCommittees, 'House');
+        const senateChairs = extractChairs(senateCommittees, 'Senate');
+        const allChairs = [...houseChairs, ...senateChairs];
+
+        // Determine party from member bios if not on committee data
+        const memberLookup = buildMemberLookup();
+
+        // Resolve parties where missing
+        allChairs.forEach(ch => {
+            if (!ch.party) {
+                // try matching by name in lookup
+                const found = Object.values(memberLookup).find(m => m.name.trim().toLowerCase() === ch.name.trim().toLowerCase());
+                if (found) ch.party = found.party;
+            }
+        });
+
+        const rChairs = allChairs.filter(c => (c.party || '').toUpperCase().startsWith('R'));
+        const dChairs = allChairs.filter(c => (c.party || '').toUpperCase().startsWith('D'));
+        const oChairs = allChairs.filter(c => !((c.party || '').toUpperCase().startsWith('R')) && !((c.party || '').toUpperCase().startsWith('D')));
+
+        // Only actual chairmen (not vice)
+        const chairmenOnly = allChairs.filter(c => {
+            const o = c.office.toLowerCase();
+            return o.includes('chairman') && !o.includes('vice');
+        });
+        const rChairmen = chairmenOnly.filter(c => (c.party || '').toUpperCase().startsWith('R'));
+        const dChairmen = chairmenOnly.filter(c => (c.party || '').toUpperCase().startsWith('D'));
+
+        document.getElementById('leadership-content').innerHTML = `
+            <div class="grid-3" style="margin-bottom:24px;">
+                <div class="stat-card">
+                    <div class="stat-label">Total Chair Positions</div>
+                    <div class="stat-value">${allChairs.length}</div>
+                    <div class="stat-sub">Chairs &amp; Vice Chairs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Republican Chairs</div>
+                    <div class="stat-value stat-rep">${rChairmen.length}</div>
+                    <div class="stat-sub">${pct(rChairmen.length, chairmenOnly.length)}% of chairmanships</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Democrat Chairs</div>
+                    <div class="stat-value stat-dem">${dChairmen.length}</div>
+                    <div class="stat-sub">${pct(dChairmen.length, chairmenOnly.length)}% of chairmanships</div>
+                </div>
+            </div>
+
+            <div class="pgov-card">
+                <div class="pgov-card-header">All Chair &amp; Vice Chair Positions</div>
+                <div class="pgov-card-body" style="overflow-x:auto;">
+                    <table class="pgov-table">
+                        <thead>
+                            <tr>
+                                <th>Committee</th>
+                                <th>Name</th>
+                                <th>Position</th>
+                                <th>Party</th>
+                                <th>Chamber</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${allChairs.map(c => `
+                                <tr>
+                                    <td>${c.committee}</td>
+                                    <td style="font-weight:600;">${c.name}</td>
+                                    <td>${c.office}</td>
+                                    <td><span class="party-badge ${(c.party||'').toUpperCase().startsWith('R') ? 'party-badge-r' : 'party-badge-d'}">${(c.party||'N/A').charAt(0).toUpperCase()}</span></td>
+                                    <td>${c.chamber}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        loaded.leadership = true;
+    } catch (e) {
+        showError('leadership-content', 'Failed to load leadership data: ' + e.message);
+    }
+}
+
+// ---- 3. COMMITTEES ----
+async function loadCommittees() {
+    try {
+        await ensureCommittees();
+        await ensureMembers();
+
+        const memberLookup = buildMemberLookup();
+
+        function getCommitteeChairParty(comm) {
+            const members = comm.members || [];
+            for (const m of members) {
+                const office = (m.COMM_OFFICE || m.comm_office || '').toLowerCase();
+                if (office.includes('chairman') && !office.includes('vice')) {
+                    let party = m.PARTY || m.party || '';
+                    if (!party) {
+                        const name = ((m.FIRST_NAME || '') + ' ' + (m.LAST_NAME || '')).trim().toLowerCase();
+                        const found = Object.values(memberLookup).find(x => x.name.trim().toLowerCase() === name);
+                        if (found) party = found.party;
+                    }
+                    return {
+                        party: party,
+                        name: (m.FIRST_NAME || m.first_name || '') + ' ' + (m.LAST_NAME || m.last_name || '')
+                    };
+                }
+            }
+            return { party: '', name: 'N/A' };
+        }
+
+        function renderCommTable(comms, chamber) {
+            const rows = comms.map(c => {
+                const chair = getCommitteeChairParty(c);
+                const commName = c.COMMITTEE_NAME || c.committee_name || 'Unknown';
+                const isR = (chair.party || '').toUpperCase().startsWith('R');
+                const isD = (chair.party || '').toUpperCase().startsWith('D');
+                return `<tr>
+                    <td style="font-weight:600;">${commName}</td>
+                    <td>${chair.name}</td>
+                    <td><span class="party-badge ${isR ? 'party-badge-r' : isD ? 'party-badge-d' : ''}">${chair.party ? chair.party.charAt(0).toUpperCase() : '?'}</span></td>
+                    <td style="color:${isR ? 'var(--rep-red)' : isD ? 'var(--dem-blue)' : 'var(--lsa-gray-400)'}; font-weight:600;">${isR ? 'Republican' : isD ? 'Democrat' : 'Unknown'}</td>
+                </tr>`;
+            }).join('');
+
+            return `<table class="pgov-table">
+                <thead><tr><th>Committee</th><th>Chairman</th><th>Party</th><th>Control</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+        }
+
+        document.getElementById('committees-content').innerHTML = `
+            <div class="grid-2">
+                <div class="pgov-card">
+                    <div class="pgov-card-header">House Committees</div>
+                    <div class="pgov-card-body" style="overflow-x:auto;">
+                        ${renderCommTable(houseCommittees, 'House')}
+                    </div>
+                </div>
+                <div class="pgov-card">
+                    <div class="pgov-card-header">Senate Committees</div>
+                    <div class="pgov-card-body" style="overflow-x:auto;">
+                        ${renderCommTable(senateCommittees, 'Senate')}
+                    </div>
+                </div>
+            </div>
+        `;
+        loaded.committees = true;
+    } catch (e) {
+        showError('committees-content', 'Failed to load committee data: ' + e.message);
+    }
+}
+
+// ---- 4. GEOGRAPHY ----
+async function loadGeography() {
+    try {
+        await ensureMembers();
+
+        const countyMap = {};
+        const allMembers = [...allHouseMembers, ...allSenateMembers];
+        allMembers.forEach(m => {
+            const county = (m.HOME_COUNTY || m.home_county || 'Unknown').trim();
+            const party = (m.PARTY || m.party || '').toUpperCase();
+            if (!countyMap[county]) countyMap[county] = { r: 0, d: 0 };
+            if (party.startsWith('R')) countyMap[county].r++;
+            else if (party.startsWith('D')) countyMap[county].d++;
+        });
+
+        const counties = Object.entries(countyMap).sort((a, b) => a[0].localeCompare(b[0]));
+
+        document.getElementById('geography-content').innerHTML = `
+            <div style="margin-bottom:16px;color:var(--lsa-gray-500);font-size:var(--text-sm);">
+                Showing ${counties.length} counties with current representation.
+            </div>
+            <div class="county-grid">
+                ${counties.map(([name, data]) => {
+                    const total = data.r + data.d;
+                    return `<div class="county-card">
+                        <div class="county-name">${name}</div>
+                        <div class="county-bar">
+                            <div class="county-bar-r" style="width:${pct(data.r, total)}%"></div>
+                            <div class="county-bar-d" style="width:${pct(data.d, total)}%"></div>
+                        </div>
+                        <div class="county-counts">
+                            <span style="color:var(--rep-red);">R: ${data.r}</span>
+                            <span style="color:var(--dem-blue);">D: ${data.d}</span>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+        `;
+        loaded.geography = true;
+    } catch (e) {
+        showError('geography-content', 'Failed to load geographic data: ' + e.message);
+    }
+}
+
+// ---- 5. CAUCUS ROSTER ----
+async function loadCaucus() {
+    try {
+        await ensureMembers();
+
+        let filterParty = 'all';
+        let filterChamber = 'all';
+        let filterSearch = '';
+
+        function renderCaucus() {
+            let members = [...allHouseMembers.map(m => ({...m, _chamber: 'House'})), ...allSenateMembers.map(m => ({...m, _chamber: 'Senate'}))];
+
+            if (filterParty !== 'all') {
+                members = members.filter(m => (m.PARTY || m.party || '').toUpperCase().startsWith(filterParty));
+            }
+            if (filterChamber !== 'all') {
+                members = members.filter(m => m._chamber === filterChamber);
+            }
+            if (filterSearch) {
+                const q = filterSearch.toLowerCase();
+                members = members.filter(m => {
+                    const name = ((m.FIRST_NAME || '') + ' ' + (m.LAST_NAME || '')).toLowerCase();
+                    const county = (m.HOME_COUNTY || '').toLowerCase();
+                    return name.includes(q) || county.includes(q);
+                });
+            }
+
+            members.sort((a, b) => ((a.LAST_NAME || '') + (a.FIRST_NAME || '')).localeCompare((b.LAST_NAME || '') + (b.FIRST_NAME || '')));
+
+            const countR = members.filter(m => (m.PARTY || '').toUpperCase().startsWith('R')).length;
+            const countD = members.filter(m => (m.PARTY || '').toUpperCase().startsWith('D')).length;
+
+            document.getElementById('caucus-list').innerHTML = `
+                <div style="margin-bottom:12px;font-size:var(--text-sm);color:var(--lsa-gray-500);">
+                    Showing ${members.length} members &mdash; <span style="color:var(--rep-red);font-weight:600;">${countR} R</span> / <span style="color:var(--dem-blue);font-weight:600;">${countD} D</span>
+                </div>
+                <div class="member-grid">
+                    ${members.map(m => {
+                        const party = (m.PARTY || m.party || '').toUpperCase();
+                        const isR = party.startsWith('R');
+                        const first = m.FIRST_NAME || m.first_name || '';
+                        const last = m.LAST_NAME || m.last_name || '';
+                        const initials = (first.charAt(0) + last.charAt(0)).toUpperCase();
+                        const district = m.DISTRICT_NUMBER || m.district_number || '';
+                        const county = m.HOME_COUNTY || m.home_county || '';
+                        return `<div class="member-card">
+                            <div class="member-avatar ${isR ? 'member-avatar-r' : 'member-avatar-d'}">${initials}</div>
+                            <div class="member-info">
+                                <h4>${first} ${last}</h4>
+                                <div class="member-detail">${m._chamber} District ${district} &middot; ${county}</div>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        document.getElementById('caucus-content').innerHTML = `
+            <div class="filter-bar">
+                <div class="filter-pills">
+                    <button class="filter-pill active" data-party="all">All</button>
+                    <button class="filter-pill pill-r" data-party="R">Republican</button>
+                    <button class="filter-pill pill-d" data-party="D">Democrat</button>
+                </div>
+                <div class="filter-pills" style="margin-left:8px;">
+                    <button class="filter-pill active" data-chamber="all">Both Chambers</button>
+                    <button class="filter-pill" data-chamber="House">House</button>
+                    <button class="filter-pill" data-chamber="Senate">Senate</button>
+                </div>
+                <input type="text" id="caucus-search" placeholder="Search by name or county..." style="flex:1;min-width:200px;">
+            </div>
+            <div id="caucus-list"></div>
+        `;
+
+        // Wire filters
+        document.querySelectorAll('#caucus-content [data-party]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#caucus-content [data-party]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                filterParty = btn.dataset.party;
+                renderCaucus();
+            });
+        });
+        document.querySelectorAll('#caucus-content [data-chamber]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#caucus-content [data-chamber]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                filterChamber = btn.dataset.chamber;
+                renderCaucus();
+            });
+        });
+        document.getElementById('caucus-search').addEventListener('input', (e) => {
+            filterSearch = e.target.value;
+            renderCaucus();
+        });
+
+        renderCaucus();
+        loaded.caucus = true;
+    } catch (e) {
+        showError('caucus-content', 'Failed to load caucus data: ' + e.message);
+    }
+}
+
+// ---- 6. VOTING COHESION ----
+async function loadCohesion() {
+    try {
+        await ensureMembers();
+        const memberLookup = buildMemberLookup();
+
+        let houseVotes = [];
+        let senateVotes = [];
+        try { houseVotes = await apiFetch('/vote/126/house'); if (!Array.isArray(houseVotes)) houseVotes = []; } catch(e) { houseVotes = []; }
+        try { senateVotes = await apiFetch('/vote/126/senate'); if (!Array.isArray(senateVotes)) senateVotes = []; } catch(e) { senateVotes = []; }
+
+        function calculateCohesion(votes) {
+            const results = [];
+            const voteSlice = votes.slice(0, 50); // analyze up to 50 votes
+
+            voteSlice.forEach(vote => {
+                const choices = vote.CHOICES || vote.choices || [];
+                const rVotes = {};
+                const dVotes = {};
+
+                choices.forEach(choice => {
+                    const howVoted = (choice.HOWVOTED || choice.howvoted || '').toUpperCase();
+                    if (howVoted !== 'AYE' && howVoted !== 'NAY') return;
+                    const sponsors = choice.SPONSORS || choice.sponsors || [];
+                    sponsors.forEach(s => {
+                        const code = s.PERM_SPONSOR_CODE || s.perm_sponsor_code;
+                        const member = memberLookup[code];
+                        if (!member) return;
+                        const party = member.party.toUpperCase();
+                        if (party.startsWith('R')) {
+                            if (!rVotes[howVoted]) rVotes[howVoted] = 0;
+                            rVotes[howVoted]++;
+                        } else if (party.startsWith('D')) {
+                            if (!dVotes[howVoted]) dVotes[howVoted] = 0;
+                            dVotes[howVoted]++;
+                        }
+                    });
+                });
+
+                const rTotal = (rVotes['AYE'] || 0) + (rVotes['NAY'] || 0);
+                const dTotal = (dVotes['AYE'] || 0) + (dVotes['NAY'] || 0);
+                const rMax = Math.max(rVotes['AYE'] || 0, rVotes['NAY'] || 0);
+                const dMax = Math.max(dVotes['AYE'] || 0, dVotes['NAY'] || 0);
+
+                if (rTotal > 0 || dTotal > 0) {
+                    results.push({
+                        voteNum: vote.VOTE_NUMBER || vote.vote_number || '',
+                        billNo: vote.BILL_NUMBER || vote.bill_number || '',
+                        rCohesion: rTotal > 0 ? (rMax / rTotal * 100) : 0,
+                        dCohesion: dTotal > 0 ? (dMax / dTotal * 100) : 0,
+                        rTotal,
+                        dTotal
+                    });
+                }
+            });
+
+            return results;
+        }
+
+        const houseCohesion = calculateCohesion(houseVotes);
+        const senateCohesion = calculateCohesion(senateVotes);
+
+        function avgCohesion(results) {
+            if (results.length === 0) return { r: 0, d: 0 };
+            const rSum = results.reduce((s, r) => s + r.rCohesion, 0);
+            const dSum = results.reduce((s, r) => s + r.dCohesion, 0);
+            return { r: rSum / results.length, d: dSum / results.length };
+        }
+
+        const houseAvg = avgCohesion(houseCohesion);
+        const senateAvg = avgCohesion(senateCohesion);
+
+        document.getElementById('cohesion-content').innerHTML = `
+            <div class="grid-2" style="margin-bottom:24px;">
+                <div class="pgov-card">
+                    <div class="pgov-card-header">House Average Cohesion (${houseCohesion.length} votes analyzed)</div>
+                    <div class="pgov-card-body">
+                        <div class="cohesion-bar-container">
+                            <div class="cohesion-label">
+                                <span style="color:var(--rep-red);">Republican</span>
+                                <span>${houseAvg.r.toFixed(1)}%</span>
+                            </div>
+                            <div class="cohesion-bar">
+                                <div class="cohesion-fill cohesion-fill-r" style="width:${houseAvg.r}%">${houseAvg.r.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                        <div class="cohesion-bar-container">
+                            <div class="cohesion-label">
+                                <span style="color:var(--dem-blue);">Democrat</span>
+                                <span>${houseAvg.d.toFixed(1)}%</span>
+                            </div>
+                            <div class="cohesion-bar">
+                                <div class="cohesion-fill cohesion-fill-d" style="width:${houseAvg.d}%">${houseAvg.d.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pgov-card">
+                    <div class="pgov-card-header">Senate Average Cohesion (${senateCohesion.length} votes analyzed)</div>
+                    <div class="pgov-card-body">
+                        <div class="cohesion-bar-container">
+                            <div class="cohesion-label">
+                                <span style="color:var(--rep-red);">Republican</span>
+                                <span>${senateAvg.r.toFixed(1)}%</span>
+                            </div>
+                            <div class="cohesion-bar">
+                                <div class="cohesion-fill cohesion-fill-r" style="width:${senateAvg.r}%">${senateAvg.r.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                        <div class="cohesion-bar-container">
+                            <div class="cohesion-label">
+                                <span style="color:var(--dem-blue);">Democrat</span>
+                                <span>${senateAvg.d.toFixed(1)}%</span>
+                            </div>
+                            <div class="cohesion-bar">
+                                <div class="cohesion-fill cohesion-fill-d" style="width:${senateAvg.d}%">${senateAvg.d.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pgov-card">
+                <div class="pgov-card-header">Vote-by-Vote Cohesion (House)</div>
+                <div class="pgov-card-body" style="max-height:400px;overflow-y:auto;">
+                    ${houseCohesion.length === 0 ? '<div style="color:var(--lsa-gray-400);text-align:center;padding:20px;">No House vote data available.</div>' : `
+                    <table class="pgov-table">
+                        <thead><tr><th>Vote #</th><th>Bill</th><th>R Cohesion</th><th>D Cohesion</th></tr></thead>
+                        <tbody>
+                            ${houseCohesion.slice(0, 30).map(v => `<tr>
+                                <td>${v.voteNum}</td>
+                                <td>${v.billNo || 'N/A'}</td>
+                                <td style="color:var(--rep-red);font-weight:600;">${v.rCohesion.toFixed(1)}%</td>
+                                <td style="color:var(--dem-blue);font-weight:600;">${v.dCohesion.toFixed(1)}%</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>`}
+                </div>
+            </div>
+        `;
+        loaded.cohesion = true;
+
+        // Save for dashboard / crossparty
+        cache._houseCohesion = houseCohesion;
+        cache._senateCohesion = senateCohesion;
+        cache._houseVotes = houseVotes;
+        cache._senateVotes = senateVotes;
+        cache._houseAvg = houseAvg;
+        cache._senateAvg = senateAvg;
+    } catch (e) {
+        showError('cohesion-content', 'Failed to load vote cohesion data: ' + e.message);
+    }
+}
+
+// ---- 7. CROSS-PARTY VOTERS ----
+async function loadCrossParty() {
+    try {
+        await ensureMembers();
+        const memberLookup = buildMemberLookup();
+
+        let houseVotes = cache._houseVotes;
+        let senateVotes = cache._senateVotes;
+        if (!houseVotes) { try { houseVotes = await apiFetch('/vote/126/house'); } catch(e) { houseVotes = []; } }
+        if (!senateVotes) { try { senateVotes = await apiFetch('/vote/126/senate'); } catch(e) { senateVotes = []; } }
+        if (!Array.isArray(houseVotes)) houseVotes = [];
+        if (!Array.isArray(senateVotes)) senateVotes = [];
+
+        function findCrossPartyVoters(votes) {
+            // For each vote, determine majority position of each party
+            // Then count how often each member voted against their party majority
+            const memberStats = {}; // code -> { name, party, chamber, totalVotes, dissents }
+
+            votes.forEach(vote => {
+                const choices = vote.CHOICES || vote.choices || [];
+                const partyVotes = { R: { AYE: 0, NAY: 0 }, D: { AYE: 0, NAY: 0 } };
+                const memberChoices = [];
+
+                choices.forEach(choice => {
+                    const howVoted = (choice.HOWVOTED || choice.howvoted || '').toUpperCase();
+                    if (howVoted !== 'AYE' && howVoted !== 'NAY') return;
+                    const sponsors = choice.SPONSORS || choice.sponsors || [];
+                    sponsors.forEach(s => {
+                        const code = s.PERM_SPONSOR_CODE || s.perm_sponsor_code;
+                        const member = memberLookup[code];
+                        if (!member) return;
+                        const p = member.party.toUpperCase().charAt(0);
+                        if (p === 'R' || p === 'D') {
+                            partyVotes[p][howVoted]++;
+                            memberChoices.push({ code, party: p, vote: howVoted, name: member.name, chamber: member.chamber });
+                        }
+                    });
+                });
+
+                const rMajority = (partyVotes.R.AYE >= partyVotes.R.NAY) ? 'AYE' : 'NAY';
+                const dMajority = (partyVotes.D.AYE >= partyVotes.D.NAY) ? 'AYE' : 'NAY';
+                const rTotal = partyVotes.R.AYE + partyVotes.R.NAY;
+                const dTotal = partyVotes.D.AYE + partyVotes.D.NAY;
+
+                // Only count if party had meaningful participation
+                memberChoices.forEach(mc => {
+                    if (!memberStats[mc.code]) {
+                        memberStats[mc.code] = { name: mc.name, party: mc.party, chamber: mc.chamber, totalVotes: 0, dissents: 0 };
+                    }
+                    memberStats[mc.code].totalVotes++;
+                    const majority = mc.party === 'R' ? rMajority : dMajority;
+                    const partyTotal = mc.party === 'R' ? rTotal : dTotal;
+                    if (partyTotal >= 3 && mc.vote !== majority) {
+                        memberStats[mc.code].dissents++;
+                    }
+                });
+            });
+
+            return Object.values(memberStats)
+                .filter(m => m.totalVotes >= 3)
+                .map(m => ({ ...m, dissentRate: (m.dissents / m.totalVotes * 100) }))
+                .sort((a, b) => b.dissentRate - a.dissentRate);
+        }
+
+        const allVotes = [...houseVotes, ...senateVotes];
+        const crossVoters = findCrossPartyVoters(allVotes);
+        const top20 = crossVoters.slice(0, 20);
+
+        document.getElementById('crossparty-content').innerHTML = `
+            <div class="pgov-card">
+                <div class="pgov-card-header">Top Cross-Party Voters (most frequent dissenters from party majority)</div>
+                <div class="pgov-card-body" style="overflow-x:auto;">
+                    ${top20.length === 0 ? '<div style="color:var(--lsa-gray-400);text-align:center;padding:20px;">No vote data available for analysis.</div>' : `
+                    <table class="pgov-table">
+                        <thead><tr><th>#</th><th>Member</th><th>Party</th><th>Chamber</th><th>Votes</th><th>Dissents</th><th>Dissent Rate</th></tr></thead>
+                        <tbody>
+                            ${top20.map((m, i) => `<tr>
+                                <td>${i + 1}</td>
+                                <td style="font-weight:600;">${m.name}</td>
+                                <td><span class="party-badge ${m.party === 'R' ? 'party-badge-r' : 'party-badge-d'}">${m.party}</span></td>
+                                <td>${m.chamber}</td>
+                                <td>${m.totalVotes}</td>
+                                <td>${m.dissents}</td>
+                                <td class="cross-party-pct" style="color:${m.dissentRate > 20 ? 'var(--lsa-ruby-red)' : m.dissentRate > 10 ? 'var(--lsa-gold)' : 'var(--lsa-gray-600)'};">${m.dissentRate.toFixed(1)}%</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>`}
+                </div>
+            </div>
+        `;
+        loaded.crossparty = true;
+    } catch (e) {
+        showError('crossparty-content', 'Failed to load cross-party data: ' + e.message);
+    }
+}
+
+// ---- 8. OFFICERS ----
+async function loadOfficers() {
+    try {
+        await ensureMembers();
+        const memberLookup = buildMemberLookup();
+
+        let houseOfficers = [];
+        let senateOfficers = [];
+        try { houseOfficers = await apiFetch('/house/officers'); if (!Array.isArray(houseOfficers)) houseOfficers = []; } catch(e) {}
+        try { senateOfficers = await apiFetch('/senate/officers'); if (!Array.isArray(senateOfficers)) senateOfficers = []; } catch(e) {}
+
+        function renderOfficers(officers, chamber) {
+            if (officers.length === 0) return '<div style="color:var(--lsa-gray-400);padding:20px;text-align:center;">No officer data available.</div>';
+
+            return officers.map(o => {
+                const first = o.FIRST_NAME || o.first_name || '';
+                const last = o.LAST_NAME || o.last_name || '';
+                const title = o.OFFICE || o.office || o.TITLE || o.title || '';
+                let party = o.PARTY || o.party || '';
+                if (!party) {
+                    const code = o.PERM_SPONSOR_CODE || o.perm_sponsor_code;
+                    if (code && memberLookup[code]) party = memberLookup[code].party;
+                }
+                const isR = (party || '').toUpperCase().startsWith('R');
+                const initials = (first.charAt(0) + last.charAt(0)).toUpperCase();
+
+                return `<div class="officer-card">
+                    <div class="officer-icon" style="background:${isR ? 'var(--rep-red)' : 'var(--dem-blue)'}">${initials}</div>
+                    <div>
+                        <div class="officer-name">${first} ${last} <span class="party-badge ${isR ? 'party-badge-r' : 'party-badge-d'}" style="margin-left:8px;">${(party || '?').charAt(0).toUpperCase()}</span></div>
+                        <div class="officer-title">${title}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        document.getElementById('officers-content').innerHTML = `
+            <div class="grid-2">
+                <div class="pgov-card">
+                    <div class="pgov-card-header">House Officers</div>
+                    <div class="pgov-card-body" style="padding:0;">
+                        ${renderOfficers(houseOfficers, 'House')}
+                    </div>
+                </div>
+                <div class="pgov-card">
+                    <div class="pgov-card-header">Senate Officers</div>
+                    <div class="pgov-card-body" style="padding:0;">
+                        ${renderOfficers(senateOfficers, 'Senate')}
+                    </div>
+                </div>
+            </div>
+        `;
+        loaded.officers = true;
+    } catch (e) {
+        showError('officers-content', 'Failed to load officer data: ' + e.message);
+    }
+}
+
+// ---- 9. R VS D DASHBOARD ----
+async function loadDashboard() {
+    try {
+        if (!chamberStats) chamberStats = await apiFetch('/website/chamberstats');
+        await ensureMembers();
+        await ensureCommittees();
+
+        const hr = parseInt(chamberStats.currenthouserepublicans) || 0;
+        const hd = parseInt(chamberStats.currenthousedemocrats) || 0;
+        const sr = parseInt(chamberStats.currentsenaterepublicans) || 0;
+        const sd = parseInt(chamberStats.currentsenatedemocrats) || 0;
+        const totalR = hr + sr;
+        const totalD = hd + sd;
+
+        // Chairs
+        const houseChairs = extractChairs(houseCommittees, 'House');
+        const senateChairs = extractChairs(senateCommittees, 'Senate');
+        const allChairs = [...houseChairs, ...senateChairs].filter(c => {
+            const o = c.office.toLowerCase();
+            return o.includes('chairman') && !o.includes('vice');
+        });
+        const rChairs = allChairs.filter(c => (c.party || '').toUpperCase().startsWith('R')).length;
+        const dChairs = allChairs.filter(c => (c.party || '').toUpperCase().startsWith('D')).length;
+
+        // Counties
+        const countyMap = {};
+        [...allHouseMembers, ...allSenateMembers].forEach(m => {
+            const county = (m.HOME_COUNTY || m.home_county || '').trim();
+            const party = (m.PARTY || m.party || '').toUpperCase();
+            if (!county) return;
+            if (!countyMap[county]) countyMap[county] = { r: 0, d: 0 };
+            if (party.startsWith('R')) countyMap[county].r++;
+            else if (party.startsWith('D')) countyMap[county].d++;
+        });
+        const rCounties = Object.values(countyMap).filter(c => c.r > c.d).length;
+        const dCounties = Object.values(countyMap).filter(c => c.d > c.r).length;
+
+        // Cohesion averages
+        let houseAvgR = '--', houseAvgD = '--', senateAvgR = '--', senateAvgD = '--';
+        if (cache._houseAvg) {
+            houseAvgR = cache._houseAvg.r.toFixed(1) + '%';
+            houseAvgD = cache._houseAvg.d.toFixed(1) + '%';
+        }
+        if (cache._senateAvg) {
+            senateAvgR = cache._senateAvg.r.toFixed(1) + '%';
+            senateAvgD = cache._senateAvg.d.toFixed(1) + '%';
+        }
+
+        const hTotal = hr + hd;
+        const sTotal = sr + sd;
+        const hSuper = hr >= Math.ceil(hTotal * 2 / 3);
+        const sSuper = sr >= Math.ceil(sTotal * 2 / 3);
+
+        document.getElementById('dashboard-content').innerHTML = `
+            <div class="pgov-card" style="margin-bottom:24px;">
+                <div class="pgov-card-body" style="padding:32px;">
+                    <div style="display:flex;justify-content:space-around;align-items:center;text-align:center;flex-wrap:wrap;gap:20px;">
+                        <div>
+                            <div style="color:var(--rep-red);font-size:var(--text-xs);text-transform:uppercase;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">Republican</div>
+                            <div class="big-number" style="color:var(--rep-red);">${totalR}</div>
+                            <div style="font-size:var(--text-sm);color:var(--lsa-gray-400);">Total seats</div>
+                        </div>
+                        <div style="font-size:var(--text-4xl);color:var(--lsa-gray-300);font-weight:300;">vs</div>
+                        <div>
+                            <div style="color:var(--dem-blue);font-size:var(--text-xs);text-transform:uppercase;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">Democrat</div>
+                            <div class="big-number" style="color:var(--dem-blue);">${totalD}</div>
+                            <div style="font-size:var(--text-sm);color:var(--lsa-gray-400);">Total seats</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pgov-card">
+                <div class="pgov-card-header">Head-to-Head Comparison</div>
+                <div class="pgov-card-body">
+                    <div class="comparison-row">
+                        <div class="comp-left">${hr}</div>
+                        <div class="comp-center">House Seats</div>
+                        <div class="comp-right">${hd}</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left">${sr}</div>
+                        <div class="comp-center">Senate Seats</div>
+                        <div class="comp-right">${sd}</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left">${pct(hr, hTotal)}%</div>
+                        <div class="comp-center">House %</div>
+                        <div class="comp-right">${pct(hd, hTotal)}%</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left">${pct(sr, sTotal)}%</div>
+                        <div class="comp-center">Senate %</div>
+                        <div class="comp-right">${pct(sd, sTotal)}%</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left">${rChairs}</div>
+                        <div class="comp-center">Committee Chairs</div>
+                        <div class="comp-right">${dChairs}</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left">${rCounties}</div>
+                        <div class="comp-center">Counties Led</div>
+                        <div class="comp-right">${dCounties}</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left">${houseAvgR}</div>
+                        <div class="comp-center">House Voting Cohesion</div>
+                        <div class="comp-right">${houseAvgD}</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left">${senateAvgR}</div>
+                        <div class="comp-center">Senate Voting Cohesion</div>
+                        <div class="comp-right">${senateAvgD}</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left" style="font-size:var(--text-lg);color:${hSuper ? 'var(--lsa-bottle-green)' : 'var(--lsa-gray-400)'};">${hSuper ? 'YES' : 'NO'}</div>
+                        <div class="comp-center">House Supermajority</div>
+                        <div class="comp-right" style="font-size:var(--text-lg);color:var(--lsa-gray-400);">${hSuper ? 'NO' : '--'}</div>
+                    </div>
+                    <div class="comparison-row">
+                        <div class="comp-left" style="font-size:var(--text-lg);color:${sSuper ? 'var(--lsa-bottle-green)' : 'var(--lsa-gray-400)'};">${sSuper ? 'YES' : 'NO'}</div>
+                        <div class="comp-center">Senate Supermajority</div>
+                        <div class="comp-right" style="font-size:var(--text-lg);color:var(--lsa-gray-400);">${sSuper ? 'NO' : '--'}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        loaded.dashboard = true;
+    } catch (e) {
+        showError('dashboard-content', 'Failed to build dashboard: ' + e.message);
+    }
+}
+
+// ---- Initialize ----
+loadOverview();
+</script>
+</body>
+</html>
