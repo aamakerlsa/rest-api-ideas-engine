@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JTFR - Journal &amp; Transcript Research Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Droid+Serif:wght@400;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/lsa-styles.css">
+    <style>
+        :root {
+            --jtfr-bg: #f4f6f9;
+            --jtfr-card-hover: rgba(0, 52, 102, 0.03);
+            --jtfr-tab-indicator: var(--lsa-gold);
+            --jtfr-house-color: #003466;
+            --jtfr-senate-color: #7b1a2c;
+            --jtfr-both-color: #3C6997;
+            --jtfr-transcript-color: #0C6E52;
+        }
+
+        body {
+            background: var(--jtfr-bg);
+            min-height: 100vh;
+        }
+
+        /* ── Top bar ── */
+        .top-bar {
+            background: #001d3a;
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar a {
+            color: var(--lsa-gold);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .top-bar a:hover { color: #e8d48b; }
+        .top-bar .audience-tags {
+            display: flex;
+            gap: 8px;
+        }
+        .top-bar .audience-tags span {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.08);
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Header ── */
+        .app-header {
+            background: linear-gradient(135deg, var(--lsa-primary) 0%, #1a4f8a 100%);
+            color: var(--lsa-white);
+            padding: 32px 24px 24px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+        .header-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .logo-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        .logo-row img {
+            height: 48px;
+            width: 48px;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .app-header h1 {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--lsa-white);
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+        .app-header .tagline {
+            color: var(--lsa-gold);
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            font-weight: 400;
+            font-style: italic;
+            margin-bottom: 0;
+        }
+
+        /* ── Controls area ── */
+        .controls-bar {
+            background: var(--lsa-white);
+            box-shadow: var(--shadow-md);
+            padding: 16px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .controls-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+
+        /* Tab navigation */
+        .doc-tabs {
+            display: flex;
+            gap: 0;
+            background: var(--lsa-gray-100);
+            border-radius: var(--radius-lg);
+            padding: 3px;
+            flex-shrink: 0;
+        }
+        .doc-tab {
+            padding: 8px 18px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            font-family: var(--font-heading-alt);
+            border: none;
+            background: transparent;
+            color: var(--lsa-gray-500);
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .doc-tab:hover {
+            color: var(--lsa-primary);
+            background: rgba(0,52,102,0.05);
+        }
+        .doc-tab.active {
+            background: var(--lsa-primary);
+            color: var(--lsa-white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Chamber toggle */
+        .chamber-toggle {
+            display: flex;
+            gap: 0;
+            background: var(--lsa-gray-100);
+            border-radius: var(--radius-lg);
+            padding: 3px;
+        }
+        .chamber-btn {
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: none;
+            background: transparent;
+            color: var(--lsa-gray-500);
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .chamber-btn:hover { color: var(--lsa-primary); }
+        .chamber-btn.active {
+            background: var(--lsa-white);
+            color: var(--lsa-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Year selector */
+        .year-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .year-control label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--lsa-gray-600);
+            white-space: nowrap;
+        }
+        .year-slider {
+            width: 160px;
+            accent-color: var(--lsa-primary);
+            cursor: pointer;
+        }
+        .year-display {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--lsa-primary);
+            min-width: 44px;
+            text-align: center;
+        }
+
+        /* Search */
+        .search-wrap {
+            flex: 1;
+            min-width: 180px;
+            position: relative;
+        }
+        .search-wrap input {
+            width: 100%;
+            padding: 8px 14px 8px 36px;
+            border: 1px solid var(--lsa-gray-200);
+            border-radius: var(--radius-lg);
+            font-size: 0.875rem;
+            background: var(--lsa-gray-100);
+            transition: all 0.2s;
+        }
+        .search-wrap input:focus {
+            border-color: var(--lsa-primary);
+            background: var(--lsa-white);
+            box-shadow: 0 0 0 3px rgba(0,52,102,0.1);
+            outline: none;
+        }
+        .search-wrap .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--lsa-gray-400);
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        /* ── Main content ── */
+        .main-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--lsa-primary);
+            line-height: 1.1;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--lsa-gray-500);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+        .stat-card.house .stat-value { color: var(--jtfr-house-color); }
+        .stat-card.senate .stat-value { color: var(--jtfr-senate-color); }
+        .stat-card.both .stat-value { color: var(--jtfr-both-color); }
+        .stat-card.transcript .stat-value { color: var(--jtfr-transcript-color); }
+
+        /* ── Recent documents section ── */
+        .section-title {
+            font-family: var(--font-heading-alt);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--lsa-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, var(--lsa-gold), transparent);
+        }
+
+        /* ── Timeline ── */
+        .timeline-section {
+            margin-bottom: 28px;
+        }
+        .timeline-scroll {
+            overflow-x: auto;
+            padding: 12px 0 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .timeline-track {
+            display: flex;
+            gap: 0;
+            min-width: max-content;
+            position: relative;
+            padding: 20px 0 8px;
+        }
+        .timeline-track::before {
+            content: '';
+            position: absolute;
+            top: 34px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--lsa-gray-200);
+            border-radius: 2px;
+        }
+        .timeline-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 80px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+        .timeline-item:hover { transform: translateY(-3px); }
+        .timeline-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--lsa-primary);
+            border: 3px solid var(--lsa-white);
+            box-shadow: 0 0 0 2px var(--lsa-primary);
+            z-index: 1;
+            transition: all 0.15s;
+        }
+        .timeline-item:hover .timeline-dot {
+            background: var(--lsa-gold);
+            box-shadow: 0 0 0 2px var(--lsa-gold);
+        }
+        .timeline-dot.journal { background: var(--jtfr-house-color); box-shadow: 0 0 0 2px var(--jtfr-house-color); }
+        .timeline-dot.calendar { background: var(--lsa-gold); box-shadow: 0 0 0 2px var(--lsa-gold); }
+        .timeline-dot.intro { background: var(--jtfr-both-color); box-shadow: 0 0 0 2px var(--jtfr-both-color); }
+        .timeline-dot.transcript { background: var(--jtfr-transcript-color); box-shadow: 0 0 0 2px var(--jtfr-transcript-color); }
+        .timeline-label {
+            margin-top: 10px;
+            font-size: 0.7rem;
+            color: var(--lsa-gray-600);
+            text-align: center;
+            max-width: 90px;
+            line-height: 1.3;
+            font-weight: 500;
+        }
+        .timeline-date {
+            font-size: 0.65rem;
+            color: var(--lsa-gray-400);
+            margin-top: 2px;
+        }
+
+        /* ── Chart area ── */
+        .chart-section {
+            margin-bottom: 28px;
+        }
+        .chart-container {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            min-height: 220px;
+        }
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 180px;
+            padding: 0 4px;
+            overflow-x: auto;
+        }
+        .chart-bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 28px;
+            flex: 1;
+        }
+        .chart-bar {
+            width: 100%;
+            max-width: 24px;
+            border-radius: 3px 3px 0 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 2px;
+        }
+        .chart-bar:hover { opacity: 0.8; }
+        .chart-bar.house { background: var(--jtfr-house-color); }
+        .chart-bar.senate { background: var(--jtfr-senate-color); }
+        .chart-bar-label {
+            font-size: 0.6rem;
+            color: var(--lsa-gray-400);
+            margin-top: 4px;
+            writing-mode: vertical-lr;
+            transform: rotate(180deg);
+            max-height: 40px;
+            overflow: hidden;
+        }
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+        .chart-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--lsa-gray-600);
+        }
+        .chart-legend-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* ── Document grid ── */
+        .doc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .doc-card {
+            background: var(--lsa-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .doc-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .doc-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--lsa-primary);
+            border-radius: 4px 0 0 4px;
+        }
+        .doc-card.senate::before { background: var(--jtfr-senate-color); }
+        .doc-card.transcript::before { background: var(--jtfr-transcript-color); }
+        .doc-card.calendar::before { background: var(--lsa-gold); }
+        .doc-card.intro::before { background: var(--jtfr-both-color); }
+        .doc-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .doc-card-title {
+            font-family: var(--font-heading);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--lsa-primary);
+            line-height: 1.3;
+            margin-bottom: 0;
+        }
+        .doc-card-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-radius: var(--radius-full);
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+        .doc-card-badge.house {
+            background: rgba(0,52,102,0.1);
+            color: var(--jtfr-house-color);
+        }
+        .doc-card-badge.senate {
+            background: rgba(123,26,44,0.1);
+            color: var(--jtfr-senate-color);
+        }
+        .doc-card-badge.transcript {
+            background: rgba(12,110,82,0.1);
+            color: var(--jtfr-transcript-color);
+        }
+        .doc-card-meta {
+            font-size: 0.8rem;
+            color: var(--lsa-gray-500);
+            margin-bottom: 8px;
+        }
+        .doc-card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--lsa-primary);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+        .doc-card-link:hover {
+            color: var(--lsa-gold);
+            text-decoration: underline;
+        }
+
+        /* ── Loading / empty states ── */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--lsa-gray-400);
+        }
+        .loading-state .spinner-lg {
+            margin-bottom: 16px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--lsa-gray-400);
+        }
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        /* ── Footer ── */
+        .app-footer {
+            background: var(--lsa-primary);
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+            padding: 20px 24px;
+            font-size: 0.8rem;
+            margin-top: 40px;
+        }
+        .app-footer a {
+            color: var(--lsa-gold);
+            text-decoration: none;
+        }
+
+        /* ── Error alert ── */
+        .error-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--lsa-error);
+            color: var(--lsa-white);
+            padding: 12px 20px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            font-size: 0.85rem;
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-width: 400px;
+        }
+        .error-toast.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .controls-inner {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .doc-tabs { justify-content: center; flex-wrap: wrap; }
+            .chamber-toggle { justify-content: center; }
+            .year-control { justify-content: center; }
+            .search-wrap { min-width: 100%; }
+            .doc-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .app-header h1 { font-size: 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-row { grid-template-columns: 1fr; }
+            .top-bar .audience-tags { display: none; }
+            .doc-tab { padding: 6px 12px; font-size: 0.78rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top bar -->
+    <div class="top-bar">
+        <a href="../index.html">&#8592; Back to Applications</a>
+        <div class="audience-tags">
+            <span>Staff</span>
+            <span>Lawmakers</span>
+            <span>Lobbyists</span>
+            <span>Agencies</span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="logo-row">
+                <img src="../assets/images/LSA_seal.png" alt="LSA Seal">
+                <h1>JTFR &mdash; Journal &amp; Transcript Research Finder</h1>
+            </div>
+            <p class="tagline">Dig into the legislative record with precision.</p>
+        </div>
+    </header>
+
+    <!-- Controls -->
+    <div class="controls-bar">
+        <div class="controls-inner">
+            <div class="doc-tabs" role="tablist" aria-label="Document type tabs">
+                <button class="doc-tab active" role="tab" data-tab="journals" aria-selected="true">Journals</button>
+                <button class="doc-tab" role="tab" data-tab="calendars" aria-selected="false">Calendars</button>
+                <button class="doc-tab" role="tab" data-tab="intros" aria-selected="false">Introductions</button>
+                <button class="doc-tab" role="tab" data-tab="transcripts" aria-selected="false">Transcripts</button>
+            </div>
+            <div class="chamber-toggle" id="chamberToggle">
+                <button class="chamber-btn active" data-chamber="both">Both</button>
+                <button class="chamber-btn" data-chamber="house">House</button>
+                <button class="chamber-btn" data-chamber="senate">Senate</button>
+            </div>
+            <div class="year-control" id="yearControl">
+                <label>Year:</label>
+                <input type="range" class="year-slider" id="yearSlider" min="1986" max="2026" value="2026">
+                <span class="year-display" id="yearDisplay">2026</span>
+            </div>
+            <div class="search-wrap">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" id="searchInput" placeholder="Filter documents..." aria-label="Search documents">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <main class="main-content">
+
+        <!-- Stats -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card house">
+                <div class="stat-value" id="statHouseJournals">--</div>
+                <div class="stat-label">House Journals</div>
+            </div>
+            <div class="stat-card senate">
+                <div class="stat-value" id="statSenateJournals">--</div>
+                <div class="stat-label">Senate Journals</div>
+            </div>
+            <div class="stat-card house">
+                <div class="stat-value" id="statHouseCalendars">--</div>
+                <div class="stat-label">House Calendars</div>
+            </div>
+            <div class="stat-card senate">
+                <div class="stat-value" id="statSenateCalendars">--</div>
+                <div class="stat-label">Senate Calendars</div>
+            </div>
+            <div class="stat-card both">
+                <div class="stat-value" id="statIntros">--</div>
+                <div class="stat-label">Introductions</div>
+            </div>
+            <div class="stat-card transcript">
+                <div class="stat-value" id="statTranscripts">--</div>
+                <div class="stat-label">Transcripts</div>
+            </div>
+        </div>
+
+        <!-- Recent documents -->
+        <div class="section-title">Recent Documents</div>
+        <div class="doc-grid" id="recentDocs">
+            <div class="loading-state"><div class="spinner spinner-lg"></div><p>Loading recent documents...</p></div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-section">
+            <div class="section-title">Document Timeline</div>
+            <div class="timeline-scroll">
+                <div class="timeline-track" id="timelineTrack">
+                    <div class="loading-state" style="min-width:100%;padding:30px"><div class="spinner"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Year-over-year chart -->
+        <div class="chart-section">
+            <div class="section-title">Year-over-Year Comparison</div>
+            <div class="chart-container">
+                <div class="chart-bars" id="chartBars"></div>
+                <div class="chart-legend">
+                    <div class="chart-legend-item">
+                        <div class="chart-legend-swatch" style="background:var(--jtfr-house-color)"></div> House
+                    </div>
+                    <div class="chart-legend-item">
+                        <div class="chart-legend-swatch" style="background:var(--jtfr-senate-color)"></div> Senate
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document listing -->
+        <div class="section-title" id="listingTitle">Documents</div>
+        <div class="doc-grid" id="docGrid">
+            <div class="loading-state"><div class="spinner spinner-lg"></div><p>Loading documents...</p></div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p>JTFR &mdash; Journal &amp; Transcript Research Finder &bull; Legislative Services Agency &bull;
+        <a href="https://www.scstatehouse.gov" target="_blank" rel="noopener">scstatehouse.gov</a></p>
+    </footer>
+
+    <!-- Error toast -->
+    <div class="error-toast" id="errorToast"></div>
+
+<script>
+(function() {
+    'use strict';
+
+    const BASE = 'https://rest.scstatehouse.gov';
+
+    // ── State ──
+    const state = {
+        tab: 'journals',
+        chamber: 'both',
+        year: 2026,
+        search: '',
+        // Caches
+        cache: {},
+        // Stats
+        stats: {
+            houseJournals: 0, senateJournals: 0,
+            houseCalendars: 0, senateCalendars: 0,
+            houseIntros: 0, senateIntros: 0,
+            transcripts: 0
+        },
+        // Recent docs
+        recentDocs: [],
+        // Current listing
+        currentDocs: [],
+        // Chart data
+        chartData: {},
+        // Timeline data
+        timelineDocs: []
+    };
+
+    // ── Year ranges per tab ──
+    const yearRanges = {
+        journals: { min: 1986, max: 2026 },
+        calendars: { min: 2003, max: 2026 },
+        intros: { min: 2001, max: 2026 },
+        transcripts: { min: 2000, max: 2026 }
+    };
+
+    // ── DOM refs ──
+    const els = {
+        tabs: document.querySelectorAll('.doc-tab'),
+        chamberBtns: document.querySelectorAll('.chamber-btn'),
+        yearSlider: document.getElementById('yearSlider'),
+        yearDisplay: document.getElementById('yearDisplay'),
+        yearControl: document.getElementById('yearControl'),
+        chamberToggle: document.getElementById('chamberToggle'),
+        searchInput: document.getElementById('searchInput'),
+        statsRow: document.getElementById('statsRow'),
+        recentDocs: document.getElementById('recentDocs'),
+        docGrid: document.getElementById('docGrid'),
+        listingTitle: document.getElementById('listingTitle'),
+        timelineTrack: document.getElementById('timelineTrack'),
+        chartBars: document.getElementById('chartBars'),
+        errorToast: document.getElementById('errorToast'),
+        statHouseJournals: document.getElementById('statHouseJournals'),
+        statSenateJournals: document.getElementById('statSenateJournals'),
+        statHouseCalendars: document.getElementById('statHouseCalendars'),
+        statSenateCalendars: document.getElementById('statSenateCalendars'),
+        statIntros: document.getElementById('statIntros'),
+        statTranscripts: document.getElementById('statTranscripts')
+    };
+
+    // ── Utility: API fetch ──
+    async function apiFetch(endpoint) {
+        const cacheKey = endpoint;
+        if (state.cache[cacheKey]) return state.cache[cacheKey];
+        const resp = await fetch(BASE + endpoint);
+        if (!resp.ok) throw new Error(`API error ${resp.status}: ${endpoint}`);
+        const json = await resp.json();
+        const data = json.data;
+        state.cache[cacheKey] = data;
+        return data;
+    }
+
+    // ── Error handling ──
+    let errorTimeout;
+    function showError(msg) {
+        els.errorToast.textContent = msg;
+        els.errorToast.classList.add('visible');
+        clearTimeout(errorTimeout);
+        errorTimeout = setTimeout(() => els.errorToast.classList.remove('visible'), 5000);
+    }
+
+    // ── Render helpers ──
+    function renderLoading(container) {
+        container.innerHTML = '<div class="loading-state"><div class="spinner spinner-lg"></div><p>Loading...</p></div>';
+    }
+
+    function renderEmpty(container, msg) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128196;</div><p>${msg}</p></div>`;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    // ── Determine document link ──
+    function getDocLink(item) {
+        // Many items have a link or url property
+        if (item.link) return item.link;
+        if (item.url) return item.url;
+        if (item.Link) return item.Link;
+        if (item.Url) return item.Url;
+        if (item.pdfLink) return item.pdfLink;
+        if (item.PdfLink) return item.PdfLink;
+        return null;
+    }
+
+    // ── Determine display title ──
+    function getDocTitle(item, type) {
+        // Try many common field names
+        return item.title || item.Title || item.description || item.Description
+            || item.name || item.Name || item.journalDate || item.JournalDate
+            || item.calendarDate || item.CalendarDate || item.date || item.Date
+            || item.meetingDate || item.MeetingDate || item.committee || item.Committee
+            || (type + ' Document');
+    }
+
+    // ── Determine display date ──
+    function getDocDate(item) {
+        const raw = item.date || item.Date || item.journalDate || item.JournalDate
+            || item.calendarDate || item.CalendarDate || item.meetingDate || item.MeetingDate
+            || item.startTime || item.StartTime || '';
+        if (!raw) return '';
+        try {
+            const d = new Date(raw);
+            if (isNaN(d.getTime())) return raw;
+            return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch { return raw; }
+    }
+
+    function getDocDateRaw(item) {
+        return item.date || item.Date || item.journalDate || item.JournalDate
+            || item.calendarDate || item.CalendarDate || item.meetingDate || item.MeetingDate
+            || item.startTime || item.StartTime || '';
+    }
+
+    // ── Render a single doc card ──
+    function renderDocCard(item, type, chamber) {
+        const title = escapeHtml(getDocTitle(item, type));
+        const date = getDocDate(item);
+        const link = getDocLink(item);
+        const chamberLabel = chamber || '';
+        const cardClass = type === 'transcripts' ? 'transcript' : (chamber === 'Senate' ? 'senate' : (type === 'calendars' ? 'calendar' : (type === 'intros' ? 'intro' : '')));
+        const badgeClass = type === 'transcripts' ? 'transcript' : (chamber === 'Senate' ? 'senate' : 'house');
+        const badgeText = type === 'transcripts' ? 'Transcript' : chamberLabel;
+
+        let html = `<div class="doc-card ${cardClass}">`;
+        html += `<div class="doc-card-header">`;
+        html += `<div class="doc-card-title">${title}</div>`;
+        if (badgeText) html += `<span class="doc-card-badge ${badgeClass}">${badgeText}</span>`;
+        html += `</div>`;
+        if (date) html += `<div class="doc-card-meta">${date}</div>`;
+        if (link) html += `<a class="doc-card-link" href="${escapeHtml(link)}" target="_blank" rel="noopener">View Document &#8594;</a>`;
+        html += `</div>`;
+        return html;
+    }
+
+    // ── Build endpoints for current tab/chamber/year ──
+    function getEndpoints() {
+        const { tab, chamber, year } = state;
+        const endpoints = [];
+
+        if (tab === 'transcripts') {
+            endpoints.push({ url: '/meetings/transcripts', chamber: '', type: 'transcripts' });
+        } else if (tab === 'journals') {
+            if (chamber === 'house' || chamber === 'both')
+                endpoints.push({ url: `/house/journals/${year}`, chamber: 'House', type: 'journals' });
+            if (chamber === 'senate' || chamber === 'both')
+                endpoints.push({ url: `/senate/journals/${year}`, chamber: 'Senate', type: 'journals' });
+        } else if (tab === 'calendars') {
+            if (chamber === 'house' || chamber === 'both')
+                endpoints.push({ url: `/house/calendars/${year}`, chamber: 'House', type: 'calendars' });
+            if (chamber === 'senate' || chamber === 'both')
+                endpoints.push({ url: `/senate/calendars/${year}`, chamber: 'Senate', type: 'calendars' });
+        } else if (tab === 'intros') {
+            if (chamber === 'house' || chamber === 'both')
+                endpoints.push({ url: `/house/intros/${year}`, chamber: 'House', type: 'intros' });
+            if (chamber === 'senate' || chamber === 'both')
+                endpoints.push({ url: `/senate/intros/${year}`, chamber: 'Senate', type: 'intros' });
+        }
+        return endpoints;
+    }
+
+    // ── Load & render main document listing ──
+    async function loadDocuments() {
+        renderLoading(els.docGrid);
+        const endpoints = getEndpoints();
+        const typeLabel = { journals: 'Journals', calendars: 'Calendars', intros: 'Introductions', transcripts: 'Transcripts' };
+        els.listingTitle.childNodes[0].textContent = typeLabel[state.tab] + (state.tab !== 'transcripts' ? ` (${state.year})` : '') + ' ';
+
+        try {
+            const results = await Promise.allSettled(endpoints.map(ep => apiFetch(ep.url)));
+            let allDocs = [];
+
+            results.forEach((result, i) => {
+                if (result.status === 'fulfilled' && result.value) {
+                    const items = Array.isArray(result.value) ? result.value : [result.value];
+                    items.forEach(item => {
+                        allDocs.push({ ...item, _chamber: endpoints[i].chamber, _type: endpoints[i].type });
+                    });
+                }
+            });
+
+            // Apply search filter
+            if (state.search) {
+                const q = state.search.toLowerCase();
+                allDocs = allDocs.filter(doc => {
+                    const text = (getDocTitle(doc, doc._type) + ' ' + getDocDate(doc) + ' ' + (doc._chamber || '')).toLowerCase();
+                    return text.includes(q);
+                });
+            }
+
+            state.currentDocs = allDocs;
+
+            if (allDocs.length === 0) {
+                renderEmpty(els.docGrid, 'No documents found for this selection.');
+                return;
+            }
+
+            els.docGrid.innerHTML = allDocs.map(doc => renderDocCard(doc, doc._type, doc._chamber)).join('');
+        } catch (err) {
+            showError('Failed to load documents: ' + err.message);
+            renderEmpty(els.docGrid, 'Error loading documents.');
+        }
+    }
+
+    // ── Load stats (index endpoints) ──
+    async function loadStats() {
+        const statEndpoints = [
+            { url: '/house/journals', key: 'houseJournals', el: els.statHouseJournals },
+            { url: '/senate/journals', key: 'senateJournals', el: els.statSenateJournals },
+            { url: '/house/calendars', key: 'houseCalendars', el: els.statHouseCalendars },
+            { url: '/senate/calendars', key: 'senateCalendars', el: els.statSenateCalendars },
+            { url: '/house/intros', key: 'houseIntros', el: els.statIntros },
+            { url: '/meetings/transcripts', key: 'transcripts', el: els.statTranscripts }
+        ];
+
+        const results = await Promise.allSettled(statEndpoints.map(ep => apiFetch(ep.url)));
+
+        results.forEach((result, i) => {
+            const ep = statEndpoints[i];
+            if (result.status === 'fulfilled' && result.value) {
+                const data = result.value;
+                const count = Array.isArray(data) ? data.length : 0;
+                state.stats[ep.key] = count;
+                ep.el.textContent = count.toLocaleString();
+            } else {
+                ep.el.textContent = '--';
+            }
+        });
+
+        // Combine intros count
+        try {
+            const senateIntros = await apiFetch('/senate/intros');
+            const senateCount = Array.isArray(senateIntros) ? senateIntros.length : 0;
+            const houseCount = state.stats.houseIntros;
+            els.statIntros.textContent = (houseCount + senateCount).toLocaleString();
+        } catch {}
+    }
+
+    // ── Load recent documents ──
+    async function loadRecentDocs() {
+        renderLoading(els.recentDocs);
+        try {
+            const currentYear = 2026;
+            const fetches = [
+                apiFetch(`/house/journals/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'House', _type: 'journals' }))).catch(() => []),
+                apiFetch(`/senate/journals/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'Senate', _type: 'journals' }))).catch(() => []),
+                apiFetch(`/house/calendars/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'House', _type: 'calendars' }))).catch(() => []),
+                apiFetch(`/senate/calendars/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'Senate', _type: 'calendars' }))).catch(() => []),
+                apiFetch(`/house/intros/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'House', _type: 'intros' }))).catch(() => []),
+                apiFetch(`/senate/intros/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'Senate', _type: 'intros' }))).catch(() => [])
+            ];
+
+            const results = await Promise.all(fetches);
+            let all = results.flat();
+
+            // Sort by date descending
+            all.sort((a, b) => {
+                const da = new Date(getDocDateRaw(a));
+                const db = new Date(getDocDateRaw(b));
+                if (isNaN(da.getTime()) && isNaN(db.getTime())) return 0;
+                if (isNaN(da.getTime())) return 1;
+                if (isNaN(db.getTime())) return -1;
+                return db - da;
+            });
+
+            state.recentDocs = all.slice(0, 12);
+
+            if (state.recentDocs.length === 0) {
+                renderEmpty(els.recentDocs, 'No recent documents available.');
+                return;
+            }
+
+            els.recentDocs.innerHTML = state.recentDocs.map(doc => renderDocCard(doc, doc._type, doc._chamber)).join('');
+        } catch (err) {
+            showError('Error loading recent documents.');
+            renderEmpty(els.recentDocs, 'Could not load recent documents.');
+        }
+    }
+
+    // ── Load timeline ──
+    async function loadTimeline() {
+        try {
+            const currentYear = 2026;
+            const fetches = [
+                apiFetch(`/house/journals/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'House', _type: 'journals' }))).catch(() => []),
+                apiFetch(`/senate/journals/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'Senate', _type: 'journals' }))).catch(() => []),
+                apiFetch(`/house/calendars/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'House', _type: 'calendars' }))).catch(() => []),
+                apiFetch(`/senate/calendars/${currentYear}`).then(d => (Array.isArray(d) ? d : []).map(i => ({ ...i, _chamber: 'Senate', _type: 'calendars' }))).catch(() => [])
+            ];
+            const results = await Promise.all(fetches);
+            let all = results.flat();
+
+            all.sort((a, b) => {
+                const da = new Date(getDocDateRaw(a));
+                const db = new Date(getDocDateRaw(b));
+                if (isNaN(da.getTime()) && isNaN(db.getTime())) return 0;
+                if (isNaN(da.getTime())) return 1;
+                if (isNaN(db.getTime())) return -1;
+                return da - db;
+            });
+
+            state.timelineDocs = all.slice(0, 60);
+
+            if (state.timelineDocs.length === 0) {
+                els.timelineTrack.innerHTML = '<div class="empty-state" style="min-width:100%"><p>No timeline data available.</p></div>';
+                return;
+            }
+
+            let html = '';
+            state.timelineDocs.forEach(doc => {
+                const title = getDocTitle(doc, doc._type);
+                const date = getDocDate(doc);
+                const dotClass = doc._type === 'calendars' ? 'calendar' : (doc._type === 'intros' ? 'intro' : (doc._type === 'transcripts' ? 'transcript' : 'journal'));
+                const link = getDocLink(doc);
+                const shortTitle = title.length > 30 ? title.substring(0, 28) + '...' : title;
+                html += `<div class="timeline-item" ${link ? `onclick="window.open('${escapeHtml(link)}','_blank')"` : ''} title="${escapeHtml(title)}">`;
+                html += `<div class="timeline-dot ${dotClass}"></div>`;
+                html += `<div class="timeline-label">${escapeHtml(shortTitle)}</div>`;
+                if (date) html += `<div class="timeline-date">${date}</div>`;
+                html += `</div>`;
+            });
+
+            els.timelineTrack.innerHTML = html;
+        } catch (err) {
+            els.timelineTrack.innerHTML = '<div class="empty-state" style="min-width:100%"><p>Could not load timeline.</p></div>';
+        }
+    }
+
+    // ── Load year-over-year chart ──
+    async function loadChart() {
+        els.chartBars.innerHTML = '<div class="loading-state" style="width:100%"><div class="spinner"></div></div>';
+        try {
+            const tab = state.tab;
+            const range = yearRanges[tab] || yearRanges.journals;
+
+            if (tab === 'transcripts') {
+                // Single data set for transcripts
+                const data = await apiFetch('/meetings/transcripts');
+                const items = Array.isArray(data) ? data : [];
+                const yearCounts = {};
+                items.forEach(item => {
+                    const raw = getDocDateRaw(item);
+                    if (raw) {
+                        const y = new Date(raw).getFullYear();
+                        if (!isNaN(y)) yearCounts[y] = (yearCounts[y] || 0) + 1;
+                    }
+                });
+                const years = Object.keys(yearCounts).sort();
+                const maxVal = Math.max(...Object.values(yearCounts), 1);
+                let html = '';
+                years.forEach(y => {
+                    const h = Math.max(2, (yearCounts[y] / maxVal) * 160);
+                    html += `<div class="chart-bar-group"><div class="chart-bar house" style="height:${h}px" title="${y}: ${yearCounts[y]}"></div><div class="chart-bar-label">${y}</div></div>`;
+                });
+                els.chartBars.innerHTML = html || '<div class="empty-state" style="width:100%"><p>No chart data.</p></div>';
+                return;
+            }
+
+            // For journals/calendars/intros: fetch index to get available years, then batch fetch
+            const pathMap = { journals: 'journals', calendars: 'calendars', intros: 'intros' };
+            const path = pathMap[tab];
+
+            // Fetch index for both chambers to get year list
+            const [houseIndex, senateIndex] = await Promise.allSettled([
+                apiFetch(`/house/${path}`),
+                apiFetch(`/senate/${path}`)
+            ]);
+
+            const houseYears = (houseIndex.status === 'fulfilled' && Array.isArray(houseIndex.value)) ? houseIndex.value : [];
+            const senateYears = (senateIndex.status === 'fulfilled' && Array.isArray(senateIndex.value)) ? senateIndex.value : [];
+
+            // Collect all unique years from the index data
+            const allYearSet = new Set();
+            const extractYear = (item) => {
+                const y = item.year || item.Year || item.sessionYear || item.SessionYear;
+                if (y) allYearSet.add(Number(y));
+            };
+            houseYears.forEach(extractYear);
+            senateYears.forEach(extractYear);
+
+            // If no years extracted from index, use range
+            if (allYearSet.size === 0) {
+                for (let y = range.min; y <= range.max; y++) allYearSet.add(y);
+            }
+
+            const yearList = [...allYearSet].sort((a, b) => a - b);
+
+            // For chart, we use the index counts if available, otherwise sample some years
+            // Try to use the count from index items (they may have a count field)
+            const houseCounts = {};
+            const senateCounts = {};
+
+            houseYears.forEach(item => {
+                const y = item.year || item.Year || item.sessionYear || item.SessionYear;
+                const c = item.count || item.Count || item.total || item.Total || 1;
+                if (y) houseCounts[Number(y)] = c;
+            });
+            senateYears.forEach(item => {
+                const y = item.year || item.Year || item.sessionYear || item.SessionYear;
+                const c = item.count || item.Count || item.total || item.Total || 1;
+                if (y) senateCounts[Number(y)] = c;
+            });
+
+            const maxVal = Math.max(
+                ...Object.values(houseCounts),
+                ...Object.values(senateCounts),
+                1
+            );
+
+            let html = '';
+            yearList.forEach(y => {
+                const hc = houseCounts[y] || 0;
+                const sc = senateCounts[y] || 0;
+                const hh = Math.max(hc > 0 ? 4 : 0, (hc / maxVal) * 150);
+                const sh = Math.max(sc > 0 ? 4 : 0, (sc / maxVal) * 150);
+                html += `<div class="chart-bar-group" style="gap:2px">`;
+                html += `<div style="display:flex;gap:1px;align-items:flex-end;height:160px">`;
+                html += `<div class="chart-bar house" style="height:${hh}px;width:10px" title="House ${y}: ${hc}"></div>`;
+                html += `<div class="chart-bar senate" style="height:${sh}px;width:10px" title="Senate ${y}: ${sc}"></div>`;
+                html += `</div>`;
+                html += `<div class="chart-bar-label">${String(y).slice(-2)}</div>`;
+                html += `</div>`;
+            });
+
+            els.chartBars.innerHTML = html || '<div class="empty-state" style="width:100%"><p>No chart data.</p></div>';
+        } catch (err) {
+            els.chartBars.innerHTML = '<div class="empty-state" style="width:100%"><p>Could not load chart data.</p></div>';
+        }
+    }
+
+    // ── Update year slider range based on tab ──
+    function updateYearRange() {
+        const range = yearRanges[state.tab];
+        if (state.tab === 'transcripts') {
+            els.yearControl.style.display = 'none';
+        } else {
+            els.yearControl.style.display = 'flex';
+            els.yearSlider.min = range.min;
+            els.yearSlider.max = range.max;
+            if (state.year < range.min) state.year = range.max;
+            if (state.year > range.max) state.year = range.max;
+            els.yearSlider.value = state.year;
+            els.yearDisplay.textContent = state.year;
+        }
+
+        // Hide/show chamber toggle for transcripts
+        if (state.tab === 'transcripts') {
+            els.chamberToggle.style.display = 'none';
+        } else {
+            els.chamberToggle.style.display = 'flex';
+        }
+    }
+
+    // ── Event handlers ──
+    els.tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            els.tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+            tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
+            state.tab = tab.dataset.tab;
+            updateYearRange();
+            loadDocuments();
+            loadChart();
+        });
+    });
+
+    els.chamberBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            els.chamberBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state.chamber = btn.dataset.chamber;
+            loadDocuments();
+        });
+    });
+
+    els.yearSlider.addEventListener('input', () => {
+        state.year = parseInt(els.yearSlider.value, 10);
+        els.yearDisplay.textContent = state.year;
+    });
+    els.yearSlider.addEventListener('change', () => {
+        loadDocuments();
+    });
+
+    let searchDebounce;
+    els.searchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+            state.search = els.searchInput.value.trim();
+            loadDocuments();
+        }, 300);
+    });
+
+    // ── Init ──
+    function init() {
+        updateYearRange();
+        loadStats();
+        loadRecentDocs();
+        loadTimeline();
+        loadDocuments();
+        loadChart();
+    }
+
+    init();
+
+})();
+</script>
+</body>
+</html>
