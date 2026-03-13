@@ -519,23 +519,19 @@ let currentView = 'directory';
 let votesLoaded = false;
 let votesLoading = false;
 
-// ===== FALLBACK DATA =====
-const FALLBACK_MEMBERS = [
-  {PERM_SPONSOR_CODE:'JSMITH',PARTY:'R',DISTRICT_NUMBER:1,CHAMBER:'H',FIRST:'John',LAST:'Smith',TITLE:'Rep.',E_MAIL:'jsmith@schouse.gov',OCCUPATION:'Attorney',HOME_COUNTY:'Richland',BIOGRAPHY:'Serving since 2018.'},
-  {PERM_SPONSOR_CODE:'MJONES',PARTY:'D',DISTRICT_NUMBER:5,CHAMBER:'H',FIRST:'Maria',LAST:'Jones',TITLE:'Rep.',E_MAIL:'mjones@schouse.gov',OCCUPATION:'Educator',HOME_COUNTY:'Charleston',BIOGRAPHY:'Educator and community leader.'},
-  {PERM_SPONSOR_CODE:'RWILL',PARTY:'R',DISTRICT_NUMBER:12,CHAMBER:'S',FIRST:'Robert',LAST:'Williams',TITLE:'Sen.',E_MAIL:'rwill@scsenate.gov',OCCUPATION:'Business Owner',HOME_COUNTY:'Greenville',BIOGRAPHY:'Small business advocate.'},
-  {PERM_SPONSOR_CODE:'LBROWN',PARTY:'D',DISTRICT_NUMBER:3,CHAMBER:'S',FIRST:'Lisa',LAST:'Brown',TITLE:'Sen.',E_MAIL:'lbrown@scsenate.gov',OCCUPATION:'Physician',HOME_COUNTY:'Spartanburg',BIOGRAPHY:'Healthcare reform champion.'},
-  {PERM_SPONSOR_CODE:'TDAVIS',PARTY:'R',DISTRICT_NUMBER:22,CHAMBER:'H',FIRST:'Thomas',LAST:'Davis',TITLE:'Rep.',E_MAIL:'tdavis@schouse.gov',OCCUPATION:'Farmer',HOME_COUNTY:'Orangeburg',BIOGRAPHY:'Agriculture policy expert.'},
-  {PERM_SPONSOR_CODE:'SGREEN',PARTY:'I',DISTRICT_NUMBER:8,CHAMBER:'H',FIRST:'Sarah',LAST:'Green',TITLE:'Rep.',E_MAIL:'sgreen@schouse.gov',OCCUPATION:'Engineer',HOME_COUNTY:'York',BIOGRAPHY:'Infrastructure and technology advocate.'},
-];
-
-const FALLBACK_SESSIONS = [{KEY:'126',DESCRIPTION:'126th Session (2025-2026)'}];
+// Build a quick lookup: PERM_SPONSOR_CODE -> member party
+let memberPartyLookup = {};
 
 // ===== FETCH HELPERS =====
 async function apiFetch(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const json = await res.json();
+  // All SC Statehouse API responses are wrapped: {error, message, data}
+  if (json && typeof json === 'object' && 'data' in json) {
+    return json.data;
+  }
+  return json;
 }
 
 function showError(msg) {
@@ -556,30 +552,41 @@ async function loadSessions() {
     const data = await apiFetch(`${API}/sessions`);
     sessions = Array.isArray(data) ? data : [];
   } catch(e) {
-    console.warn('Sessions fallback:', e);
-    sessions = FALLBACK_SESSIONS;
+    console.error('Failed to load sessions:', e);
+    sessions = [];
   }
-  if (sessions.length === 0) sessions = FALLBACK_SESSIONS;
 
-  // Also try to get current session
+  // Get current session number
   try {
     const cur = await apiFetch(`${API}/currentsession`);
-    if (cur && cur.KEY) currentSession = cur.KEY;
-    else if (cur && typeof cur === 'string') currentSession = cur;
-  } catch(e) {}
+    // cur is an array like [{SESS_NUMBER: "126", ...}]
+    if (Array.isArray(cur) && cur.length > 0 && cur[0].SESS_NUMBER) {
+      currentSession = cur[0].SESS_NUMBER;
+    } else if (cur && cur.SESS_NUMBER) {
+      currentSession = cur.SESS_NUMBER;
+    }
+  } catch(e) {
+    console.warn('Could not fetch current session:', e);
+  }
 
   const sel = document.getElementById('session-select');
   sel.innerHTML = '';
+  // Sessions have SESS_NUMBER, SESS_START_DATE, SESS_END_DATE
+  // Sort descending by session number
+  sessions.sort((a, b) => parseInt(b.SESS_NUMBER || 0) - parseInt(a.SESS_NUMBER || 0));
   sessions.forEach(s => {
-    const key = s.KEY || s.key || s;
-    const desc = s.DESCRIPTION || s.description || `Session ${key}`;
+    const key = s.SESS_NUMBER || '';
+    const desc = `Session ${key} (${s.SESS_START_DATE || ''}${s.SESS_END_DATE ? '-' + s.SESS_END_DATE : ''})`;
     const opt = document.createElement('option');
     opt.value = key;
     opt.textContent = desc;
     sel.appendChild(opt);
   });
   if (currentSession) sel.value = currentSession;
-  else currentSession = sel.value;
+  else if (sessions.length > 0) currentSession = sessions[0].SESS_NUMBER;
+  if (!currentSession) currentSession = sel.value;
+
+  document.getElementById('session-info').textContent = currentSession ? `Current session: ${currentSession}` : '';
 }
 
 async function onSessionChange() {
@@ -588,8 +595,9 @@ async function onSessionChange() {
   memberVoteMap = {};
   houseVotes = [];
   senateVotes = [];
+  document.getElementById('session-info').textContent = `Current session: ${currentSession}`;
   if (currentView === 'profile') {
-    // re-render current profile
+    // re-render current profile if we have one stored
   }
   if (currentView === 'statistics') {
     await renderStatistics();
@@ -604,12 +612,14 @@ async function loadMembers() {
 
   let house = [], senate = [];
   try {
-    [house, senate] = await Promise.all([
-      apiFetch(`${API}/house/bios`).catch(() => []),
-      apiFetch(`${API}/senate/bios`).catch(() => [])
+    const results = await Promise.all([
+      apiFetch(`${API}/house/bios`).catch(e => { console.error('House bios error:', e); return []; }),
+      apiFetch(`${API}/senate/bios`).catch(e => { console.error('Senate bios error:', e); return []; })
     ]);
+    house = results[0];
+    senate = results[1];
   } catch(e) {
-    console.warn('Members fallback:', e);
+    console.error('Members load error:', e);
   }
 
   house = Array.isArray(house) ? house : [];
@@ -619,9 +629,14 @@ async function loadMembers() {
 
   allMembers = [...house, ...senate];
   if (allMembers.length === 0) {
-    allMembers = FALLBACK_MEMBERS;
-    showError('Using demo data - API may be unavailable.');
+    showError('Failed to load members from the SC Statehouse API. Please try refreshing the page.');
   }
+
+  // Build party lookup for fast access during vote processing
+  memberPartyLookup = {};
+  allMembers.forEach(m => {
+    if (m.PERM_SPONSOR_CODE) memberPartyLookup[m.PERM_SPONSOR_CODE] = m.PARTY;
+  });
 
   // Populate county filter
   const counties = [...new Set(allMembers.map(m => m.HOME_COUNTY).filter(Boolean))].sort();
@@ -643,32 +658,50 @@ async function loadVotes() {
   votesLoading = true;
   try {
     const session = currentSession;
-    [houseVotes, senateVotes] = await Promise.all([
-      apiFetch(`${API}/vote/${session}/house`).catch(() => []),
-      apiFetch(`${API}/vote/${session}/senate`).catch(() => [])
+    const results = await Promise.all([
+      apiFetch(`${API}/vote/${session}/house`).catch(e => { console.error('House votes error:', e); return []; }),
+      apiFetch(`${API}/vote/${session}/senate`).catch(e => { console.error('Senate votes error:', e); return []; })
     ]);
-    houseVotes = Array.isArray(houseVotes) ? houseVotes : [];
-    senateVotes = Array.isArray(senateVotes) ? senateVotes : [];
+    houseVotes = Array.isArray(results[0]) ? results[0] : [];
+    senateVotes = Array.isArray(results[1]) ? results[1] : [];
     buildMemberVoteMap();
     votesLoaded = true;
   } catch(e) {
-    console.warn('Votes load error:', e);
+    console.error('Votes load error:', e);
     houseVotes = [];
     senateVotes = [];
   }
   votesLoading = false;
 }
 
+// Translate HOWVOTED code to a choice label
+function howVotedToChoice(howvoted) {
+  if (!howvoted) return 'Absent';
+  const h = howvoted.toUpperCase();
+  if (h === 'Y') return 'Yea';
+  if (h === 'N') return 'Nay';
+  if (h === 'A' || h === 'E') return 'Excused';
+  return 'Absent'; // N/V, or anything else
+}
+
 function buildMemberVoteMap() {
   memberVoteMap = {};
   const allVotes = [...houseVotes, ...senateVotes];
+
+  // CHOICES is an ARRAY of choice objects, each with SPONSORS array
+  // Each choice: {KEY, VOTEKEY, RESULT, YEAS, NAYS, RESULTTEXT, STATS, SPONSORS: [{PERM_SPONSOR_CODE, HOWVOTED, FULL_NAME, CHAMBER_NAME}]}
   allVotes.forEach(vote => {
-    if (!vote.CHOICES) return;
-    const processList = (list, choice) => {
-      if (!Array.isArray(list)) return;
-      list.forEach(m => {
-        const code = m.PERM_SPONSOR_CODE || m.sponsorCode || m.SPONSOR_CODE || m;
-        if (!code || typeof code !== 'string') return;
+    if (!vote.CHOICES || !Array.isArray(vote.CHOICES)) return;
+
+    vote.CHOICES.forEach(choice => {
+      if (!choice.SPONSORS || !Array.isArray(choice.SPONSORS)) return;
+
+      choice.SPONSORS.forEach(sponsor => {
+        const code = sponsor.PERM_SPONSOR_CODE;
+        if (!code) return;
+
+        const memberChoice = howVotedToChoice(sponsor.HOWVOTED);
+
         if (!memberVoteMap[code]) memberVoteMap[code] = [];
         memberVoteMap[code].push({
           voteKey: vote.KEY,
@@ -678,20 +711,12 @@ function buildMemberVoteMap() {
           motion: vote.MOTION,
           time: vote.VOTETIME,
           approved: vote.APPROVED,
-          choice: choice
+          resultText: choice.RESULTTEXT || '',
+          choice: memberChoice,
+          howVoted: sponsor.HOWVOTED
         });
       });
-    };
-    const choices = vote.CHOICES;
-    if (choices.Yeas) processList(choices.Yeas, 'Yea');
-    if (choices.Nays) processList(choices.Nays, 'Nay');
-    if (choices.Absent) processList(choices.Absent, 'Absent');
-    if (choices['Excused Absence']) processList(choices['Excused Absence'], 'Excused');
-    if (choices['Not Voting']) processList(choices['Not Voting'], 'Not Voting');
-    // Handle alternate key names
-    if (choices.yeas) processList(choices.yeas, 'Yea');
-    if (choices.nays) processList(choices.nays, 'Nay');
-    if (choices.absent) processList(choices.absent, 'Absent');
+    });
   });
 }
 
@@ -876,22 +901,21 @@ function calcPartyAlignment(member, votes) {
 
   votes.forEach(v => {
     if (v.choice !== 'Yea' && v.choice !== 'Nay') return;
-    const fullVote = allVotesList.find(fv => fv.KEY === v.voteKey || fv.VOTE_NUMBER === v.voteNumber);
-    if (!fullVote || !fullVote.CHOICES) return;
+    const fullVote = allVotesList.find(fv => fv.KEY === v.voteKey);
+    if (!fullVote || !fullVote.CHOICES || !Array.isArray(fullVote.CHOICES)) return;
 
-    // Count party members' majority
-    const choices = fullVote.CHOICES;
+    // Count how same-party members voted on this vote
     let partyYeas = 0, partyNays = 0;
-    const countParty = (list, inc) => {
-      if (!Array.isArray(list)) return;
-      list.forEach(m2 => {
-        const c2 = m2.PERM_SPONSOR_CODE || m2.sponsorCode || m2;
-        const mem = allMembers.find(am => am.PERM_SPONSOR_CODE === c2);
-        if (mem && mem.PARTY === party) inc === 'yea' ? partyYeas++ : partyNays++;
+    fullVote.CHOICES.forEach(choice => {
+      if (!choice.SPONSORS || !Array.isArray(choice.SPONSORS)) return;
+      choice.SPONSORS.forEach(sponsor => {
+        const sponsorParty = memberPartyLookup[sponsor.PERM_SPONSOR_CODE];
+        if (sponsorParty !== party) return;
+        const sv = howVotedToChoice(sponsor.HOWVOTED);
+        if (sv === 'Yea') partyYeas++;
+        else if (sv === 'Nay') partyNays++;
       });
-    };
-    countParty(choices.Yeas || choices.yeas, 'yea');
-    countParty(choices.Nays || choices.nays, 'nay');
+    });
 
     if (partyYeas + partyNays < 2) return;
     const partyMajority = partyYeas >= partyNays ? 'Yea' : 'Nay';
@@ -966,12 +990,12 @@ function renderVoteBreakdown(yeas, nays, absent, total, alignment) {
 function renderHeatmap(votes) {
   if (votes.length === 0) return '<div class="empty-state">No vote data available for heatmap.</div>';
 
-  // Count votes per date
+  // Count votes per date from VOTETIME (format: "2026-03-10 20:54:00")
   const dateCounts = {};
   votes.forEach(v => {
     if (!v.time) return;
-    const d = v.time.split('T')[0].split(' ')[0];
-    if (d && d.includes('-') || d.includes('/')) {
+    const d = v.time.split(' ')[0].split('T')[0];
+    if (d && d.includes('-')) {
       const normalized = normalizeDate(d);
       if (normalized) dateCounts[normalized] = (dateCounts[normalized] || 0) + 1;
     }
@@ -988,10 +1012,6 @@ function renderHeatmap(votes) {
 
   const maxCount = Math.max(...Object.values(dateCounts));
 
-  // Generate months labels
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let monthLabels = '';
-  let lastMonth = -1;
   const weeksTotal = Math.ceil(((last - startDate) / 86400000 + 1) / 7) + 1;
 
   let cells = '';
@@ -1041,7 +1061,7 @@ function renderVoteHistory(votes, page) {
 
   const sorted = [...votes].sort((a,b) => {
     if (a.time && b.time) return b.time.localeCompare(a.time);
-    return (b.voteNumber || 0) - (a.voteNumber || 0);
+    return (parseInt(b.voteNumber) || 0) - (parseInt(a.voteNumber) || 0);
   });
 
   const totalPages = Math.ceil(sorted.length / VOTES_PER_PAGE);
@@ -1051,13 +1071,16 @@ function renderVoteHistory(votes, page) {
   let html = '<div class="vote-list">';
   pageVotes.forEach(v => {
     const choiceClass = v.choice === 'Yea' ? 'vote-yea' : v.choice === 'Nay' ? 'vote-nay' : v.choice === 'Excused' ? 'vote-excused' : 'vote-absent';
-    const approvedClass = v.approved === 'Y' || v.approved === true ? 'yes' : 'no';
-    const approvedText = v.approved === 'Y' || v.approved === true ? 'Approved' : v.approved === 'N' || v.approved === false ? 'Rejected' : '';
+    const isApproved = v.approved === '1' || v.approved === 1 || v.approved === 'Y' || v.approved === true;
+    const isRejected = v.approved === '0' || v.approved === 0 || v.approved === 'N' || v.approved === false;
+    const approvedClass = isApproved ? 'yes' : 'no';
+    const approvedText = v.resultText || (isApproved ? 'Approved' : isRejected ? 'Rejected' : '');
+    const billLabel = v.billNumber ? `Bill ${v.billNumber}` : `Vote #${v.voteNumber || '?'}`;
     html += `
       <div class="vote-item">
         <div class="vote-result ${choiceClass}">${v.choice || '?'}</div>
         <div class="vote-details">
-          <h4>${v.billNumber || 'Vote #' + (v.voteNumber || '?')}</h4>
+          <h4>${billLabel}</h4>
           <div class="vote-motion">${v.motion || 'No motion text available'}</div>
           <div class="vote-time">${v.time || ''}</div>
           ${approvedText ? `<div class="vote-approved ${approvedClass}">${approvedText}</div>` : ''}
@@ -1139,7 +1162,7 @@ async function doCompare(code1, code2) {
   const stats1 = calcMemberStats(v1, m1);
   const stats2 = calcMemberStats(v2, m2);
 
-  // Voting alignment between two members
+  // Voting alignment between two members - match by vote KEY
   const alignment = calcMutualAlignment(v1, v2);
 
   const renderCol = (m, s) => {
@@ -1206,19 +1229,17 @@ function calcMemberStats(votes, member) {
 }
 
 function calcMutualAlignment(v1, v2) {
-  // Find votes both participated in (by voteNumber+chamber or voteKey)
+  // Match votes by vote KEY (unique identifier for each vote)
   const map1 = {};
   v1.forEach(v => {
-    const key = v.voteKey || `${v.chamber}-${v.voteNumber}`;
-    if (v.choice === 'Yea' || v.choice === 'Nay') map1[key] = v.choice;
+    if (v.choice === 'Yea' || v.choice === 'Nay') map1[v.voteKey] = v.choice;
   });
 
   let same = 0, total = 0;
   v2.forEach(v => {
-    const key = v.voteKey || `${v.chamber}-${v.voteNumber}`;
-    if ((v.choice === 'Yea' || v.choice === 'Nay') && map1[key]) {
+    if ((v.choice === 'Yea' || v.choice === 'Nay') && map1[v.voteKey]) {
       total++;
-      if (map1[key] === v.choice) same++;
+      if (map1[v.voteKey] === v.choice) same++;
     }
   });
 
